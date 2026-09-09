@@ -30,6 +30,11 @@ final class DisplayCoordinator {
     // object (code review).
     private let pwmSafeCoordinator: PWMSafeCoordinator
     private let overlayDimmer: OverlayDimming
+    /// C5b: called whenever the display list changes, so anything holding
+    /// per-connection handles can drop them. `DDCBackend`'s cached
+    /// `IOAVService` is the one caller — a handle belongs to one physical
+    /// connection and must not survive an unplug/replug.
+    private let displaysChangedHook: () -> Void
 
     private var lastApplied: [DisplayCommand] = []
     private var cancellables = Set<AnyCancellable>()
@@ -39,13 +44,15 @@ final class DisplayCoordinator {
         displayManager: DisplayProviding,
         gammaController: GammaApplying,
         pwmSafeCoordinator: PWMSafeCoordinator,
-        overlayDimmer: OverlayDimming
+        overlayDimmer: OverlayDimming,
+        displaysChanged: @escaping () -> Void = {}
     ) {
         self.appState = appState
         self.displayManager = displayManager
         self.gammaController = gammaController
         self.pwmSafeCoordinator = pwmSafeCoordinator
         self.overlayDimmer = overlayDimmer
+        self.displaysChangedHook = displaysChanged
 
         appState.objectWillChange
             .receive(on: DispatchQueue.main)
@@ -74,6 +81,7 @@ final class DisplayCoordinator {
             gammaController.restoreAll()
             lastApplied = []
             overlayDimmer.handleDisplaysChanged()
+            displaysChangedHook()
         }
         gammaController.evictBaselines(keepingOnly: currentUUIDs)
 

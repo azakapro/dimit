@@ -2468,6 +2468,72 @@
           }
         }
       }
+    },
+    "settings.ddc_experimental": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DDC/CI brightness control (Experimental)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "DDC/CI brightness control (Experimental)"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "DDC/CI brightness control (Experimental)"
+          }
+        }
+      }
+    },
+    "settings.ddc_help": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lets PWM-Safe mode pin the backlight on third-party external monitors over DDC/CI. Off by default, and untested on real hardware — turn it on only if you're willing to report what happens."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Lets PWM-Safe mode pin the backlight on third-party external monitors over DDC/CI. Off by default, and untested on real hardware — turn it on only if you're willing to report what happens."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Lets PWM-Safe mode pin the backlight on third-party external monitors over DDC/CI. Off by default, and untested on real hardware — turn it on only if you're willing to report what happens."
+          }
+        }
+      }
+    },
+    "settings.ddc_single_display_only": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only used when exactly one external monitor is connected — with several, Dimit can't yet tell which is which and leaves them alone."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Only used when exactly one external monitor is connected — with several, Dimit can't yet tell which is which and leaves them alone."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Only used when exactly one external monitor is connected — with several, Dimit can't yet tell which is which and leaves them alone."
+          }
+        }
+      }
     }
   },
   "version": "1.1"

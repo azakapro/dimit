@@ -32,6 +32,9 @@ enum Config {
     static let warmthHotkeyStepK: Double = 100 // matches the popover slider's own step
     static let brightnessHotkeyStep: Double = 0.05
 
-    // MARK: - Not wired up yet, flags reserved so later cycles don't rename things
-    static var ddcEnabled = false // C5, experimental, default OFF per CLAUDE.md §3.4
+    // CLAUDE.md §3.4 names `Config.ddcEnabled` as the DDC feature flag. It
+    // landed in C5b as `AppState.ddcEnabled` instead — persisted, and
+    // bound to a real Settings toggle, which a `static var` here could be
+    // neither. Same default (OFF), same meaning; noted rather than left as
+    // a dead second copy for someone to wire up by mistake.
 }

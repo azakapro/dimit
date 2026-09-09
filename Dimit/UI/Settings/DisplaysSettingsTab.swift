@@ -13,8 +13,27 @@ struct DisplaysSettingsTab: View {
 
     var body: some View {
         Form {
-            ForEach(displayManager.displays) { display in
-                DisplayRow(appState: appState, display: display, backendName: pwmSafeCoordinator.backendName(for: display))
+            Section {
+                ForEach(displayManager.displays) { display in
+                    DisplayRow(appState: appState, display: display, backendName: pwmSafeCoordinator.backendName(for: display))
+                }
+            }
+
+            // C5b/CLAUDE.md §3.4: "Ships in 1.0 as an Experimental toggle
+            // in Settings (`Config.ddcEnabled`, default OFF); promoted to
+            // default ON in 1.1 after a second monitor and beta feedback."
+            Section {
+                Toggle(isOn: $appState.ddcEnabled) {
+                    Text("settings.ddc_experimental")
+                }
+                Text("settings.ddc_help")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("settings.ddc_single_display_only")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .formStyle(.grouped)
