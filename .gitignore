@@ -46,3 +46,6 @@ site/.astro/
 
 # Scratch
 *.orig
+
+# Claude Code session tooling (launch configs, locks) — per machine, not project
+.claude/

@@ -1,0 +1,10 @@
+---
+import Base from "../layouts/Base.astro";
+import { t, type Lang } from "../i18n";
+const { lang } = Astro.props as { lang: Lang };
+const d = t(lang);
+---
+<Base lang={lang} title={d.faq.title} page="faq">
+  <h1>{d.faq.title}</h1>
+  {d.faq.items.map((i) => <details><summary>{i.q}</summary><p>{i.a}</p></details>)}
+</Base>

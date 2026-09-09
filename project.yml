@@ -33,6 +33,12 @@ packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     exactVersion: 1.9.4
+  # CLAUDE.md §2 pre-approves "sparkle-project/Sparkle (updates)"; C7 wires
+  # it in. The only network code in the app, and inert until the user opts
+  # in (ARCHITECTURE.md §8). Pinned exactly, like KeyboardShortcuts.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.9.6
 targets:
   Dimit:
     type: application
@@ -44,6 +50,7 @@ targets:
           - Info.plist # referenced via INFOPLIST_FILE below, not as a copied resource
     dependencies:
       - package: KeyboardShortcuts
+      - package: Sparkle
     # No top-level `info:` key: that tells XcodeGen to *generate and own*
     # the plist (it silently overwrites a hand-written one with its own
     # minimal template on every `generate`, which cost a debugging round

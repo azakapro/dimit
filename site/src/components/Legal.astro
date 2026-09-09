@@ -1,0 +1,12 @@
+---
+import Base from "../layouts/Base.astro";
+import { config } from "../config";
+import { t, type Lang } from "../i18n";
+const { lang, kind } = Astro.props as { lang: Lang; kind: "terms" | "privacy" | "refund" };
+const d = t(lang)[kind];
+const fill = (s: string) => s.replaceAll("{legalEntity}", config.legalEntity).replaceAll("{supportEmail}", config.supportEmail);
+---
+<Base lang={lang} title={d.title} page={kind}>
+  <h1>{d.title}</h1>
+  {d.paras.map((s) => <p set:html={fill(s).replace(config.supportEmail, `<a href="mailto:${config.supportEmail}">${config.supportEmail}</a>`)} />)}
+</Base>

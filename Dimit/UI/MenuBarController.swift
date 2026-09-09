@@ -13,18 +13,27 @@ final class MenuBarController: NSObject {
     private let pwmSafeCoordinator: PWMSafeCoordinator
     private let restoreColours: () -> Void
     private let openSettings: () -> Void
+    /// C7/ARCHITECTURE.md §8: nil disables the "Check for Updates…" item
+    /// (Sparkle refuses a second concurrent check). Evaluated when the menu
+    /// is built, which is every right-click.
+    private let checkForUpdates: () -> Void
+    private let canCheckForUpdates: () -> Bool
     private var cancellables = Set<AnyCancellable>()
 
     init(
         appState: AppState,
         pwmSafeCoordinator: PWMSafeCoordinator,
         restoreColours: @escaping () -> Void,
-        openSettings: @escaping () -> Void
+        openSettings: @escaping () -> Void,
+        checkForUpdates: @escaping () -> Void = {},
+        canCheckForUpdates: @escaping () -> Bool = { false }
     ) {
         self.appState = appState
         self.pwmSafeCoordinator = pwmSafeCoordinator
         self.restoreColours = restoreColours
         self.openSettings = openSettings
+        self.checkForUpdates = checkForUpdates
+        self.canCheckForUpdates = canCheckForUpdates
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         self.popover = NSPopover()
         super.init()
@@ -179,6 +188,17 @@ final class MenuBarController: NSObject {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
+        // C7: a user-initiated check is allowed whatever the automatic
+        // opt-in says (CLAUDE.md §4.3) — the user clicking is the consent.
+        let updatesItem = NSMenuItem(
+            title: appState.localized("menu.check_updates"),
+            action: #selector(checkForUpdatesClicked),
+            keyEquivalent: ""
+        )
+        updatesItem.target = self
+        updatesItem.isEnabled = canCheckForUpdates()
+        menu.addItem(updatesItem)
+
         let quitItem = NSMenuItem(
             title: appState.localized("menu.quit"),
             action: #selector(NSApplication.terminate(_:)),
@@ -216,6 +236,10 @@ final class MenuBarController: NSObject {
 
     @objc private func settingsClicked() {
         openSettings()
+    }
+
+    @objc private func checkForUpdatesClicked() {
+        checkForUpdates()
     }
 }
 

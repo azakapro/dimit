@@ -1,30 +1,48 @@
 # Dimit
 
-Blue-light and PWM-flicker utility for macOS (Windows later). Sold as a pay-what-you-want download ($5 minimum) through Lemon Squeezy on our own site; no accounts, no license keys, no network traffic from the app except an opt-in update check.
+Warm your Mac's screen down to a pure-red "0K", dim it below the keyboard's floor, and keep the backlight from flickering. A native macOS menu-bar app: two sliders, three presets, one button. Uzbek, Russian and English. No account, no tracking, no subscription.
 
-- Product and engineering spec: [CLAUDE.md](CLAUDE.md)
-- Cycles, PR rules, business track, decisions: [docs/PLAN.md](docs/PLAN.md)
-- Architecture (modules, state machines, distribution, site, updates): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- Hardware evidence per cycle: [docs/QA.md](docs/QA.md)
+**Get it:** pay what you want from $5 at [dimit.uz/download](https://dimit.uz/download) (Lemon Squeezy checkout, cards and PayPal). Every copy is identical and unconditional — no key, no trial, no activation.
 
-First-time setup (installs XcodeGen if needed, generates `Dimit.xcodeproj` from `project.yml`):
+## What it does
+
+- **Warmth to 0K.** Night Shift stops near 2500K, f.lux near 1900K; Dimit rewrites the display's gamma tables all the way to pure red. "0K" is a name, not a physical temperature.
+- **Software dimming to 10%**, on every connected display, below what the brightness keys allow.
+- **PWM-Safe mode** pins the hardware backlight at 100% and dims in software instead, so LED backlights that dim by pulsing (PWM) stop pulsing. Apple displays today; third-party monitors over DDC/CI are experimental and off by default.
+- **Screenshots, recordings and screen shares keep their real colours** at brightness 30% and above, because the tint lives in the display's colour tables, not in a window. Verified with QuickTime and Zoom on macOS 27 (docs/QA.md). Below 30% and in Fallback mode an overlay window is used, and some recorders may capture it.
+- **Sunset→sunrise or fixed-time schedules**, computed locally from a bundled city list or a one-time location read. Nothing is sent anywhere.
+- **Fail-safe.** OFF, quit, `kill -9`, sleep/wake and unplugging a monitor all leave the display normal; a "Restore Colours" button exists for anything else.
+
+Requires macOS 13 or later, Apple silicon or Intel. Never asks for Accessibility, Screen Recording or admin. Not on the Mac App Store, because the sandbox forbids the display access it needs.
+
+## Privacy, in one paragraph
+
+The app makes no network request of any kind unless you turn on update checks (off by default), in which case Sparkle fetches one signed appcast from dimit.uz. There is no analytics, no crash reporter, no identifier, no server of ours. See docs/ARCHITECTURE.md §4 and the Privacy page on the site.
+
+## Building it
 
 ```bash
-scripts/bootstrap.sh
+scripts/bootstrap.sh      # installs XcodeGen if needed, generates Dimit.xcodeproj from project.yml
+xcodebuild test -project Dimit.xcodeproj -scheme Dimit -destination 'platform=macOS'
 ```
 
-Re-run `scripts/bootstrap.sh` any time `project.yml` changes — `Dimit.xcodeproj` itself is gitignored and regenerated, never hand-edited or committed.
+`Dimit.xcodeproj` is generated and gitignored; edit `project.yml`, never the project. Xcode 26 or newer, Swift 5 language mode on the Swift 6 toolchain, macOS 13 deployment target, universal binary. Two Swift packages: [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) and [Sparkle](https://github.com/sparkle-project/Sparkle), both pinned.
 
-First thing to run on any new macOS build:
+Run `swift scripts/gamma_spike.swift` on any new macOS build before trusting the gamma path — the display engine's known Apple bugs are documented in CLAUDE.md §3.3.
 
-```bash
-swift scripts/gamma_spike.swift
-```
+Releases: `scripts/build.sh` → `scripts/notarize.sh` (which also builds the DMG) → `scripts/make_appcast.sh`; the procedure and gates are in docs/RELEASE.md. The site lives in `site/` (Astro, static; `npm run build`, `npm run build:release` refuses to ship placeholders).
 
-Status (2026-09-10): **C0–C6 done and merged to main, tagged `v0.4`** (180 tests green). The app has the full display engine (0K warmth, software dim, PWM-Safe, extreme dim, Fallback mode), everything behind the Settings gear (General / Schedule / Displays / Advanced, editable presets, six global hotkeys, launch at login, live Uzbek/Russian/English switch, onboarding, diagnostics), sunset→sunrise and fixed-time scheduling with a bundled city list, and experimental DDC/CI brightness for external monitors (default off — never verified against a real monitor yet).
+## Where things are
 
-The headline promise — "screenshots, recordings and screen-shares stay normal" — has real evidence for the gamma path: a Zoom share and a QuickTime recording on macOS 27, both untinted, with the filter working on screen throughout. It does **not** yet cover the two overlay-driven paths (brightness below 30%, Fallback mode), which rely on a window-exclusion flag Apple now calls legacy; those need a capture matrix in C6 before the claim is repeated unqualified on the site. Also open: the CoreDisplay brightness fallback can report a pin that never happened, on hardware nobody has tested; cold popover measures 180 ms against a 100 ms budget; DDC has never talked to a monitor. See docs/QA.md's **pending** rows.
+| | |
+|---|---|
+| Product and engineering spec, non-negotiable rules | [CLAUDE.md](CLAUDE.md) |
+| Cycles, decisions, PR rules, business track | [docs/PLAN.md](docs/PLAN.md) |
+| Architecture, display engine, distribution, site, updates | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Hardware evidence behind every claim above | [docs/QA.md](docs/QA.md) |
+| Releasing | [docs/RELEASE.md](docs/RELEASE.md) |
+| Beta tester checklist | [docs/TESTING_CHECKLIST.md](docs/TESTING_CHECKLIST.md) |
 
-**Distribution was re-decided on 2026-09-09** (docs/PLAN.md → Decisions): no license server, no keys, no trial, no Payme/Click. C6 (2026-09-10) added the release scripts (`scripts/build.sh`, `build_dmg.sh`, `notarize.sh`, docs/RELEASE.md), the tester checklist (docs/TESTING_CHECKLIST.md) and an ad-hoc-signed v0.4 DMG; a Developer ID certificate and tester reports are what's still missing from it. Then C7: the Astro site with the Lemon Squeezy checkout, Sparkle opt-in updates, and the v1.0 launch.
+## Status
 
-PR rules: docs/PLAN.md §3 and .github/pull_request_template.md.
+2026-09-10: **C0–C7 built** — display engine, PWM-Safe, settings, scheduling, experimental DDC, release scripts, opt-in Sparkle updates, and the site. Tagged through `v0.4`; 183 tests. What stands between this and **v1.0**: a Developer ID certificate under the LLC (the friend's account is beta-only, because Sparkle ties updates to the Team ID), the Lemon Squeezy store with a verified payout method and the checkout URL in `site/src/config.ts`, the site's Uzbek/Russian copy read by a fluent person (`site/TRANSLATIONS.md`), and tester reports on a stable macOS release. All four are in docs/PLAN.md §2 C7 "Done when".

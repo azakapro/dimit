@@ -1,0 +1,33 @@
+---
+import Base from "../layouts/Base.astro";
+import { config, checkoutReady, checkoutHref } from "../config";
+import { t, type Lang } from "../i18n";
+const { lang } = Astro.props as { lang: Lang };
+const d = t(lang); const g = d.download;
+---
+<Base lang={lang} title={g.title} description={g.lead} page="download" lemon={checkoutReady}>
+  <h1>{g.title}</h1>
+  <p class="lead">{g.lead}</p>
+
+  {/* docs/ARCHITECTURE.md §7: a plain anchor, never a JS-only handler — if
+      lemon.js fails to load this is still a working link to the hosted
+      checkout. The button is disabled until the owner fills in checkoutUrl. */}
+  {checkoutReady
+    ? <p><a class="btn lemonsqueezy-button" href={checkoutHref}>{g.cta}</a></p>
+    : <p><a class="btn disabled" aria-disabled="true" href="#">{g.cta}</a><br /><span class="note">{g.ctaSoon}</span></p>}
+  <p class="note">{g.from}</p>
+  <p>{g.requires}</p>
+
+  <h2>{g.testedOn}</h2>
+  <ul>{g.testedList.map((s) => <li>{s}</li>)}</ul>
+  <p class="note">{g.notarized}</p>
+
+  <h2>{g.installTitle}</h2>
+  <ol>{g.install.map((s) => <li>{s}</li>)}</ol>
+
+  <h2>{g.lostTitle}</h2>
+  <p>{g.lost} <a href={config.myOrdersUrl} rel="noopener">My Orders →</a></p>
+
+  <h2>{g.afterTitle}</h2>
+  <ul>{g.after.map((s) => <li>{s}</li>)}</ul>
+</Base>
