@@ -1,0 +1,41 @@
+# Xcode
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# CocoaPods (explicitly unused, but just in case)
+Pods/
+
+# Secrets
+*.p8
+*.p12
+.env
+.env.*
+server/.dev.vars
+server/.wrangler/
+
+# Site
+site/node_modules/
+site/dist/
+site/.astro/
+
+# macOS
+.DS_Store
+
+# Scratch
+*.orig

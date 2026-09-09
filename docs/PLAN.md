@@ -1,0 +1,130 @@
+# Dimit — Plan (MVP-first)
+
+Rewritten 2026-09-09. Rule of the plan: **ship a working app to real people first, sell it later.** No licensing, no payments, no website until the app itself is good. Each cycle is one PR, one version bump, one short demo GIF.
+
+## 1. Versions
+
+| Version | Cycles | What a user gets | Target (part-time, ~28 h/week) |
+|---|---|---|---|
+| **MVP v0.1** | C0–C3 | Menu-bar app: warmth to 0K, software dim, 3 presets, ON/OFF, all displays, PWM-Safe on Apple displays, extreme dim, 3 languages. Shared as a zip with friends. | **Tue 2026-09-22** (2 weeks) |
+| v0.2 | C4 | Settings window, hotkeys, launch at login, onboarding, diagnostics, menu-bar icon states | 2026-09-29 |
+| v0.3 | C5 | Sunset/sunrise + fixed-time schedule, DDC/CI experimental on external monitors | 2026-10-06 |
+| v0.4 beta | C6 | Signed DMG, 20 Telegram testers, QA matrix, bug fixes | 2026-10-13 → 10-20 |
+| v1.0 | C7 | License keys + 7-day trial. Keys minted by hand, sold through Telegram. First revenue. | 2026-11-03 |
+| v1.1 | C8 | Payme + Click checkout, dimit.uz site | late Nov 2026 |
+| v1.2 | C9 | Lemon Squeezy, dimit.app, affiliates, global launch | Dec 2026 |
+| v2 | Phase 2 | Windows | 2027 |
+
+Everything from v1.0 down keeps the same architecture in `docs/ARCHITECTURE.md`; the MVP simply leaves `License/`, `server/` and `site/` empty.
+
+## 2. Cycles
+
+Every cycle starts with this prompt to Claude Code, with the cycle number filled in:
+
+> Read CLAUDE.md, docs/PLAN.md §2 Cycle Cn and docs/ARCHITECTURE.md. Execute Cycle Cn exactly as scoped. Write tests first for pure functions. Do not touch anything listed under "Out". Stop when every line under "Done when" is true, then summarize what you verified by hand and what you could not.
+
+### C0 — Environment and gamma spike · Sonnet 5 · ~3 h
+
+**In:** install Xcode 26 (or the 27 beta if 26 will not launch on macOS 27), `xcode-select`, license accept. Run `swift scripts/gamma_spike.swift` twice (auto-brightness ON, then OFF), watch the screen, record both rows in `docs/QA.md`. Add `.gitignore` (Xcode, SwiftPM, DerivedData, `.DS_Store`).
+**Out:** any app code.
+**Done when:** `xcodebuild -version` prints a version; QA.md has the two spike rows with "red: yes/no" filled by a human; `.gitignore` committed.
+**Decision gate:** if the screen was **not** red with auto-brightness OFF, stop and re-plan with Fable before C2 (overlay becomes the primary tint path).
+**PR:** none, commit directly to `main` as `chore: environment + gamma spike results`.
+
+### C1 — Skeleton · Sonnet 5 · ~10 h
+
+**In:** Xcode project `Dimit` (macOS 13 target, universal, Swift 5 language mode, no sandbox, `LSUIElement = YES`), `Config.swift`, `AppState` (`@Observable`, persisted to UserDefaults with 250 ms debounce), `MenuBarController` (status item, left-click popover, right-click menu with presets/toggle/quit), `PopoverView` per the UI spec in ARCHITECTURE §10 (ON/OFF, warmth slider, brightness slider, preset segmented control, PWM-Safe toggle shown but disabled with "coming in C3" hidden behind a flag), `Localizable.xcstrings` with every row of CLAUDE.md §5.1, `WarmthCurve.swift` **with tests written first** (CLAUDE.md §3.2 known points, `rgb(0) == (1,0,0)` exactly), `Renderer.render(state, displays) -> [DisplayCommand]` as a pure function with tests (idempotent, one command per display). `Logger.swift`.
+**Out:** anything that calls CoreGraphics gamma or brightness APIs. The sliders change state and log; the screen does not change.
+**Done when:** app builds and runs as a menu-bar item; popover shows in EN/UZ/RU when the system language changes (or via a temporary debug locale override); state survives relaunch; `xcodebuild test` passes; popover fits Russian strings without truncation at 320 pt.
+**PR:** `feat(c1): app skeleton, popover, string catalog, warmth curve` with three screenshots (en/uz/ru) and the test count.
+
+### C2 — Display engine · Opus 5 · ~16 h
+
+**In:** `DisplayModels`, `DisplayManager` (enumerate, UUID keying, reconfiguration callback with begin/end flag handling, wake notifications with 1.0 s re-apply), `GammaController` (baseline read once per display UUID, table build per ARCHITECTURE §2.4, apply, read-back mismatch counter), `Applier` (diff against last applied, only changed displays), restore on OFF, `applicationWillTerminate`, SIGTERM/SIGINT, and **on launch before anything else**. "Restore colours" item in the right-click menu. Dim floor 0.30 in gamma; below that the slider clamps for now (overlay comes in C3).
+**Out:** brightness backends, overlay, PWM, fallback mode.
+**Done when (by hand, rows in QA.md):** 0K is pure red on the built-in display and on the home monitor when plugged in; ⌘⇧4 screenshot at 0K is not red; QuickTime recording not red; unplug/replug monitor while ON re-applies; sleep/wake re-applies within ~1 s; quit restores; `kill -9` then relaunch restores; idle CPU < 0.5% over 5 min in Activity Monitor; slider feels instant.
+**PR:** `feat(c2): gamma warmth and software dim on all displays` with a GIF of the slider going to 0K and a screenshot proving screenshots stay normal, plus the QA.md rows.
+
+### C3 — PWM-Safe and extreme dim · Opus 5 · ~18 h → tag **v0.1**
+
+**In:** `BrightnessBackend` protocol and the four backends from ARCHITECTURE §2.5 (DisplayServices via dlopen, CoreDisplay fallback, DDC stub returning `.unsupported`, IORegistry read-only), `PWMSafeCoordinator` state machine **with tests against a fake backend** (pin, verify, retry ×2, wontHold, drift re-pin, disable restores), 5 s poll only while pinned, brightness-key detection toast once per session. `OverlayDimmer` per screen for brightness 10–30% (`sharingType = .none` before ordering front, recreated on reconfiguration). Fallback mode toggle (red overlay, gamma left at baseline) in the right-click menu for now. Auto-brightness banner: timebox 2 h to find a detection key; otherwise show once on macOS ≥ 26 at first ON, dismissable forever. Battery note string. Menu-bar icon: outline OFF, filled ON, dot when pinned.
+**Out:** Settings window, hotkeys, login item, schedule, licensing.
+**Done when:** PWM-Safe on the built-in display shows `pinned`; pressing F1 while pinned re-pins within 5 s and shows the toast once; disabling restores the previous hardware brightness; brightness 10% works via overlay and a screenshot at 10% is **not** dark; Fallback mode makes the screen red and a screenshot **is** red; all C2 rows still pass; tests pass.
+**PR:** `feat(c3): PWM-Safe mode, extreme dim overlay, fallback mode` with a GIF, QA rows, and a note of which backend worked on macOS 27. Tag `v0.1`, attach an ad-hoc-signed zip to the GitHub release. Share with friends; they run `xattr -d com.apple.quarantine Dimit.app` or right-click → Open. Write that in the release notes.
+
+### C4 — Daily-use polish · Sonnet 5 · ~12 h → **v0.2**
+
+**In:** `SettingsView` with tabs General / Displays / Advanced (per ARCHITECTURE §10; License tab hidden until C7, Schedule tab until C5), `HotkeyManager` with `KeyboardShortcuts` (toggle ⌃⌥⌘Z, cycle presets, warmth ±, brightness ±), launch at login via `SMAppService`, 3-step onboarding with "Restore colours" button, `DiagnosticsBundle` copied to clipboard, language override, preset editing + reset, VoiceOver labels on every control in three languages, full keyboard operation of the popover.
+**Out:** schedule, DDC, licensing.
+**Done when:** every hotkey works while another app is frontmost; login item toggles and survives reboot; onboarding shows once; VoiceOver reads every control in all three languages; no new permission prompts appeared.
+**PR:** `feat(c4): settings, hotkeys, login item, onboarding, diagnostics`. Tag `v0.2`.
+
+### C5 — Scheduling and DDC experimental · Sonnet 5 (schedule) then Opus 5 (DDC) · ~18 h → **v0.3**
+
+**In:** `ScheduleEngine` per ARCHITECTURE §3 with NOAA tests (Tashkent 2026-09-08 within ±3 min), city list, optional CoreLocation only after the user taps "Use my location", fixed-times mode, 20-min linear ramps, manual override pauses until the next phase. Schedule tab in Settings. Then `DDCController` (IOAVService on Apple Silicon, VCP 0x10) behind `Config.ddcEnabled` default OFF, Experimental toggle in the Displays tab, tested on the home monitor with its model recorded in QA.md.
+**Out:** licensing, site.
+**Done when:** with the Mac's clock moved past today's Tashkent sunset the app ramps to EVENING over 20 min; no Location prompt appears unless the button is pressed; DDC toggle either pins the home monitor to 100% or shows `unsupported` cleanly, never hangs the UI.
+**PR:** two PRs, `feat(c5a): schedule engine` and `feat(c5b): DDC/CI experimental`. Tag `v0.3`.
+
+### C6 — Beta · Sonnet 5, Opus 5 for display bugs · ~14 h + tester time → **v0.4**
+
+**In:** `scripts/build.sh`, `scripts/build_dmg.sh` (create-dmg), `scripts/notarize.sh` (works with whichever Developer ID is available; the friend's account is fine for beta builds only), `docs/RELEASE.md`. Send the DMG to 20 Telegram testers with a one-page checklist copied from CLAUDE.md §8. Fill `docs/QA.md` for every macOS version they have. Fix what they find.
+**Out:** Sparkle (the beta is replaced by hand), licensing.
+**Done when:** QA.md has at least one row per macOS major the testers own; every "must" row passes on at least one machine per major; no open crash or stuck-tint report.
+**PR:** `chore(c6): release scripts and beta fixes`, one PR per fix batch. Tag `v0.4`.
+
+### C7 — Licensing, sold by hand · Opus 5 · ~24 h → **v1.0**
+
+**In:** `server/` Worker + D1 + KV with `/v1/activate`, `/v1/validate`, `/v1/deactivate`, `/admin/mint` and `scripts/mint.ts`; Vitest for seat logic and rate limits; deployed to `api.dimit.uz` (buy the domain the week before). App side: `DeviceID`, `LicenseStore` (Keychain), `LicenseClient`, `LicenseState` **with transition tests incl. grace**, 7-day trial starting at first launch, trial-ended bar that locks PWM-Safe and scheduling, License tab, all error strings localized. Sales: a buyer writes on Telegram, pays by card transfer, you run `mint.ts --email …` and paste the key. Sparkle 2 opt-in with EdDSA appcast on the site host (a bare Cloudflare Pages project is enough).
+**Out:** Payme/Click, public website.
+**Done when:** a fresh install shows "Trial: 7 days left"; a minted key activates, shows "1 of 3 seats", a fourth device gets the no-seats error, deactivate frees the seat; revoking on the server flips the app to "revoked" and restores colours on the next validate; airplane mode for 15 simulated days ends in `expiredNeedsValidation`; Sparkle finds a test update only when opted in.
+**PR:** `feat(c7): license server and client, trial, sparkle`. Tag `v1.0`. Notarize under the LLC's Developer ID by now (enrollment started in week 0 of the business track, §4).
+
+### C8 — Payments and site · Codex or Sonnet 5 for site, Opus 5 for Payme/Click · ~40 h → **v1.1**
+
+Exactly as ARCHITECTURE §5–§8: `/v1/orders`, Payme JSON-RPC with the test list, Click prepare/complete, Resend templates, Astro site `uz` / `ru` / `en` with `/buy` and `/download`. Done when a sandbox purchase ends with a key in the inbox and on the download page.
+
+### C9 — Global · Sonnet 5 · ~16 h → **v1.2**
+
+Lemon Squeezy webhook, dimit.app, `/en` copy, affiliates, English communities.
+
+## 3. PR requirements (every cycle)
+
+The template lives in `.github/pull_request_template.md`. A PR is mergeable only when:
+
+1. Title is `feat(cN): …` / `fix(cN): …` / `chore(cN): …`; branch `cN-short-name`.
+2. `xcodebuild test` passes and the count of tests is in the description.
+3. The "Done when" list of the cycle is pasted in with a ✅ or a written reason for every line.
+4. QA rows run by hand are added to `docs/QA.md` in the same PR.
+5. A GIF or screenshot for anything visible.
+6. No new dependency, network call, entitlement or permission prompt unless the PR description names it and why.
+7. Every new string is in the catalog in all three languages or marked `// TODO(i18n)`.
+8. The gamma-restore paths (OFF, quit, signals, launch) are untouched or the diff explains the change.
+9. `/code-review high` run before requesting merge; findings fixed or listed as accepted.
+
+## 4. Business track (runs beside the cycles, costs hours of forms, not code)
+
+Nothing here blocks the MVP. Start each item at the cycle named so it is ready when needed.
+
+| Item | Start at | Needed by |
+|---|---|---|
+| D-U-N-S number, then Apple Developer Program for the LLC | C0 | C7 (v1.0 must be signed under the LLC; the friend's account only for v0.x betas, because a Team ID change later breaks Sparkle) |
+| dimit.uz registration + Cloudflare DNS | C5 | C7 (`api.dimit.uz`) |
+| Cloudflare account, `npm i -g wrangler` | C6 | C7 |
+| Payme Business + Click merchant contracts | C6 | C8 |
+| Resend account, domain verification | C7 | C8 |
+| Telegram channel + support handle | C6 | C6 beta |
+| UZS price research with beta testers (starting hypothesis 199 000 UZS, see the earlier note in git history) | C6 | C8 |
+
+## 5. Model assignment, one line
+
+Sonnet 5 for skeleton, settings, schedule, scripts, site, docs. Opus 5 for anything that touches gamma, brightness backends, DDC, the PWM state machine, license state, or payment handlers. Fable 5.1 only to re-plan when a cycle slips by more than three days or the C0 gate fails.
+
+## 6. Risks that matter for the MVP
+
+| Risk | Mitigation |
+|---|---|
+| Gamma silently ignored on macOS 27 beta | C0 gate. If it fails, C2 builds the overlay path first and gamma second. |
+| DisplayServices symbols missing on 27 | The protocol returns `.unsupported`; PWM-Safe shows the unsupported string; ship anyway, testers on 26 will confirm. |
+| Only one dev machine, on a beta OS | Friends' Macs from v0.1 onward are the real test bed; ask their macOS versions when sharing the zip. |
+| Part-time slips | Cycles are one PR each; if one slips more than three days, cut scope inside the cycle rather than extending it. |
