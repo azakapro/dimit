@@ -47,12 +47,14 @@ Every cycle starts with this prompt to Claude Code, with the cycle number filled
 **Done when (by hand, rows in QA.md):** 0K is pure red on the built-in display and on the home monitor when plugged in; ⌘⇧4 screenshot at 0K is not red; QuickTime recording not red; unplug/replug monitor while ON re-applies; sleep/wake re-applies within ~1 s; quit restores; `kill -9` then relaunch restores; idle CPU < 0.5% over 5 min in Activity Monitor; slider feels instant.
 **PR:** `feat(c2): gamma warmth and software dim on all displays` with a GIF of the slider going to 0K and a screenshot proving screenshots stay normal, plus the QA.md rows.
 
-### C3 — PWM-Safe and extreme dim · Opus 5 · ~18 h → tag **v0.1**
+### C3 — PWM-Safe and extreme dim · Opus 5 · ~18 h → tag **v0.1** — ✅ merged 2026-09-09 (#3), tagged `v0.1`
 
 **In:** `BrightnessBackend` protocol and the four backends from ARCHITECTURE §2.5 (DisplayServices via dlopen, CoreDisplay fallback, DDC stub returning `.unsupported`, IORegistry read-only), `PWMSafeCoordinator` state machine **with tests against a fake backend** (pin, verify, retry ×2, wontHold, drift re-pin, disable restores), 5 s poll only while pinned, brightness-key detection toast once per session. `OverlayDimmer` per screen for brightness 10–30% (`sharingType = .none` before ordering front, recreated on reconfiguration). Fallback mode toggle (red overlay, gamma left at baseline) in the right-click menu for now. Auto-brightness banner: timebox 2 h to find a detection key; otherwise show once on macOS ≥ 26 at first ON, dismissable forever. Battery note string. Menu-bar icon: outline OFF, filled ON, dot when pinned.
 **Out:** Settings window, hotkeys, login item, schedule, licensing.
 **Done when:** PWM-Safe on the built-in display shows `pinned`; pressing F1 while pinned re-pins within 5 s and shows the toast once; disabling restores the previous hardware brightness; brightness 10% works via overlay and a screenshot at 10% is **not** dark; Fallback mode makes the screen red and a screenshot **is** red; all C2 rows still pass; tests pass.
 **PR:** `feat(c3): PWM-Safe mode, extreme dim overlay, fallback mode` with a GIF, QA rows, and a note of which backend worked on macOS 27. Tag `v0.1`, attach an ad-hoc-signed zip to the GitHub release. Share with friends; they run `xattr -d com.apple.quarantine Dimit.app` or right-click → Open. Write that in the release notes.
+
+**Carried into C4 as owner-only checks:** three of the "Done when" clauses above can't be closed from an unattended session and were *not* silently ticked off — pressing F1 to trigger a real drift re-pin, and the two screenshot assertions (10% overlay not dark, Fallback mode red). The trigger logic for all three is unit-tested and the overlay's real geometry was confirmed against the window server, but nobody has yet looked at the screen. Same for the external monitor and sleep/wake rows. They're the **pending** rows in docs/QA.md.
 
 ### C4 — Daily-use polish · Sonnet 5 · ~12 h → **v0.2**
 
