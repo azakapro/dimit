@@ -70,6 +70,19 @@ Private-framework verification came first, before writing any of the rest of thi
 
 **Two real, verified findings about hardware/OS behavior, not assumptions**, both documented prominently in code comments so they aren't lost: `CoreDisplayBackend` doesn't actually control the built-in panel's brightness on this Apple Silicon machine (its `get()` is a constant), and the `IORegistry` brightness cross-check CLAUDE.md's own spec describes as "observed on the dev machine" does not track live changes on *this* dev machine as re-tested for this cycle. Both are implemented per spec regardless (harmless, and may behave correctly on hardware this session doesn't have), with the discrepancy flagged for whoever tests on a Studio Display, Pro Display XDR, or Intel Mac.
 
+### Owner-run live test on the real machine, 2026-09-09 (closes three rows that unit tests could not)
+
+The owner ran the Debug build and drove the real UI while the hardware backlight, the live gamma table and the persisted state were sampled together every 1.5–2 s. This is the first evidence for these rows that isn't a unit test or a fake backend.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Brightness key press → re-pin within 5 s | **pass — was "pending", now closed** | Owner pressed F1 with PWM-Safe on: backlight fell `0.937 → 0.625 → 0.312`, and the app forced it back to `1.000` about 6 s later (poll interval is 5 s). Reproduced three times in two separate traces (`0.937 → 1.000`, `0.812 → 1.000`, `0.312 → 1.000`). |
+| Gamma/overlay split at the 30% floor | **pass — was inferred, now observed** | Dragging Brightness below 30% left gamma pinned at exactly `0.300` while the persisted `dim` kept falling to `0.100`; the overlay takes the rest. At 2700K the table read `(0.300, 0.225, 0.150)` — the 2700K multipliers `(1, 0.75, 0.5)` times the 0.30 floor, exact to three decimals. |
+| Gamma table tracks AppState with no drift | **pass** | 40 s untouched window: state `dim` and the gamma table agreed on every sample, `g` and `b` exactly `0.000` at 0K. An apparent state/gamma mismatch seen earlier was a sampling artifact — the two values were read seconds apart while the owner was clicking through presets — not a real desync. Re-checked by reading both in the same process. |
+| Backlight stability with PWM-Safe **off** | pass | 40 s untouched: exactly `1.000` on every sample, no wandering. No evidence of auto-brightness fighting the app on this machine under steady ambient light. |
+
+One thing deliberately **not** concluded: during a stretch of rapid manual key presses the backlight sat at `0.375` for ~8 s without re-pinning. It did not reproduce in a hands-off window, and the most likely explanation is simply the owner's key presses outpacing the 5 s poll. Recorded here rather than fixed, because the evidence doesn't yet support a change. If a beta tester reports "PWM-Safe lets my brightness drift", start here.
+
 **`/code-review high`, 8 parallel angles, 10 findings, all fixed** (full list in the PR). Test count went 65 → 72. The three that mattered most:
 
 - **Quitting with PWM-Safe on left the backlight stuck at 100%.** Gamma and overlays die with the process; a `DisplayServicesSetBrightness` write does not. `applicationWillTerminate` now calls `restoreAndDisable()`, and so does the "Restore colours" panic button (which previously restored gamma and the overlay synchronously but left the backlight to the deferred `reapply()` — exactly the pipeline-timing dependency that function's own comment says a panic button must not have).
