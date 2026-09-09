@@ -18,6 +18,12 @@ enum Config {
     /// Below this, gamma dimming bands and loses text; the C3 overlay takes over.
     static let gammaDimFloor: Double = 0.30
 
+    // MARK: - Hotkey step sizes (CLAUDE.md §3.9, C4)
+    // Named here (not inlined in HotkeyManager) so a future stepper button
+    // in the UI can't drift from what the hotkey does for the same action.
+    static let warmthHotkeyStepK: Double = 100 // matches the popover slider's own step
+    static let brightnessHotkeyStep: Double = 0.05
+
     // MARK: - Not wired up yet, flags reserved so later cycles don't rename things
     static var ddcEnabled = false // C5, experimental, default OFF per CLAUDE.md §3.4
 }

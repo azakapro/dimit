@@ -30,8 +30,11 @@ enum ToastPresenter {
     /// session" — there is never a reason to show two at once.
     private static var currentWindow: NSWindow?
 
-    static func show(_ text: LocalizedStringResource, near button: NSStatusBarButton?) {
-        let hosting = NSHostingController(rootView: ToastView(text: String(localized: text)))
+    /// Takes an already-localized string so the caller can resolve it
+    /// through `AppState.localized(_:)` and the in-app language override
+    /// applies here too, not only in SwiftUI views.
+    static func show(_ text: String, near button: NSStatusBarButton?) {
+        let hosting = NSHostingController(rootView: ToastView(text: text))
         let size = hosting.view.fittingSize
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: .borderless, backing: .buffered, defer: false)
         window.contentViewController = hosting

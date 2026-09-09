@@ -178,4 +178,169 @@ final class AppStateTests: XCTestCase {
         XCTAssertEqual(raw.brightness, PresetID.night.brightness)
         XCTAssertEqual(raw.activePreset, PresetID.night.rawValue)
     }
+
+    // MARK: - Preset editing (C4, CLAUDE.md §3.7)
+
+    func test_values_forUneditedPreset_returnsBuiltInDefault() {
+        let state = freshState()
+        XCTAssertEqual(state.values(for: .evening), PresetID.evening.defaultValues)
+    }
+
+    func test_setPresetValues_overridesWhatApplyUses() {
+        let state = freshState()
+        let custom = PresetValues(warmthK: 3300, brightness: 0.6)
+        state.setPresetValues(custom, for: .evening)
+        XCTAssertEqual(state.values(for: .evening), custom)
+
+        state.apply(preset: .evening)
+        XCTAssertEqual(state.warmthK, 3300)
+        XCTAssertEqual(state.brightness, 0.6)
+    }
+
+    // "reset to defaults" per CLAUDE.md §3.7 — dragging an override back to
+    // exactly the built-in value should behave identically to pressing
+    // Reset, not leave a redundant override sitting around.
+    func test_setPresetValues_matchingTheDefault_isEquivalentToNoOverride() {
+        let state = freshState()
+        state.setPresetValues(PresetValues(warmthK: 3300, brightness: 0.6), for: .night)
+        state.setPresetValues(PresetID.night.defaultValues, for: .night)
+        XCTAssertEqual(state.values(for: .night), PresetID.night.defaultValues)
+
+        // `presetOverrides`'s setter is private but its getter is internal
+        // (`private(set)`), so the test target can read it directly here —
+        // confirms the persisted JSON won't carry a no-op override either.
+        XCTAssertTrue(state.presetOverrides.isEmpty)
+    }
+
+    func test_resetPreset_removesOnlyThatPresetsOverride() {
+        let state = freshState()
+        state.setPresetValues(PresetValues(warmthK: 5000, brightness: 0.9), for: .day)
+        state.setPresetValues(PresetValues(warmthK: 3300, brightness: 0.6), for: .evening)
+
+        state.resetPreset(.day)
+
+        XCTAssertEqual(state.values(for: .day), PresetID.day.defaultValues)
+        XCTAssertEqual(state.values(for: .evening), PresetValues(warmthK: 3300, brightness: 0.6))
+    }
+
+    func test_resetAllPresets_clearsEveryOverride() {
+        let state = freshState()
+        for preset in PresetID.allCases {
+            state.setPresetValues(PresetValues(warmthK: 3333, brightness: 0.33), for: preset)
+        }
+        state.resetAllPresets()
+        for preset in PresetID.allCases {
+            XCTAssertEqual(state.values(for: preset), preset.defaultValues)
+        }
+    }
+
+    // Editing the sliders of the preset that's *currently* selected should
+    // update AppState live (not just the stored override) and keep that
+    // preset marked as active — otherwise Settings and the popover would
+    // show two different ideas of what "NIGHT" currently means.
+    func test_editingTheActivePresetsValues_updatesSlidersLiveAndKeepsItActive() {
+        let state = freshState()
+        state.apply(preset: .night)
+        state.setPresetValues(PresetValues(warmthK: 500, brightness: 0.2), for: .night)
+
+        XCTAssertEqual(state.warmthK, 500)
+        XCTAssertEqual(state.brightness, 0.2)
+        XCTAssertEqual(state.activePreset, .night, "editing the active preset's own values must not un-highlight it")
+    }
+
+    func test_editingADifferentPresetsValues_doesNotAffectCurrentSlidersOrActiveMarker() {
+        let state = freshState()
+        state.apply(preset: .day)
+        state.setPresetValues(PresetValues(warmthK: 500, brightness: 0.2), for: .night)
+
+        XCTAssertEqual(state.warmthK, PresetID.day.warmthK)
+        XCTAssertEqual(state.activePreset, .day)
+    }
+
+    // MARK: - Hotkey adjustments (C4, CLAUDE.md §3.9)
+
+    func test_cycleToNextPreset_goesDayEveningNightDay() {
+        let state = freshState()
+        state.apply(preset: .day)
+        state.cycleToNextPreset()
+        XCTAssertEqual(state.activePreset, .evening)
+        state.cycleToNextPreset()
+        XCTAssertEqual(state.activePreset, .night)
+        state.cycleToNextPreset()
+        XCTAssertEqual(state.activePreset, .day)
+    }
+
+    func test_cycleToNextPreset_withNoActivePreset_startsAtDay() {
+        let state = freshState()
+        state.warmthK = 3000 // drifted away from every preset
+        XCTAssertNil(state.activePreset)
+        state.cycleToNextPreset()
+        XCTAssertEqual(state.activePreset, .day)
+    }
+
+    func test_adjustWarmth_stepsAndClampsToConfigRange() {
+        let state = freshState()
+        state.warmthK = Config.maxWarmthK
+        state.adjustWarmth(by: Config.warmthHotkeyStepK)
+        XCTAssertEqual(state.warmthK, Config.maxWarmthK, "must clamp, not overshoot past the max")
+
+        state.warmthK = Config.minWarmthK
+        state.adjustWarmth(by: -Config.warmthHotkeyStepK)
+        XCTAssertEqual(state.warmthK, Config.minWarmthK, "must clamp, not undershoot past the min")
+
+        state.warmthK = 2700
+        state.adjustWarmth(by: Config.warmthHotkeyStepK)
+        XCTAssertEqual(state.warmthK, 2800)
+    }
+
+    func test_adjustBrightness_stepsAndClampsToConfigRange() {
+        let state = freshState()
+        state.brightness = Config.maxBrightness
+        state.adjustBrightness(by: Config.brightnessHotkeyStep)
+        XCTAssertEqual(state.brightness, Config.maxBrightness)
+
+        state.brightness = Config.minBrightness
+        state.adjustBrightness(by: -Config.brightnessHotkeyStep)
+        XCTAssertEqual(state.brightness, Config.minBrightness)
+    }
+
+    // MARK: - Locale override (C4, CLAUDE.md §5)
+
+    func test_effectiveLocale_defaultsToAutoupdatingCurrent_whenNoOverride() {
+        let state = freshState()
+        XCTAssertNil(state.locale)
+        XCTAssertEqual(state.effectiveLocale, Locale.autoupdatingCurrent)
+    }
+
+    func test_effectiveLocale_usesTheOverrideWhenSet() {
+        let state = freshState()
+        state.locale = "ru"
+        XCTAssertEqual(state.effectiveLocale, Locale(identifier: "ru"))
+    }
+
+    // The AppKit surfaces (context menu, window titles, toast) can't read
+    // SwiftUI's environment, so they go through `localized(_:)`. Pins that
+    // the override actually changes what they get — a plain
+    // `String(localized:)` would return the system language here.
+    func test_localized_honoursTheLanguageOverride() {
+        let state = freshState()
+        state.locale = "ru"
+        XCTAssertEqual(state.localized("main.on"), "ВКЛ")
+        state.locale = "uz"
+        XCTAssertEqual(state.localized("main.on"), "YOQISH")
+        state.locale = "en"
+        XCTAssertEqual(state.localized("main.on"), "ON")
+    }
+
+    func test_localeAndUpdateChecksEnabled_surviveFlushAndReload() {
+        let suite = "test.\(UUID().uuidString)"
+        let state = AppState(persistence: Persistence(suiteName: suite))
+        state.locale = "uz"
+        state.updateChecksEnabled = true
+        state.flush()
+
+        let reloaded = AppState(persistence: Persistence(suiteName: suite))
+        XCTAssertEqual(reloaded.locale, "uz")
+        XCTAssertTrue(reloaded.updateChecksEnabled)
+    }
 }

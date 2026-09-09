@@ -135,6 +135,13 @@ final class PWMSafeCoordinator: ObservableObject {
         backends.first { $0.canControl(display) }
     }
 
+    /// C4: the Displays settings tab and `DiagnosticsBundle` both need to
+    /// show "which backend controls this display" without duplicating the
+    /// resolution-order logic `backend(for:)` already owns privately.
+    func backendName(for display: DisplayInfo) -> String? {
+        backend(for: display)?.name
+    }
+
     /// `generation == nil` starts a fresh chain (allocating a new
     /// generation, invalidating any in-flight callback for this display);
     /// a retry passes its existing generation through so it stays part of

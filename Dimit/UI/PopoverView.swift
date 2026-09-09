@@ -9,6 +9,7 @@ import SwiftUI
 struct PopoverView: View {
     @ObservedObject var appState: AppState
     @ObservedObject var pwmSafeCoordinator: PWMSafeCoordinator
+    let openSettings: () -> Void
     // @Environment, not Locale.current: Locale.current ignores a
     // .environment(\.locale, ...) override, which is both how SwiftUI
     // previews/tests switch locale and how C4's in-app language override
@@ -37,12 +38,12 @@ struct PopoverView: View {
                 .font(.headline)
             Spacer()
             Button {
-                // Settings window arrives in C4.
+                openSettings()
             } label: {
                 Image(systemName: "gearshape")
             }
             .buttonStyle(.plain)
-            .disabled(true)
+            .keyboardShortcut(",", modifiers: .command)
             .accessibilityLabel(Text("settings.title"))
         }
     }
@@ -197,18 +198,15 @@ struct PopoverView: View {
         }
     }
 
-    // CLAUDE.md §5: "6500 K" with a space in UZ/RU, "6500K" in EN.
     private var formattedWarmth: String {
-        let value = Int(appState.warmthK)
-        let isEnglish = locale.language.languageCode?.identifier == "en"
-        return isEnglish ? "\(value)K" : "\(value) K"
+        ValueFormatting.warmth(appState.warmthK, locale: locale)
     }
 
     private var formattedBrightness: String {
-        "\(Int((appState.brightness * 100).rounded()))%"
+        ValueFormatting.brightness(appState.brightness)
     }
 }
 
 #Preview {
-    PopoverView(appState: AppState(), pwmSafeCoordinator: PWMSafeCoordinator(backends: []))
+    PopoverView(appState: AppState(), pwmSafeCoordinator: PWMSafeCoordinator(backends: []), openSettings: {})
 }

@@ -218,8 +218,24 @@ GET  /r/:handle              → affiliate redirect (sets 60-day cookie, forward
 | menu.settings | Settings… | Sozlamalar… | Настройки… |
 | menu.restore_colours *(added C2)* | Restore Colours | Restore Colours — TODO(i18n), needs a real uz translation | Restore Colours — TODO(i18n), needs a real ru translation |
 | error.gamma_failed | Couldn't change display colours. Try Fallback mode in Settings. | Displey ranglarini o'zgartirib bo'lmadi. Sozlamalarda Zaxira rejimni sinab ko'ring. | Не удалось изменить цвета дисплея. Попробуйте Резервный режим в Настройках. |
+| onboarding.2.body *(added C4)* | Screenshots, recordings and calls keep their normal colours. | TODO(i18n) | TODO(i18n) |
+| onboarding.3.body *(added C4)* | No account, no analytics — nothing is sent anywhere except a future license check. | TODO(i18n) | TODO(i18n) |
+| onboarding.next *(added C4)* | Next | TODO(i18n) | TODO(i18n) |
+| onboarding.get_started *(added C4)* | Get Started | TODO(i18n) | TODO(i18n) |
+| settings.tab.general / .displays / .advanced *(added C4)* | General / Displays / Advanced | TODO(i18n) | TODO(i18n) |
+| settings.presets_title *(added C4)* | Presets | TODO(i18n) | TODO(i18n) |
+| settings.preset_reset *(added C4)* | Reset | TODO(i18n) | TODO(i18n) |
+| settings.preset_reset_all *(added C4)* | Reset All to Defaults | TODO(i18n) | TODO(i18n) |
+| settings.display_backend *(added C4)* | Backend: %@ | TODO(i18n) | TODO(i18n) |
+| settings.display_no_backend *(added C4)* | No brightness backend | TODO(i18n) | TODO(i18n) |
+| settings.display_builtin / .display_apple *(added C4)* | Built-in / Apple display | TODO(i18n) | TODO(i18n) |
+| settings.diagnostics_copied *(added C4)* | Diagnostics copied to clipboard | TODO(i18n) | TODO(i18n) |
+| settings.language_system / _en / _uz / _ru *(added C4)* | System / English / Uzbek / Russian | TODO(i18n) | TODO(i18n) |
+| settings.launch_at_login_error *(added C4)* | Couldn't change the login item: %@ | TODO(i18n) | TODO(i18n) |
+| hotkey.section_title *(added C4)* | Global Shortcuts | TODO(i18n) | TODO(i18n) |
+| hotkey.toggle / .cycle_presets / .warmth_up / .warmth_down / .brightness_up / .brightness_down *(added C4)* | Toggle Dimit / Cycle Presets / Warmth Up / Warmth Down / Brightness Up / Brightness Down | TODO(i18n) | TODO(i18n) |
 
-(Claude Code: when adding a string, add all three languages; if unsure of Uzbek/Russian, add the English and mark `// TODO(i18n)` so a human translator sees it. Do not machine-translate silently.)
+(Claude Code: when adding a string, add all three languages; if unsure of Uzbek/Russian, add the English and mark `// TODO(i18n)` so a human translator sees it. Do not machine-translate silently. In the catalog, TODO(i18n) is represented as the English value with `state: needs_review` for uz/ru — Xcode's String Catalog editor flags those for a translator.)
 
 ---
 

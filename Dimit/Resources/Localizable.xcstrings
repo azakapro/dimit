@@ -1,1228 +1,1820 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "" : {
-
-    },
-    "app.name" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimit"
+  "sourceLanguage": "en",
+  "strings": {
+    "": {},
+    "app.name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dimit"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimit"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dimit"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimit"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dimit"
           }
         }
       }
     },
-    "banner.autobrightness" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatic brightness can block colour changes on macOS 26. Turn it off in System Settings → Displays."
+    "banner.autobrightness": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic brightness can block colour changes on macOS 26. Turn it off in System Settings → Displays."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Автояркость может блокировать изменение цвета в macOS 26. Отключите её в Системных настройках → Дисплеи."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Автояркость может блокировать изменение цвета в macOS 26. Отключите её в Системных настройках → Дисплеи."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avtomatik yorqinlik macOS 26 da rang o'zgarishini bloklashi mumkin. Tizim sozlamalari → Displeylar bo'limida o'chiring."
-          }
-        }
-      }
-    },
-    "banner.dismiss" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dismiss"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Dismiss"
-          }
-        },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Dismiss"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avtomatik yorqinlik macOS 26 da rang o'zgarishini bloklashi mumkin. Tizim sozlamalari → Displeylar bo'limida o'chiring."
           }
         }
       }
     },
-    "banner.open_settings" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Displays settings"
+    "banner.dismiss": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismiss"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть настройки дисплеев"
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dismiss"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Displey sozlamalarini ochish"
-          }
-        }
-      }
-    },
-    "error.gamma_failed" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't change display colours. Try Fallback mode in Settings."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось изменить цвета дисплея. Попробуйте Резервный режим в Настройках."
-          }
-        },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Displey ranglarini o'zgartirib bo'lmadi. Sozlamalarda Zaxira rejimni sinab ko'ring."
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dismiss"
           }
         }
       }
     },
-    "fallback.help" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tints with an overlay instead of colour tables. Screenshots will look tinted in this mode."
+    "banner.open_settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Displays settings"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Окрашивает экран слоем вместо цветовых таблиц. В этом режиме скриншоты тоже будут окрашены."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть настройки дисплеев"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rang jadvallari o'rniga qatlam bilan bo'yaydi. Bu rejimda skrinshotlar ham rangli chiqadi."
-          }
-        }
-      }
-    },
-    "fallback.title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fallback mode"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Резервный режим"
-          }
-        },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zaxira rejim"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Displey sozlamalarini ochish"
           }
         }
       }
     },
-    "license.activate" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Activate"
+    "error.gamma_failed": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't change display colours. Try Fallback mode in Settings."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Активировать"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось изменить цвета дисплея. Попробуйте Резервный режим в Настройках."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Faollashtirish"
-          }
-        }
-      }
-    },
-    "license.buy" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buy — one payment, 3 Macs"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Купить — разовый платёж, 3 Mac"
-          }
-        },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sotib olish — bir marta to'lov, 3 ta Mac"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Displey ranglarini o'zgartirib bo'lmadi. Sozlamalarda Zaxira rejimni sinab ko'ring."
           }
         }
       }
     },
-    "license.deactivate" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deactivate this Mac"
+    "fallback.help": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tints with an overlay instead of colour tables. Screenshots will look tinted in this mode."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Отвязать этот Mac"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Окрашивает экран слоем вместо цветовых таблиц. В этом режиме скриншоты тоже будут окрашены."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bu Mac'ni o'chirish"
-          }
-        }
-      }
-    },
-    "license.enter" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter license key"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Введите лицензионный ключ"
-          }
-        },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Litsenziya kalitini kiriting"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rang jadvallari o'rniga qatlam bilan bo'yaydi. Bu rejimda skrinshotlar ham rangli chiqadi."
           }
         }
       }
     },
-    "license.invalid" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This key is not valid."
+    "fallback.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fallback mode"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Этот ключ недействителен."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Резервный режим"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bu kalit yaroqsiz."
-          }
-        }
-      }
-    },
-    "license.manage" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manage devices"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Управление устройствами"
-          }
-        },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qurilmalarni boshqarish"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zaxira rejim"
           }
         }
       }
     },
-    "license.no_seats" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No seats left. Deactivate another Mac or contact support."
+    "license.activate": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activate"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Свободных мест нет. Отвяжите другой Mac или напишите в поддержку."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Активировать"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bo'sh o'rin yo'q. Boshqa Mac'ni o'chiring yoki yordamga yozing."
-          }
-        }
-      }
-    },
-    "license.offline" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Can't reach the license server. Works offline for %d more days."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Нет связи с сервером лицензий. Работает офлайн ещё %d дн."
-          }
-        },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Litsenziya serveriga ulanib bo'lmadi. Yana %d kun oflayn ishlaydi."
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faollashtirish"
           }
         }
       }
     },
-    "license.revoked" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This license was refunded or revoked."
+    "license.buy": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buy — one payment, 3 Macs"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Лицензия возвращена или отозвана."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Купить — разовый платёж, 3 Mac"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bu litsenziya qaytarilgan yoki bekor qilingan."
-          }
-        }
-      }
-    },
-    "license.seats" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This Mac uses %d of %d seats"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Этот Mac занимает %d из %d мест"
-          }
-        },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bu Mac %d / %d o'rindan foydalanmoqda"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sotib olish — bir marta to'lov, 3 ta Mac"
           }
         }
       }
     },
-    "license.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "License"
+    "license.deactivate": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deactivate this Mac"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Лицензия"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отвязать этот Mac"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Litsenziya"
-          }
-        }
-      }
-    },
-    "license.trial_days" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trial: %d days left"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Пробный период: осталось %d дн."
-          }
-        },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sinov: %d kun qoldi"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu Mac'ni o'chirish"
           }
         }
       }
     },
-    "license.trial_over" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trial ended — buy a license to keep PWM‑Safe and scheduling."
+    "license.enter": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter license key"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Пробный период закончился — купите лицензию, чтобы сохранить режим без мерцания и расписание."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите лицензионный ключ"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sinov tugadi — PWM‑xavfsiz rejim va jadval uchun litsenziya sotib oling."
-          }
-        }
-      }
-    },
-    "main.brightness" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brightness"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Яркость"
-          }
-        },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yorqinlik"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litsenziya kalitini kiriting"
           }
         }
       }
     },
-    "main.off" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OFF"
+    "license.invalid": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This key is not valid."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ВЫКЛ"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Этот ключ недействителен."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O'CHIRISH"
-          }
-        }
-      }
-    },
-    "main.on" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ON"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ВКЛ"
-          }
-        },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "YOQISH"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu kalit yaroqsiz."
           }
         }
       }
     },
-    "main.pwm_safe" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PWM‑Safe mode"
+    "license.manage": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage devices"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Режим без мерцания (PWM)"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Управление устройствами"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PWM‑xavfsiz rejim"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qurilmalarni boshqarish"
           }
         }
       }
     },
-    "main.pwm_safe.help" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keeps the backlight at 100% and dims in software, so the screen never flickers. Uses slightly more battery."
+    "license.no_seats": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No seats left. Deactivate another Mac or contact support."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Держит подсветку на 100% и уменьшает яркость программно — экран не мерцает. Немного больше расход батареи."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Свободных мест нет. Отвяжите другой Mac или напишите в поддержку."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orqa yoritishni 100% da ushlab, yorqinlikni dasturiy pasaytiradi — ekran umuman miltillamaydi. Batareya biroz ko'proq sarflanadi."
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bo'sh o'rin yo'q. Boshqa Mac'ni o'chiring yoki yordamga yozing."
           }
         }
       }
     },
-    "main.warmth" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Warmth"
+    "license.offline": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't reach the license server. Works offline for %d more days."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Теплота"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет связи с сервером лицензий. Работает офлайн ещё %d дн."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Iliqlik"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litsenziya serveriga ulanib bo'lmadi. Yana %d kun oflayn ishlaydi."
           }
         }
       }
     },
-    "menu.quit" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quit"
+    "license.revoked": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This license was refunded or revoked."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выйти"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Лицензия возвращена или отозвана."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chiqish"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu litsenziya qaytarilgan yoki bekor qilingan."
           }
         }
       }
     },
-    "menu.restore_colours" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restore Colours"
+    "license.seats": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Mac uses %d of %d seats"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Restore Colours"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Этот Mac занимает %d из %d мест"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Restore Colours"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu Mac %d / %d o'rindan foydalanmoqda"
           }
         }
       }
     },
-    "menu.settings" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings…"
+    "license.title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "License"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Настройки…"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Лицензия"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sozlamalar…"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litsenziya"
           }
         }
       }
     },
-    "onboarding.1.body" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Two sliders, three presets, one button."
+    "license.trial_days": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trial: %d days left"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Два ползунка, три режима, одна кнопка."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пробный период: осталось %d дн."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ikki slayder, uch rejim, bitta tugma."
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinov: %d kun qoldi"
           }
         }
       }
     },
-    "onboarding.1.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Block blue light. Stop the flicker."
+    "license.trial_over": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trial ended — buy a license to keep PWM‑Safe and scheduling."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Уберите синий свет. Остановите мерцание."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пробный период закончился — купите лицензию, чтобы сохранить режим без мерцания и расписание."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ko'k nurni to'sing. Miltillashni to'xtating."
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinov tugadi — PWM‑xavfsiz rejim va jadval uchun litsenziya sotib oling."
           }
         }
       }
     },
-    "onboarding.2.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your screenshots stay normal"
+    "main.brightness": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brightness"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Скриншоты остаются обычными"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Яркость"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skrinshotlar oddiy qoladi"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yorqinlik"
           }
         }
       }
     },
-    "onboarding.3.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No account. No tracking."
+    "main.off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OFF"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Без аккаунта. Без слежки."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ВЫКЛ"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Akkaunt yo'q. Kuzatuv yo'q."
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O'CHIRISH"
           }
         }
       }
     },
-    "preset.day" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DAY"
+    "main.on": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ON"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ДЕНЬ"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ВКЛ"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "KUN"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YOQISH"
           }
         }
       }
     },
-    "preset.evening" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "EVENING"
+    "main.pwm_safe": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PWM‑Safe mode"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ВЕЧЕР"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Режим без мерцания (PWM)"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "KECH"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PWM‑xavfsiz rejim"
           }
         }
       }
     },
-    "preset.night" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "NIGHT"
+    "main.pwm_safe.help": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keeps the backlight at 100% and dims in software, so the screen never flickers. Uses slightly more battery."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "НОЧЬ"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Держит подсветку на 100% и уменьшает яркость программно — экран не мерцает. Немного больше расход батареи."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "TUN"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orqa yoritishni 100% da ushlab, yorqinlikni dasturiy pasaytiradi — ekran umuman miltillamaydi. Batareya biroz ko'proq sarflanadi."
           }
         }
       }
     },
-    "pwm.repinned" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brightness was re‑pinned to 100%. Use the slider in the app."
+    "main.warmth": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warmth"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Яркость снова зафиксирована на 100%. Используйте ползунок в приложении."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Теплота"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yorqinlik yana 100% ga qaytarildi. Ilova ichidagi slayderdan foydalaning."
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iliqlik"
           }
         }
       }
     },
-    "pwm.unsupported" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PWM‑Safe needs an Apple display or a DDC/CI monitor."
+    "menu.quit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Для режима без мерцания нужен дисплей Apple или монитор с DDC/CI."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выйти"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PWM‑xavfsiz rejim uchun Apple displeyi yoki DDC/CI monitor kerak."
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiqish"
           }
         }
       }
     },
-    "pwm.waiting" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WAITING FOR DISPLAY"
+    "menu.restore_colours": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore Colours"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ОЖИДАНИЕ ДИСПЛЕЯ"
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Restore Colours"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DISPLEY KUTILMOQDA"
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Restore Colours"
           }
         }
       }
     },
-    "pwm.wont_hold" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DISPLAY WON'T HOLD 100%"
+    "menu.settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings…"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ДИСПЛЕЙ НЕ ДЕРЖИТ 100%"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Настройки…"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DISPLEY 100% NI USHLAMAYAPTI"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sozlamalar…"
           }
         }
       }
     },
-    "schedule.city" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "City"
+    "onboarding.1.body": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Two sliders, three presets, one button."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Город"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Два ползунка, три режима, одна кнопка."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shahar"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ikki slayder, uch rejim, bitta tugma."
           }
         }
       }
     },
-    "schedule.fixed" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fixed times"
+    "onboarding.1.title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block blue light. Stop the flicker."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Заданное время"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Уберите синий свет. Остановите мерцание."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Belgilangan vaqt"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ko'k nurni to'sing. Miltillashni to'xtating."
           }
         }
       }
     },
-    "schedule.manual" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manual"
+    "onboarding.2.title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your screenshots stay normal"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Вручную"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скриншоты остаются обычными"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qo'lda"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skrinshotlar oddiy qoladi"
           }
         }
       }
     },
-    "schedule.sun" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sunset to sunrise"
+    "onboarding.3.title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No account. No tracking."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "От заката до рассвета"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Без аккаунта. Без слежки."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quyosh botishidan chiqishigacha"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Akkaunt yo'q. Kuzatuv yo'q."
           }
         }
       }
     },
-    "schedule.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schedule"
+    "preset.day": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DAY"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Расписание"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ДЕНЬ"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jadval"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KUN"
           }
         }
       }
     },
-    "schedule.transition" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transition"
+    "preset.evening": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EVENING"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Плавный переход"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ВЕЧЕР"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O'tish davomiyligi"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KECH"
           }
         }
       }
     },
-    "settings.copy_diag" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copy diagnostics for support"
+    "preset.night": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NIGHT"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Скопировать диагностику для поддержки"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "НОЧЬ"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diagnostikani nusxalash (yordam uchun)"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TUN"
           }
         }
       }
     },
-    "settings.hotkeys" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keyboard shortcuts"
+    "pwm.repinned": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brightness was re‑pinned to 100%. Use the slider in the app."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Горячие клавиши"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Яркость снова зафиксирована на 100%. Используйте ползунок в приложении."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tezkor tugmalar"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yorqinlik yana 100% ga qaytarildi. Ilova ichidagi slayderdan foydalaning."
           }
         }
       }
     },
-    "settings.language" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Language"
+    "pwm.unsupported": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PWM‑Safe needs an Apple display or a DDC/CI monitor."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Язык"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для режима без мерцания нужен дисплей Apple или монитор с DDC/CI."
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Til"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PWM‑xavfsiz rejim uchun Apple displeyi yoki DDC/CI monitor kerak."
           }
         }
       }
     },
-    "settings.launch_at_login" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Launch at login"
+    "pwm.waiting": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WAITING FOR DISPLAY"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Запускать при входе"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ОЖИДАНИЕ ДИСПЛЕЯ"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kirishda ishga tushirish"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DISPLEY KUTILMOQDA"
           }
         }
       }
     },
-    "settings.per_display" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Separate settings per display"
+    "pwm.wont_hold": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DISPLAY WON'T HOLD 100%"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Отдельно для каждого дисплея"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ДИСПЛЕЙ НЕ ДЕРЖИТ 100%"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Har bir displey uchun alohida"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DISPLEY 100% NI USHLAMAYAPTI"
           }
         }
       }
     },
-    "settings.title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings"
+    "schedule.city": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "City"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Настройки"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Город"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sozlamalar"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shahar"
           }
         }
       }
     },
-    "settings.updates" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check for updates automatically"
+    "schedule.fixed": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fixed times"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Проверять обновления автоматически"
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заданное время"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yangilanishlarni avtomatik tekshirish"
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belgilangan vaqt"
           }
         }
       }
     },
-    "warmth.zero_k.tip" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\"0K\" is a name, not a physical temperature: at 0K only red light remains."
+    "schedule.manual": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manual"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "«0K» — это название, а не физическая температура: при 0K остаётся только красный свет."
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вручную"
           }
         },
-        "uz" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\"0K\" — bu nom, fizik harorat emas: 0K da faqat qizil nur qoladi."
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qo'lda"
+          }
+        }
+      }
+    },
+    "schedule.sun": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sunset to sunrise"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "От заката до рассвета"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quyosh botishidan chiqishigacha"
+          }
+        }
+      }
+    },
+    "schedule.title": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schedule"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Расписание"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jadval"
+          }
+        }
+      }
+    },
+    "schedule.transition": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transition"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Плавный переход"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O'tish davomiyligi"
+          }
+        }
+      }
+    },
+    "settings.copy_diag": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy diagnostics for support"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопировать диагностику для поддержки"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostikani nusxalash (yordam uchun)"
+          }
+        }
+      }
+    },
+    "settings.hotkeys": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyboard shortcuts"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Горячие клавиши"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tezkor tugmalar"
+          }
+        }
+      }
+    },
+    "settings.language": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Язык"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Til"
+          }
+        }
+      }
+    },
+    "settings.launch_at_login": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Launch at login"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запускать при входе"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirishda ishga tushirish"
+          }
+        }
+      }
+    },
+    "settings.per_display": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Separate settings per display"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отдельно для каждого дисплея"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Har bir displey uchun alohida"
+          }
+        }
+      }
+    },
+    "settings.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Настройки"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sozlamalar"
+          }
+        }
+      }
+    },
+    "settings.updates": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for updates automatically"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверять обновления автоматически"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yangilanishlarni avtomatik tekshirish"
+          }
+        }
+      }
+    },
+    "warmth.zero_k.tip": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"0K\" is a name, not a physical temperature: at 0K only red light remains."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«0K» — это название, а не физическая температура: при 0K остаётся только красный свет."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"0K\" — bu nom, fizik harorat emas: 0K da faqat qizil nur qoladi."
+          }
+        }
+      }
+    },
+    "onboarding.2.body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screenshots, recordings and calls keep their normal colours."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Screenshots, recordings and calls keep their normal colours."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Screenshots, recordings and calls keep their normal colours."
+          }
+        }
+      }
+    },
+    "onboarding.3.body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No account, no analytics — nothing is sent anywhere except a future license check."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No account, no analytics — nothing is sent anywhere except a future license check."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No account, no analytics — nothing is sent anywhere except a future license check."
+          }
+        }
+      }
+    },
+    "onboarding.next": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Next"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Next"
+          }
+        }
+      }
+    },
+    "onboarding.get_started": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get Started"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Get Started"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Get Started"
+          }
+        }
+      }
+    },
+    "settings.tab.general": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "General"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "General"
+          }
+        }
+      }
+    },
+    "settings.tab.displays": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Displays"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Displays"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Displays"
+          }
+        }
+      }
+    },
+    "settings.tab.advanced": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advanced"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Advanced"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Advanced"
+          }
+        }
+      }
+    },
+    "settings.presets_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presets"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Presets"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Presets"
+          }
+        }
+      }
+    },
+    "settings.preset_reset": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Reset"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Reset"
+          }
+        }
+      }
+    },
+    "settings.preset_reset_all": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset All to Defaults"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Reset All to Defaults"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Reset All to Defaults"
+          }
+        }
+      }
+    },
+    "settings.display_backend": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backend: %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Backend: %@"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Backend: %@"
+          }
+        }
+      }
+    },
+    "settings.display_no_backend": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No brightness backend"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No brightness backend"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "No brightness backend"
+          }
+        }
+      }
+    },
+    "settings.display_builtin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Built-in"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Built-in"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Built-in"
+          }
+        }
+      }
+    },
+    "settings.display_apple": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple display"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Apple display"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Apple display"
+          }
+        }
+      }
+    },
+    "settings.diagnostics_copied": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostics copied to clipboard"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Diagnostics copied to clipboard"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Diagnostics copied to clipboard"
+          }
+        }
+      }
+    },
+    "settings.language_system": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "System"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "System"
+          }
+        }
+      }
+    },
+    "settings.language_en": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "English"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "English"
+          }
+        }
+      }
+    },
+    "settings.language_uz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uzbek"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Uzbek"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Uzbek"
+          }
+        }
+      }
+    },
+    "settings.language_ru": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Russian"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Russian"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Russian"
+          }
+        }
+      }
+    },
+    "settings.launch_at_login_error": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't change the login item: %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Couldn't change the login item: %@"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Couldn't change the login item: %@"
+          }
+        }
+      }
+    },
+    "hotkey.section_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Global Shortcuts"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Global Shortcuts"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Global Shortcuts"
+          }
+        }
+      }
+    },
+    "hotkey.toggle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toggle Dimit"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Toggle Dimit"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Toggle Dimit"
+          }
+        }
+      }
+    },
+    "hotkey.cycle_presets": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cycle Presets"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Cycle Presets"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Cycle Presets"
+          }
+        }
+      }
+    },
+    "hotkey.warmth_up": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warmth Up"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Warmth Up"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Warmth Up"
+          }
+        }
+      }
+    },
+    "hotkey.warmth_down": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warmth Down"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Warmth Down"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Warmth Down"
+          }
+        }
+      }
+    },
+    "hotkey.brightness_up": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brightness Up"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Brightness Up"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Brightness Up"
+          }
+        }
+      }
+    },
+    "hotkey.brightness_down": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brightness Down"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Brightness Down"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Brightness Down"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

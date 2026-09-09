@@ -31,6 +31,34 @@ final class AppState: ObservableObject {
     @Published var fallbackMode: Bool
     @Published var activePreset: PresetID?
 
+    /// C4/CLAUDE.md §3.7: "User-editable; 'reset to defaults'." Only
+    /// presets that differ from `PresetID.defaultValues` need an entry —
+    /// read through `values(for:)`, never this dictionary directly, so
+    /// "no override" and "override that happens to equal the default"
+    /// aren't two states callers have to distinguish.
+    @Published private(set) var presetOverrides: [PresetID: PresetValues] = [:]
+
+    /// C4/CLAUDE.md §5: "Settings has a language override." `nil` follows
+    /// the system language. `PopoverView`/`SettingsView`/`OnboardingView`
+    /// all read this via `effectiveLocale` and apply it with
+    /// `.environment(\.locale, ...)` at their SwiftUI root — this works
+    /// live, without relaunching, because `Text(LocalizedStringResource)`
+    /// resolves String Catalog lookups against the environment's locale
+    /// when one is set (confirmed against Xcode 15+'s documented
+    /// behavior). This is a disclosed deviation from CLAUDE.md §5's literal
+    /// "AppleLanguages-free: we store locale and set Bundle on relaunch" —
+    /// `PopoverView`'s own C1 comment already anticipated exactly this path
+    /// ("how C4's in-app language override will need to work"), so this
+    /// cycle follows through on that rather than introducing a relaunch.
+    @Published var locale: String?
+
+    /// C4/ARCHITECTURE.md §10: the onboarding opt-in checkbox persists
+    /// here. CLAUDE.md §1.2: "Sparkle update check is opt-in and
+    /// explained" — Sparkle itself doesn't exist until C7; this cycle only
+    /// stores the user's choice for C7 to read, with no network effect of
+    /// its own.
+    @Published var updateChecksEnabled: Bool
+
     /// CLAUDE.md §3.3: "show a one-time banner ... on macOS ≥ 26 the first
     /// time the filter is turned ON, dismissable forever." No reliable
     /// detection key for auto-brightness was found on this macOS 27 beta
@@ -53,6 +81,13 @@ final class AppState: ObservableObject {
         self.pwmSafe = saved.pwmSafe
         self.fallbackMode = saved.fallbackMode
         self.activePreset = saved.activePreset.flatMap(PresetID.init(rawValue:))
+        self.presetOverrides = Dictionary(
+            uniqueKeysWithValues: saved.presetOverrides.compactMap { key, value in
+                PresetID(rawValue: key).map { ($0, value) }
+            }
+        )
+        self.locale = saved.locale
+        self.updateChecksEnabled = saved.updateChecksEnabled
 
         // Debounced 250ms persistence — CLAUDE.md §3.7. `objectWillChange`
         // fires on every @Published mutation, so this one subscription
@@ -76,14 +111,87 @@ final class AppState: ObservableObject {
     /// either way) and, worse, a stuck-`true` footgun if a future edit ever
     /// added an early return between setting and clearing the flag.
     func apply(preset: PresetID) {
-        warmthK = preset.warmthK
-        brightness = preset.brightness
+        let effective = values(for: preset)
+        warmthK = effective.warmthK
+        brightness = effective.brightness
         activePreset = preset
     }
 
     private func clearPresetIfDrifted() {
         guard activePreset != nil else { return }
         activePreset = nil
+    }
+
+    // MARK: - Preset editing (C4, CLAUDE.md §3.7 "user-editable; reset to defaults")
+
+    /// The values `apply(preset:)` actually uses: the user's override if
+    /// one exists, otherwise `PresetID.defaultValues`. Settings' preset
+    /// editor and `apply(preset:)` both go through this so there is one
+    /// place that knows "override wins."
+    func values(for preset: PresetID) -> PresetValues {
+        presetOverrides[preset] ?? preset.defaultValues
+    }
+
+    /// Settings' preset editor calls this as the user drags its sliders.
+    /// If the result exactly matches the built-in default, the override is
+    /// removed rather than stored — keeps `presetOverrides` (and the
+    /// persisted JSON) containing only presets that actually differ,
+    /// and means dragging back to the default value behaves exactly like
+    /// pressing "Reset."
+    func setPresetValues(_ values: PresetValues, for preset: PresetID) {
+        if values == preset.defaultValues {
+            presetOverrides.removeValue(forKey: preset)
+        } else {
+            presetOverrides[preset] = values
+        }
+        // If this is the currently-active preset, live-update the sliders
+        // too — otherwise Settings and the popover would disagree about
+        // what "NIGHT" currently means until the user re-taps the preset.
+        // Re-assigns `activePreset` last and unconditionally, same as
+        // `apply(preset:)` above and for the same reason: `warmthK`'s and
+        // `brightness`'s own `didSet` unconditionally clear it the moment
+        // either changes, so without this final assignment editing the
+        // active preset's own sliders would immediately un-highlight it.
+        if activePreset == preset {
+            warmthK = values.warmthK
+            brightness = values.brightness
+            activePreset = preset
+        }
+    }
+
+    func resetPreset(_ preset: PresetID) {
+        setPresetValues(preset.defaultValues, for: preset)
+    }
+
+    func resetAllPresets() {
+        for preset in PresetID.allCases { resetPreset(preset) }
+    }
+
+    // MARK: - Hotkey adjustments (C4, CLAUDE.md §3.9)
+
+    /// DAY -> EVENING -> NIGHT -> DAY. If no preset is currently active
+    /// (the user has drifted the sliders away from all three), starts back
+    /// at DAY rather than guessing which preset is "closest" — CLAUDE.md
+    /// doesn't specify a nearest-match behavior, and picking DAY is at
+    /// least predictable.
+    func cycleToNextPreset() {
+        let all = PresetID.allCases
+        guard let current = activePreset, let index = all.firstIndex(of: current) else {
+            apply(preset: all[0])
+            return
+        }
+        apply(preset: all[(index + 1) % all.count])
+    }
+
+    /// `Config.warmthHotkeyStep`/`brightnessHotkeyStep` name the step size
+    /// in one place so the hotkey and any future stepper UI can't drift
+    /// apart. Clamping matches the sliders' own ranges.
+    func adjustWarmth(by delta: Double) {
+        warmthK = (warmthK + delta).clamped(to: Config.minWarmthK...Config.maxWarmthK)
+    }
+
+    func adjustBrightness(by delta: Double) {
+        brightness = (brightness + delta).clamped(to: Config.minBrightness...Config.maxBrightness)
     }
 
     private func handleIsOnChanged(wasOn: Bool) {
@@ -121,12 +229,37 @@ final class AppState: ObservableObject {
                 brightness: brightness,
                 pwmSafe: pwmSafe,
                 fallbackMode: fallbackMode,
-                activePreset: activePreset?.rawValue
+                activePreset: activePreset?.rawValue,
+                presetOverrides: Dictionary(
+                    uniqueKeysWithValues: presetOverrides.map { ($0.key.rawValue, $0.value) }
+                ),
+                locale: locale,
+                updateChecksEnabled: updateChecksEnabled
             )
         )
     }
 
     var renderState: RenderState {
         RenderState(isOn: isOn, warmthK: warmthK, brightness: brightness, pwmSafe: pwmSafe, fallbackMode: fallbackMode)
+    }
+
+    /// What to hand `.environment(\.locale, ...)` at each SwiftUI root.
+    /// `nil` `locale` means "follow the system" — `Locale.autoupdatingCurrent`
+    /// rather than `Locale.current`, so the override also un-does cleanly if
+    /// the user picks a language and later switches back to "System"
+    /// without needing a relaunch.
+    var effectiveLocale: Locale {
+        locale.map(Locale.init(identifier:)) ?? .autoupdatingCurrent
+    }
+
+    /// For the AppKit surfaces that can't read SwiftUI's environment —
+    /// the right-click menu, window titles, the toast. `String(localized:)`
+    /// on its own resolves against the *system* language and would ignore
+    /// the override; setting the resource's `locale` first makes it honour
+    /// the same choice the SwiftUI views do.
+    func localized(_ key: LocalizedStringResource) -> String {
+        var resource = key
+        resource.locale = effectiveLocale
+        return String(localized: resource)
     }
 }
