@@ -1,10 +1,11 @@
 # Dimit
 
-Blue-light and PWM-flicker utility for macOS (Windows later). Uzbekistan-first, then global.
+Blue-light and PWM-flicker utility for macOS (Windows later). Sold as a pay-what-you-want download ($5 minimum) through Lemon Squeezy on our own site; no accounts, no license keys, no network traffic from the app except an opt-in update check.
 
 - Product and engineering spec: [CLAUDE.md](CLAUDE.md)
-- Schedule, critical path, decisions, model assignment: [docs/PLAN.md](docs/PLAN.md)
-- Architecture (modules, state machines, server API, payment flows): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Cycles, PR rules, business track, decisions: [docs/PLAN.md](docs/PLAN.md)
+- Architecture (modules, state machines, distribution, site, updates): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Hardware evidence per cycle: [docs/QA.md](docs/QA.md)
 
 First-time setup (installs XcodeGen if needed, generates `Dimit.xcodeproj` from `project.yml`):
 
@@ -20,12 +21,10 @@ First thing to run on any new macOS build:
 swift scripts/gamma_spike.swift
 ```
 
-Status (2026-09-09): **C0–C4 done and merged to main, tagged `v0.2`** (118 tests green). Everything CLAUDE.md §1 puts "behind a Settings gear" now exists: a Settings window (General / Displays / Advanced), editable presets, six global hotkeys, launch at login, a live Uzbek/Russian/English switch, first-run onboarding, and diagnostics to the clipboard — on top of the v0.1 display engine (0K warmth, software dim, PWM-Safe, extreme dim, Fallback mode).
+Status (2026-09-09): **C0–C5 done and merged to main, tagged `v0.3`** (180 tests green). The app has the full display engine (0K warmth, software dim, PWM-Safe, extreme dim, Fallback mode), everything behind the Settings gear (General / Schedule / Displays / Advanced, editable presets, six global hotkeys, launch at login, live Uzbek/Russian/English switch, onboarding, diagnostics), sunset→sunrise and fixed-time scheduling with a bundled city list, and experimental DDC/CI brightness for external monitors (default off — never verified against a real monitor yet).
 
-An independent second review of the whole repo landed with v0.2 and found a bug that predated it: **the tint was silently lost on every wake**, because the apply pipeline diffed against what it believed was already on the hardware, and WindowServer resets the gamma table across sleep. Reproduced on the real display, fixed, and re-verified. Same review caught Fallback mode going fully opaque at the NIGHT preset — an opaque red window over the menu bar, in the mode that exists *because* the display is misbehaving.
+The headline promise — "screenshots, recordings and screen-shares stay normal" — has real evidence for the gamma path: a Zoom share and a QuickTime recording on macOS 27, both untinted, with the filter working on screen throughout. It does **not** yet cover the two overlay-driven paths (brightness below 30%, Fallback mode), which rely on a window-exclusion flag Apple now calls legacy; those need a capture matrix in C6 before the claim is repeated unqualified on the site. Also open: the CoreDisplay brightness fallback can report a pin that never happened, on hardware nobody has tested; cold popover measures 180 ms against a 100 ms budget; DDC has never talked to a monitor. See docs/QA.md's **pending** rows.
 
-The headline promise — "screenshots, recordings and screen-shares stay normal" — now has real evidence: a Zoom share and a QuickTime recording on macOS 27, both untinted, with the filter still working on screen throughout. That covers normal operation (gamma). It does **not** yet cover the two overlay-driven paths — brightness below 30%, and Fallback mode — which rely on a window-exclusion flag Apple now calls legacy; those need a capture matrix in C6 before the claim is repeated unqualified on the site. Also open: the CoreDisplay brightness fallback can report a pin that never happened, on hardware nobody has tested; and cold popover measures 180 ms against a 100 ms budget. See docs/QA.md.
-
-Next is C5 in docs/PLAN.md §2: sunset/sunrise scheduling and experimental DDC/CI for external monitors (tags v0.3).
+**Distribution was re-decided on 2026-09-09** (docs/PLAN.md → Decisions): no license server, no keys, no trial, no Payme/Click. Next is C6 in docs/PLAN.md §2 — release scripts, a signed and notarized DMG, beta testers, the QA matrix (tags v0.4) — then C7: the Astro site with the Lemon Squeezy checkout, Sparkle opt-in updates, and the v1.0 launch.
 
 PR rules: docs/PLAN.md §3 and .github/pull_request_template.md.

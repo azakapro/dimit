@@ -55,10 +55,11 @@ final class DiagnosticsBundleTests: XCTestCase {
         XCTAssertTrue(text.contains("(none enumerated)"))
     }
 
-    // CLAUDE.md §7: "license state only (never the key)." Licensing
-    // doesn't exist until C7 — pins that the bundle says nothing about
-    // licensing yet rather than inventing a misleading placeholder value.
-    func test_buildText_mentionsNoLicenseState_beforeLicensingExists() {
+    // An earlier draft of CLAUDE.md §7 asked for a "license state" line.
+    // There is no licensing and never will be (CLAUDE.md §4: every copy is
+    // unconditional), so the bundle must say nothing about it rather than
+    // carry a placeholder describing behavior that doesn't exist.
+    func test_buildText_mentionsNoLicenseState() {
         let text = DiagnosticsBundle.buildText(
             appVersion: "0.2 (1)", macOSVersion: "27.0", hardwareModel: "Mac14,9",
             displays: [], recentLogLines: []
@@ -101,11 +102,11 @@ final class DiagnosticsBundleTests: XCTestCase {
         XCTAssertTrue(text.contains("Log (last "))
     }
 
-    // Never send the license key over the wire or into diagnostics
-    // (CLAUDE.md §4.2 "log nothing but key-hash") — pinned here as a
-    // literal string search since there is no license key type yet to
-    // check structurally.
-    func test_buildText_neverContainsSomethingThatLooksLikeALicenseKey() {
+    // CLAUDE.md §4.2: the bundle carries nothing that identifies anyone.
+    // The user pastes this text into a support message, so anything that
+    // looks like a credential must never reach it — kept as a literal
+    // search because the point is the *output*, not any type in the code.
+    func test_buildText_neverContainsAnythingThatLooksLikeACredential() {
         let text = DiagnosticsBundle.buildText(
             appVersion: "0.2 (1)", macOSVersion: "27.0", hardwareModel: "Mac14,9",
             displays: [], recentLogLines: ["a normal log line"]

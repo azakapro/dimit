@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// ARCHITECTURE.md §10's settings window, minus the one tab whose feature
-/// doesn't exist yet: License (C7). It's omitted rather than shown
-/// disabled — an empty tab the user can click into and find nothing in is
-/// worse than one that isn't there. Schedule (C5) is no longer in that
-/// category as of this cycle.
+/// ARCHITECTURE.md §10's settings window. It once also promised a License
+/// tab; that tab has no feature behind it any more and never will — the
+/// 2026-09-09 distribution decision (CLAUDE.md §4) made every copy
+/// unconditional, so there is nothing to activate, manage or deactivate.
+/// Schedule joined the window in C5.
 struct SettingsView: View {
     @ObservedObject var appState: AppState
     @ObservedObject var displayManager: DisplayManager

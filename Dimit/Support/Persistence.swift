@@ -144,8 +144,8 @@ final class Persistence {
             // defaults with nothing in the log to explain "why my settings
             // reset themselves." Never log `data` itself — no reason to
             // believe it contains anything sensitive here, but the habit
-            // (CLAUDE.md §4.2: "log nothing but key-hash") is to log
-            // failures, not payloads.
+            // (CLAUDE.md §4.2: log failures, never payloads) is what keeps
+            // that true as fields get added.
             Log.app.error("PersistedState decode failed, reverting to defaults: \(error, privacy: .public)")
             return .defaults
         }

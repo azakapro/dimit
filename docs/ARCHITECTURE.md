@@ -2,7 +2,7 @@
 
 Companion to `CLAUDE.md` (product rules and API-level detail) and `docs/PLAN.md` (schedule). This file is the contract between the app track and the server/site track. Change it before changing code.
 
-**MVP scope (2026-09-09):** cycles C0–C3 implement §1 (app box only), §2 in full, and §10–§11. §3 (schedule) is C5. §4 (license client) is C7. §5–§8 (server, orders, payments, site) are C7–C8; until then there is no network code in the app. §9 (release pipeline) is C6.
+**Scope (2026-09-09):** §1, §2, §10 and §11 shipped in C0–C3; §3 (schedule) shipped in C5. §9 (release pipeline) is C6. §4–§8 (distribution, the Lemon Squeezy store, the purchase flow, the site and opt-in updates) are C7, and until they land there is **no network code in the app at all**. §4–§7 previously described a license server, keys, a trial and Payme/Click checkout; that design was dropped on 2026-09-09 (docs/PLAN.md → Decisions) and these sections replace it.
 
 ## 1. System context
 
@@ -14,33 +14,30 @@ flowchart LR
         Render --> Gamma[GammaController]
         Render --> Bright[BrightnessController]
         Render --> Overlay[OverlayDimmer]
-        State --> Lic[LicenseClient]
+        State --> Upd["Sparkle updater (opt-in, off by default)"]
     end
-    Lic -- "HTTPS, only activate/validate/deactivate" --> API
-    subgraph CF["Cloudflare (api.dimit.uz)"]
-        API[Worker: license + orders + webhooks] --> D1[(D1 SQLite)]
-        API --> KV[(KV rate limits)]
+    Upd -. "HTTPS, only when opted in" .-> Updates
+    subgraph CFP["Cloudflare Pages (dimit.uz)"]
+        Site["Astro site /uz /ru /en"]
+        Updates["/updates/appcast.xml + .zip"]
     end
-    Site[Astro site dimit.uz\n/uz /ru /en] -- "POST /v1/orders\nGET /v1/orders/:id" --> API
-    Payme[Payme Merchant API] -- "JSON-RPC callbacks" --> API
-    Click[Click Shop API] -- "prepare / complete" --> API
-    LS[Lemon Squeezy, M7] -- "order_created webhook" --> API
-    API -- "key email" --> Resend
-    Site -- "appcast.xml + .zip" --> Sparkle[Sparkle in app, opt-in]
+    Site -- "checkout overlay (lemon.js)" --> LS[Lemon Squeezy]
+    LS -- "payment, VAT as merchant of record" --> LS
+    LS -- "DMG download link + receipt" --> Buyer[Buyer]
 ```
 
-Network policy: the app talks to exactly one host, `api.dimit.uz`, and only for license calls; Sparkle talks to `dimit.uz` only when the user opted in. Nothing else, ever.
+Network policy: **the app makes no network request at all** unless the user opts into update checks, in which case Sparkle fetches one signed appcast from `dimit.uz`. No license calls, no analytics, no telemetry — there is no server. Money and file delivery happen entirely on Lemon Squeezy's side, which the app never talks to (§4).
 
 ## 2. App module map and layering
 
 Dependencies point downwards only. A layer never imports a layer above it.
 
 ```
-UI            MenuBarController, PopoverView, SettingsView, OnboardingView, LicenseView
+UI            MenuBarController, PopoverView, SettingsView, OnboardingView
               ↓ observes
-State         AppState (@Observable), PresetStore, Persistence (UserDefaults, debounced)
+State         AppState (ObservableObject), PresetStore, Persistence (UserDefaults, debounced)
               ↓ calls
-Features      PWMSafeCoordinator, ScheduleEngine, HotkeyManager, LicenseClient/LicenseState
+Features      PWMSafeCoordinator, ScheduleEngine/ScheduleCoordinator, HotkeyManager, UpdateController (C7)
               ↓ calls
 Display       DisplayManager, WarmthCurve (pure), Renderer (pure), GammaController,
               BrightnessController (protocol BrightnessBackend), OverlayDimmer, DDCController
@@ -80,7 +77,6 @@ func render(_ s: AppState, _ displays: [DisplayInfo]) -> [DisplayCommand]
 | App quit | `applicationWillTerminate` | restore gamma, close overlays, restore hardware brightness if pinned |
 | SIGTERM / SIGINT | signal handlers installed at launch | `CGDisplayRestoreColorSyncSettings()` then exit |
 | Crash (SIGSEGV etc.) | not handled | WindowServer keeps the last table; onboarding and Settings have a "Restore colours" button, and the app restores on next launch before doing anything else |
-| License becomes `revoked` | `LicenseClient` | `isOn = false`, restore |
 
 ### 2.3 Warmth curve
 
@@ -117,7 +113,7 @@ Resolution order per display, first that `canControl` wins:
 
 1. `DisplayServicesBackend` — `dlopen("/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices")`, symbols `DisplayServicesGetBrightness`, `DisplayServicesSetBrightness`. Apple displays only.
 2. `CoreDisplayBackend` — `CoreDisplay_Display_GetUserBrightness` / `SetUserBrightness`. Fallback for Apple displays.
-3. `DDCBackend` (M4, experimental) — VCP 0x10 over `IOAVService` I2C on Apple Silicon, `IOI2CSendRequest` on Intel. Third-party monitors.
+3. `DDCBackend` (C5b, experimental, default OFF) — VCP 0x10 over `IOAVService` I2C on Apple Silicon, `IOI2CSendRequest` on Intel. Third-party monitors.
 4. `IORegistryReadOnlyBackend` — reads `IODisplayParameters.brightness` under `AppleARMBacklight` (observed on the dev machine: min 0, max 65536). `set` returns `.unsupported`; used only to cross-check that a pin held when backend 1 or 2 cannot read back.
 
 Rate limit: one `set` per display per 250 ms, coalesced.
@@ -161,12 +157,12 @@ One `NSWindow` per screen, created lazily, keyed by display UUID. Properties fro
 
 | Data | Where | Key |
 |---|---|---|
-| `AppState` (everything user-visible) | `UserDefaults(suiteName: "app.dimit.mac")`, JSON blob, written 250 ms after last change | `state.v1` |
+| `AppState` (everything user-visible) | `UserDefaults.standard`, JSON blob, written 250 ms after the last change | `state.v1` |
 | Gamma baselines | memory only, never persisted (stale baselines would bake a tint in) | |
-| License key, `instanceId`, `validUntil`, `lastValidated` | Keychain, service `app.dimit.mac.license` | one item, JSON |
-| Device ID | Keychain, service `app.dimit.mac.device` | SHA-256(IOPlatformUUID + home path), hex |
-| Trial start | Keychain (survives reinstall; UserDefaults would be trivially reset) | `trialStartedAt` |
-| Logs | `~/Library/Logs/Dimit/dimit.log`, ring of 200 lines in memory for diagnostics | |
+| Sparkle's own bookkeeping (last check date, skipped version) | `UserDefaults.standard`, written by Sparkle itself once C7 lands | `SU*` keys |
+| Logs | `os_log`, subsystem `app.dimit.mac`; the last 200 lines are read back through `OSLogStore` for diagnostics | |
+
+There is no Keychain use and no secret of any kind on the user's machine: nothing is licensed, nothing is activated, nothing identifies the install (§4).
 
 ## 3. Scheduling engine
 
@@ -198,191 +194,120 @@ func target(at now: Date, phases: [SchedulePhase]) -> (warmthK: Double, brightne
 - **`ScheduleConfig`/`TimeOfDay`/`Coordinate` all have hand-written `decodeIfPresent`-per-field decoders**, matching `PersistedState`'s own. `Persistence`'s outer `decodeIfPresent(ScheduleConfig.self, forKey:)` only protects against the *key* being absent; it does nothing once decoding starts and a field *inside* the nested struct turns out to be missing. Without this, the next field added to any of the three (a schedule feature is likely to grow one) would reintroduce the "one new key wipes every existing user's entire saved state" bug this codebase has already hit and fixed twice.
 - **The NOAA algorithm was derived from first principles, not transcribed from memory**, after two wrong transcriptions each passed an initial sanity check anyway (one swapped sunrise and sunset outright; a first "fix" put both events 9+ hours off) — see `SolarCalculator.swift`'s own comment on the final formula. Verified against two independent references before trusting it: Tashkent 2026-09-08 (±3 min per CLAUDE.md §8) and London's 2026-12-21 winter solstice — then re-verified against this machine's real system clock and timezone for the current date, and independently reproduced a third time by a reviewer with no access to the other two verifications.
 
-## 4. License client state machine
+## 4. Distribution and payment
 
-```mermaid
-stateDiagram-v2
-    [*] --> unlicensed : first launch, trial starts
-    unlicensed --> trial : trialStartedAt written
-    trial --> trialEnded : 7 days elapsed
-    trial --> active : activate 200
-    trialEnded --> active : activate 200
-    active --> active : validate 200 every 30 d
-    active --> grace : validate unreachable
-    grace --> active : validate 200
-    grace --> expiredNeedsValidation : offline 14 d
-    active --> revoked : validate/activate 410
-    grace --> revoked : 410
-    expiredNeedsValidation --> active : validate 200
-    active --> unlicensed : deactivate 200
-```
+Decided 2026-09-09 (docs/PLAN.md → Decisions), replacing the license-server design that occupied §4–§7 of this file until then.
 
-Feature gating: `trial` and `active` and `grace` have everything. `trialEnded` and `expiredNeedsValidation` keep warmth and dim but disable PWM-Safe and scheduling and show a persistent bar. `revoked` turns the filter off and shows the localized message.
+**Dimit is a paid download, not a licensed app.** The user pays on our site through a Lemon Squeezy checkout overlay, Lemon Squeezy delivers the DMG, and the app that arrives is unconditional: every copy is identical, fully functional forever, with no key, no trial, no seat count, no activation, no expiry and no remote off switch. Nothing in the app knows, or can know, whether it was paid for.
 
-Validation timing: on launch if `now - lastValidated > 30 d`, then retry with exponential backoff (1 h, 4 h, 24 h) while unreachable. Never more than one request in flight. All requests carry `appVersion` and `platform`, nothing else identifying beyond `deviceId`.
+Consequences, stated plainly so nobody re-derives them later as bugs:
 
-## 5. Server: Cloudflare Worker
+- **The app makes no network request at all** except Sparkle's update check, which does nothing until the user opts in (§8). There is no host to reach, no `api.` subdomain, no request on launch. CLAUDE.md §1.2's "zero network traffic except license activation" is now simply zero.
+- **`License/` and `server/` never exist.** The Settings window has no License tab; the popover has no trial line and no status pill for a licence state.
+- **The download gate is soft, by design.** The Sparkle appcast and its zips are public URLs, and a buyer can hand the DMG to anyone. Pay-what-you-want is an honour-system price; a hard gate needs exactly the machinery this decision removed.
+- **No personal data reaches us.** Lemon Squeezy holds the buyer's email and sends the receipt. We never store it and the app never sees it.
 
-Stack: TypeScript, Hono router, D1 via prepared statements, KV for rate limits, Vitest with `@cloudflare/vitest-pool-workers`. Deployed at `api.dimit.uz`. Secrets via `wrangler secret`: `PAYME_KEY`, `PAYME_TEST_KEY`, `CLICK_SECRET_KEY`, `RESEND_API_KEY`, `LS_WEBHOOK_SECRET` (M7), `ADMIN_TOKEN`.
+### 4.1 Price
 
-### 5.1 Schema (`server/schema.sql`)
+Pay what you want, **minimum $5 USD**, with a suggested price set in the dashboard (chosen with the beta testers — docs/PLAN.md §4). Lemon Squeezy shows the suggested amount in an editable price field and refuses anything below the minimum, so the floor is enforced by the platform rather than by our page.
 
-```sql
-CREATE TABLE licenses (
-  key         TEXT PRIMARY KEY,             -- DIMT-XXXX-XXXX-XXXX-XXXX
-  email       TEXT NOT NULL,
-  source      TEXT NOT NULL CHECK (source IN ('payme','click','ls','manual')),
-  order_ref   TEXT,                         -- orders.id or LS order id
-  seats       INTEGER NOT NULL DEFAULT 3,
-  status      TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','revoked')),
-  created_at  INTEGER NOT NULL              -- unix ms
-);
-CREATE TABLE activations (
-  instance_id   TEXT PRIMARY KEY,
-  key           TEXT NOT NULL REFERENCES licenses(key),
-  device_id     TEXT NOT NULL,
-  device_name   TEXT NOT NULL,
-  platform      TEXT NOT NULL,              -- 'mac' | 'win'
-  activated_at  INTEGER NOT NULL,
-  last_seen     INTEGER NOT NULL,
-  UNIQUE (key, device_id)                   -- re-activating the same device reuses the seat
-);
-CREATE TABLE orders (
-  id            TEXT PRIMARY KEY,           -- 12-char base32, used as Payme account / Click merchant_trans_id
-  email         TEXT NOT NULL,
-  telegram      TEXT,
-  locale        TEXT NOT NULL,              -- 'uz' | 'ru' | 'en'
-  provider      TEXT NOT NULL CHECK (provider IN ('payme','click','ls')),
-  amount_tiyin  INTEGER NOT NULL,           -- UZS * 100
-  status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','cancelled')),
-  license_key   TEXT REFERENCES licenses(key),
-  created_at    INTEGER NOT NULL,
-  paid_at       INTEGER
-);
-CREATE TABLE payme_transactions (
-  id            TEXT PRIMARY KEY,           -- Payme's transaction id
-  order_id      TEXT NOT NULL REFERENCES orders(id),
-  state         INTEGER NOT NULL,           -- 1 created, 2 performed, -1 cancelled, -2 cancelled after perform
-  create_time   INTEGER NOT NULL,           -- Payme "time" field
-  perform_time  INTEGER NOT NULL DEFAULT 0,
-  cancel_time   INTEGER NOT NULL DEFAULT 0,
-  reason        INTEGER
-);
-CREATE TABLE click_transactions (
-  click_trans_id  TEXT PRIMARY KEY,
-  order_id        TEXT NOT NULL REFERENCES orders(id),
-  prepare_id      INTEGER NOT NULL,
-  status          TEXT NOT NULL,            -- 'prepared' | 'completed' | 'cancelled'
-  created_at      INTEGER NOT NULL
-);
--- M7
-CREATE TABLE affiliates (handle TEXT PRIMARY KEY, payout_method TEXT, rate REAL NOT NULL DEFAULT 0.25);
-CREATE TABLE referrals  (order_ref TEXT, handle TEXT, amount INTEGER, created_at INTEGER);
-```
+Fee arithmetic at the floor, from Lemon Squeezy's own fees page (checked 2026-09-09), because it decides whether $5 is a sensible minimum: the platform fee is **5% + $0.50**, plus **1.5% for transactions outside the US** and a further **1.5% for PayPal**. A $5 card sale from Europe therefore costs $0.50 + $0.25 + $0.075 ≈ **$0.83, about 17%**. The fixed 50¢ is what hurts at this price — the identical fee is 4.2% of a $20 order — which is the argument for setting the *suggested* price well above the minimum. The same page invites merchants selling below $10 to ask for custom pricing; worth an email once there is any volume. Tax sits on top and is not ours to handle: Lemon Squeezy is the **merchant of record**, so it calculates, collects, files and remits VAT and sales tax, and its name is what appears on the buyer's statement.
 
-### 5.2 Routes
+### 4.2 What we collect and log
 
-| Route | Auth | Notes |
-|---|---|---|
-| `POST /v1/orders` | none, rate-limited 10/min/IP | validates email + locale + provider, computes amount from `config.priceUZS`, returns `checkoutUrl` (see §7) |
-| `GET /v1/orders/:id` | none, rate-limited 60/min/IP | returns `status` and, when paid, `key`. The id is unguessable (12 base32 chars) and the page stops polling after 15 min |
-| `POST /v1/activate` | none, rate-limited 20/min/IP and 20/day/key | seat logic: same `device_id` → reuse row; else if `count < seats` → insert; else 409 with the device list |
-| `POST /v1/validate` | none | 200 with fresh `validUntil = now + 90 d`; 410 if revoked; 404 if instance unknown |
-| `POST /v1/deactivate` | none | deletes the activation row |
-| `POST /webhooks/payme` | HTTP Basic `Paycom:<PAYME_KEY>` | JSON-RPC 2.0, §7.1 |
-| `POST /webhooks/click` | `sign_string` MD5, §7.2 | form-encoded |
-| `POST /webhooks/lemonsqueezy` | HMAC-SHA256 header | M7 |
-| `POST /admin/mint` | `Authorization: Bearer ADMIN_TOKEN` | used by `scripts/mint.ts` for Teams and manual sales |
-| `GET /r/:handle` | none | M7 affiliate redirect |
+Nothing. No accounts, no analytics, no telemetry, no crash reporter, no device identifier, no email address anywhere in the app. `Logger.swift` writes to `os_log` under the `app.dimit.mac` subsystem; the diagnostics bundle (CLAUDE.md §7) is assembled locally, shown to the user and copied to their own clipboard — the app never transmits it. Log failures, never payloads. The site collects nothing beyond Cloudflare Web Analytics' cookieless aggregate counts (§7).
 
-Key generation: 20 random bytes → Crockford base32 → 4 groups of 4 after `DIMT-`. Uniqueness enforced by the primary key; retry once on collision.
+### 4.3 Payouts — a launch prerequisite, not a code concern
 
-Logging: request path, status, latency, SHA-256 of the key (first 12 hex chars), never the key, never the email, never the IP beyond the KV rate-limit bucket (which expires in 24 h).
+Lemon Squeezy pays out in USD twice a month by bank transfer or PayPal, minus a payout fee (1% per payout for non-US bank accounts, 3% capped at $30 for non-US PayPal). Its supported-countries page lists **Uzbekistan among the countries where bank payouts are supported** (checked 2026-09-09), and PayPal payouts cover 200+ countries. That is a published list, not a confirmation for one particular business, so docs/PLAN.md §4 makes "a verified payout method in the dashboard" a prerequisite that must clear before C7 starts — and docs/PLAN.md §6 carries the fallback if it doesn't.
 
-### 5.3 Errors returned to the app
+## 5. Lemon Squeezy store setup
 
-All errors are `{ error: "<code>" }` with codes `invalid_key`, `no_seats`, `revoked`, `unknown_instance`, `rate_limited`. The app maps each to a String Catalog key; no server text is ever shown to the user.
+One store, one product, one variant. All of it is dashboard configuration; the only thing this repo holds is the resulting checkout URL in `site/src/config.ts`.
 
-## 6. Order and key lifecycle
+| Setting | Value |
+|---|---|
+| Product | Dimit |
+| Pricing type | Pay what you want — minimum **$5.00**, suggested price TBD (docs/PLAN.md §4) |
+| Delivery | Digital download; the notarized `Dimit-x.y.dmg` uploaded as the product file |
+| License keys | **Off.** Lemon Squeezy can mint and validate keys, but the app has nothing to check them with; enabling them would put a key in the receipt that does nothing. |
+| Tax category | Software / digital goods |
+| Confirmation button | "Download Dimit" → Lemon Squeezy's own order page, not a URL of ours |
+| Receipt | Default receipt, carrying the download link |
+
+**Replacing the product file is how buyers get new versions without Sparkle.** Uploading a new file makes it available to every past buyer from their My Orders page; deleting a file removes it from past buyers too, so **never delete an old DMG — only add or replace**. `docs/RELEASE.md` (C6) carries this as a numbered release step.
+
+**Test mode first.** Test mode accepts fake cards and produces the whole real order flow. Products built in test mode do not move to live mode by themselves but can be copied across ("Copy to Live Mode"). C7's "Done when" requires two test-mode purchases — one at exactly the $5 floor, one above it — each ending with a DMG that installs.
+
+## 6. Purchase and download lifecycle
 
 ```mermaid
 sequenceDiagram
-    participant U as Buyer (site /uz/buy)
-    participant S as Worker
-    participant P as Payme
-    participant R as Resend
-    U->>S: POST /v1/orders {email, locale, provider: payme}
-    S-->>U: 201 {orderId, checkoutUrl}
-    U->>P: redirect to checkoutUrl
-    P->>S: CheckPerformTransaction {account.order_id, amount}
-    S-->>P: {allow: true}
-    P->>S: CreateTransaction {id, time, amount, account}
-    S-->>P: {create_time, transaction: order_id, state: 1}
-    P->>S: PerformTransaction {id}
-    S->>S: order.status = paid, mint key, licenses row
-    S-->>P: {perform_time, transaction, state: 2}
-    S->>R: send key email (locale template)
-    P-->>U: redirect back to /download?order=orderId
-    U->>S: GET /v1/orders/orderId (poll)
-    S-->>U: {status: paid, key: DIMT-…}
+    participant U as Visitor (dimit.uz/download)
+    participant J as lemon.js overlay
+    participant L as Lemon Squeezy
+    U->>J: click "Download — pay what you want, from $5"
+    J->>L: open checkout overlay (embed=1)
+    U->>L: amount (>= $5), email, card or PayPal
+    L->>L: charge; collect VAT as merchant of record
+    L-->>U: order page with the DMG link
+    L-->>U: receipt email with the same link
+    U->>U: open the DMG, drag Dimit to Applications
 ```
 
-Click follows the same shape with `prepare` (validate order, return `merchant_prepare_id`) and `complete` (mark paid, mint, email).
+Nothing calls back to us: no webhook, no server, no state to reconcile. Refunds are requested from Lemon Squeezy (30 days, no questions — CLAUDE.md §4.4) and have no effect on an installed copy; the refund page has to say exactly that, which is the honest price of having no kill switch.
 
-Refunds and revocations: `CancelTransaction` with state 2 → state −2, order `cancelled`, license `revoked`. Manual refunds through Click or a card dispute: `scripts/revoke.ts <key>`. The app sees `revoked` on its next validation.
+A buyer who loses the link uses **My Orders** (`app.lemonsqueezy.com/my-orders`, reached by entering the purchase email) — which is why every footer and the download page point at it.
 
-## 7. Payment provider protocols
+## 7. Site (`site/`, Astro)
 
-Verify every detail below against the official docs before M3 ends: Payme at `developer.help.paycom.uz`, Click at `docs.click.uz`. The PayTechUZ library (`docs.pay-tech.uz`) is a good second reference for edge cases and error codes.
+- Locales: `en` at `/`, `uz` at `/uz/`, `ru` at `/ru/`. Three full translations of the same page set. (The app's Uzbek-first framing is about its own UI and the Telegram beta; the buying audience for a $5 USD download is global.)
+- Pages per locale: home, download, faq, help, science, changelog, terms, privacy, refund.
+- **The download page is the only commercial surface.** The checkout is Lemon Squeezy's overlay, which needs exactly two things in the page:
 
-### 7.1 Payme Merchant API (JSON-RPC 2.0, single endpoint)
+```html
+<script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
 
-- Auth: `Authorization: Basic base64("Paycom:" + PAYME_KEY)`; test environment uses `PAYME_TEST_KEY`. Wrong or missing → error `-32504`.
-- Amounts are in **tiyin** (UZS × 100). Mismatch → `-31001`.
-- Account field: `account.order_id`. Unknown order → `-31050` (any code in −31050…−31099 is "account not found" class).
-- Checkout URL: `https://checkout.paycom.uz/` + base64(`m=<merchant_id>;ac.order_id=<orderId>;a=<amount_tiyin>;l=<uz|ru|en>;c=<return_url>`). Test: `https://test.paycom.uz/`.
-- Methods and required behaviour:
+<a class="lemonsqueezy-button"
+   href="https://<store>.lemonsqueezy.com/checkout/buy/<variant-uuid>?embed=1&media=0&desc=0&dark=1">
+  Download Dimit — pay what you want, from $5
+</a>
+```
 
-| Method | Must do |
-|---|---|
-| `CheckPerformTransaction` | order exists and is `pending`, amount matches → `{allow: true}`; may also return `detail.receipt_type` and items for fiscalisation (add when Payme asks). |
-| `CreateTransaction` | if a transaction with this `id` exists → return its current state (idempotent). Else if the order already has a live transaction → `-31008`. Else if `now - time > 12 h` → `-31008`. Else insert state 1. |
-| `PerformTransaction` | state 1 → set state 2, `perform_time = now`, mark order paid, mint key, send email. State 2 → return the stored result (idempotent). State −1/−2 → `-31008`. |
-| `CancelTransaction` | state 1 → −1; state 2 → −2 and revoke the license (Payme only allows this if the goods are returnable; we say yes, 30-day refund policy). Store `reason`. |
-| `CheckTransaction` | return `create_time`, `perform_time`, `cancel_time`, `transaction`, `state`, `reason`. |
-| `GetStatement` | transactions with `create_time` in `[from, to]`. |
+  `lemon.js` (2.3 kB, loaded from Lemon Squeezy's CDN — do not self-host) binds every `a.lemonsqueezy-button` on load. `?embed=1` is what makes it an overlay rather than a redirect; `media`, `logo`, `desc`, `discount` and `dark` toggle the overlay's chrome. Astro emits static HTML, so the `window.createLemonSqueezy()` re-init call the docs describe is not needed here — that is the React/Vue remount case. If the script fails to load, the anchor is still a working link to the hosted checkout: **never hide the href behind a JS-only click handler**, that fallback is the whole reason this is an `<a>`.
+- In the same viewport as the button: version, minimum macOS, the **tested-on** list drawn from docs/QA.md, signing/notarization status, the two-line install instruction, and "Already bought it? Find your download" → My Orders.
+- `site/src/config.ts`: `checkoutUrl`, `minPriceUSD`, `currentVersion`, `minMacOS`, `telegram`, `supportEmail`, `legalEntity`. The footer renders the last three — a real legal entity and a real contact address are a trust advantage over the anonymous competition, and the terms/refund pages need them anyway.
+- Hosting: any free static host. `appcast.xml` and the release zips go under `/updates/` (§8).
 
-Test cases for Vitest (Codex writes these before the merchant contract lands): wrong auth; wrong amount; unknown order; create twice with same id; create when another transaction is live; perform twice; cancel before and after perform; statement window.
+### 7.1 Hosting, and the services we deliberately don't use
 
-### 7.2 Click Shop API
+The site is **static**: Astro with no SSR, no API routes, no forms that post anywhere, no secrets in the build. That is not an accident of the current scope — §4 removed the only thing that ever needed a backend — and it makes the hosting choice nearly free of consequence.
 
-- Two form-encoded POSTs to the same URL: `action=0` (prepare) and `action=1` (complete).
-- Signature: `sign_string = md5(click_trans_id + service_id + SECRET_KEY + merchant_trans_id + [merchant_prepare_id, complete only] + amount + action + sign_time)`. Mismatch → `error: -1`.
-- `merchant_trans_id` is our `orders.id`. Unknown → `-5`. Already paid → `-4`. Wrong amount → `-2`. Cancelled by Click (`error != 0` in complete) → `-9` and order `cancelled`.
-- Prepare returns `{click_trans_id, merchant_trans_id, merchant_prepare_id, error: 0, error_note: "Success"}`; store `merchant_prepare_id` as the `click_transactions` row id.
-- Checkout URL: `https://my.click.uz/services/pay?service_id=…&merchant_id=…&amount=<UZS with 2 decimals>&transaction_param=<orderId>&return_url=<download url>`.
+- **No Supabase, and no database anywhere.** Asked directly on 2026-09-09; the honest answer is that there is no data to keep. No accounts, no licences, no orders (Lemon Squeezy owns those), no user records, no analytics rows, and the app cannot talk to a server at all (§4.3). Adding Supabase would mean a project, a dashboard, an API key, a free tier that pauses on inactivity, and a privacy claim to defend — in exchange for storing nothing. If some future feature genuinely needs stored state, that is a new decision under CLAUDE.md §12, not a commit.
+- **Host: Cloudflare Pages, marginally over Vercel/Netlify/GitHub Pages**, all of which are free and would serve this site identically. Two tie-breakers, neither dramatic: dimit.uz's DNS is already planned on Cloudflare (docs/PLAN.md §4), and Cloudflare Pages' free tier has no bandwidth cap, which matters only because `/updates/` serves Sparkle's zips (~10 MB per release) to every user who opted into update checks — Vercel's free tier meters that bandwidth. Its cookieless Web Analytics is also the one analytics product that fits CLAUDE.md §1.2. If Vercel is more comfortable to deploy from, use it: move the appcast and zips to the GitHub release URLs and the difference disappears.
+- **No CI service is required either.** Builds are notarized locally on the owner's Mac (§9) because notarization needs the Developer ID certificate; a hosted runner would need that certificate uploaded as a secret, which is a real risk taken for no gain at this scale.
+- Analytics: Cloudflare Web Analytics (cookieless) only. UTM parameters label inbound traffic; nothing is ever attached to a download.
+- Claims discipline: every product claim on the site needs a row in docs/QA.md behind it. `docs/LAUNCH_STRATEGY.md` §2 holds the wording table for the four claims that are easiest to overstate — capture exclusion, PWM, external monitors, and compatibility.
 
-### 7.3 Lemon Squeezy (M7)
+## 8. Updates (Sparkle 2, opt-in)
 
-`order_created` with `X-Signature` HMAC-SHA256 over the raw body → mint key with `source = 'ls'`, email via Resend using the store's checkout locale (`custom_data.locale` passed from the site). `order_refunded` → revoke.
+The only network code in the app, and it is inert until the user turns it on.
 
-## 8. Site (`site/`, Astro)
-
-- Locales: `uz` at `/` (default for 1.0), `ru` at `/ru/`, `en` at `/en/`. At M7 the default flips to `en` on dimit.app while dimit.uz keeps `uz`.
-- Pages per locale: home, buy, download, faq, help, science, changelog, terms, privacy, refund (affiliates at M7).
-- `/buy`: one form (email, optional Telegram), two buttons Payme / Click. Submits to `POST /v1/orders`, redirects to `checkoutUrl`. No JavaScript framework; a 40-line inline script.
-- `/download?order=…`: polls `GET /v1/orders/:id` every 5 s for up to 15 min, shows the key, the DMG link and the activation steps. Also reached from the key email.
-- Config in `site/src/config.ts`: `priceUZS`, `priceUSD`, `apiBase`, `telegram`, `supportEmail`, `legalEntity`. Footer renders the last three.
-- Hosting: Cloudflare Pages, `appcast.xml` and release `.zip` files under `/updates/`.
-- Analytics: Cloudflare Web Analytics (cookieless) only.
+- `updateChecksEnabled` (persisted since C4, default false) drives `SPUUpdater.automaticallyChecksForUpdates`. With it off Sparkle must issue **no request at all** — C7's "Done when" verifies that with a network monitor, not by reading the code.
+- Feed: `SUFeedURL = https://dimit.uz/updates/appcast.xml`, EdDSA-signed. `SUPublicEDKey` goes in Info.plist; the private key lives in the login Keychain and is **never** committed.
+- "Check for Updates…" in the right-click menu works regardless of the automatic setting: an explicit user action is not what the opt-in protects against.
+- `scripts/make_appcast.sh` runs Sparkle's `generate_appcast` over `site/public/updates/` (§9).
+- Sparkle is the second and last dependency after KeyboardShortcuts; CLAUDE.md §2 pre-approves it by name.
+- Sparkle updates and the Lemon Squeezy product file are two independent delivery paths for the same build (§5). Both are updated in the same release, from the same notarized artifact.
 
 ## 9. Release pipeline
 
-1. `scripts/build.sh` — `xcodebuild archive` universal, Developer ID signing, hardened runtime.
-2. `scripts/notarize.sh` — `notarytool submit --wait`, `stapler staple`, on both `.app` and `.dmg`.
-3. `scripts/build_dmg.sh` — `create-dmg`, background, Applications symlink.
-4. `scripts/make_appcast.sh` — Sparkle `generate_appcast` with the EdDSA private key from Keychain; uploads to `site/public/updates/`.
-5. Version `MAJOR.MINOR`, build number = date `YYYYMMDDHH`. Tag `vX.Y`.
+1. `scripts/build.sh` — `xcodebuild archive`, universal, Developer ID signing, hardened runtime.
+2. `scripts/notarize.sh` — `notarytool submit --wait`, `stapler staple`, on both the `.app` and the `.dmg`.
+3. `scripts/build_dmg.sh` — `create-dmg`, background image, Applications symlink.
+4. `scripts/make_appcast.sh` — Sparkle `generate_appcast` with the EdDSA private key from the Keychain; output into `site/public/updates/`.
+5. Upload the notarized DMG to the Lemon Squeezy product as a new or replacement file — **never delete an older one** (§5).
+6. Version `MAJOR.MINOR`, build number = date `YYYYMMDDHH`. Tag `vX.Y`. A GitHub release keeps our own record; the public download is Lemon Squeezy's.
 
 ## 10. UI design spec (no Figma; build this directly)
 
@@ -390,17 +315,17 @@ Principles: native controls where accessibility matters (sliders, toggles), cust
 
 **Popover, 320 × ~440 pt:**
 
-1. Header row: app name left, status pill right ("PWM ✓" when pinned, "Trial · 5 d" when in trial), gear button.
+1. Header row: app name left, status pill right ("PWM ✓" when pinned), gear button.
 2. ON/OFF: full-width 56 pt button, filled with a warm gradient when ON (`#FF6A00 → #FF2D2D`), outlined when OFF. Label from `main.on` / `main.off`.
 3. Warmth: label left, value right ("2700K" / "2700 K" per locale). Native `Slider` 0…6500 with a custom track gradient from white (6500) through amber (2700) to red (0). Snaps to 100 K steps.
 4. Brightness: same row layout, 10…100 %, track from black to white.
 5. Presets: three-segment picker DAY / EVENING / NIGHT; the active one highlighted; editing presets lives in Settings.
 6. PWM-Safe row: toggle with the help text as a `?` popover; status text below in the states from CLAUDE.md §3.6.
-7. Footer: one line, either "Trial: 5 days left · Buy" or "Licensed · 1 of 3 Macs" or the offline/grace text.
+7. Footer: the PWM-Safe status line from CLAUDE.md §3.6 when it has something to say, otherwise nothing. There is no licence, trial or account state to show (§4).
 
 **Menu bar icon:** a 16 pt circle, half-filled diagonally ("dim"). Outline when OFF, filled when ON, 3 pt dot at the lower right when PWM pinned. Template image so it follows the menu bar tint.
 
-**Settings window (tabs):** General (launch at login, language, updates opt-in, hotkeys), Schedule, Displays (per-display list with backend name and DDC experimental toggle), License, Advanced (Fallback mode, restore colours, copy diagnostics).
+**Settings window (tabs):** General (launch at login, language, updates opt-in, hotkeys, presets), Schedule, Displays (per-display list with backend name and DDC experimental toggle), Advanced (Fallback mode, restore colours, copy diagnostics). No License tab — there is nothing to license (§4).
 
 **Onboarding (3 steps, first launch only):** headline, screenshots-stay-normal, no-account-no-tracking with the updates opt-in checkbox and a "Restore colours" safety button.
 
@@ -408,7 +333,7 @@ Typography: SF Pro, values in SF Mono for the two numbers so they do not jitter.
 
 **As built in C4** (this file is the contract, so it records what the code does where that differs from the sketch above):
 
-- **Settings tabs shipped: General, Displays, Advanced.** Schedule (C5) and License (C7) are *omitted*, not shown disabled — an empty tab is worse than none. **Schedule shipped in C5, see that cycle's own "As built" note below; License (C7) is the only one still omitted.** The Displays tab lists each display with its real brightness-backend name; **C5b added the Experimental DDC toggle**, so that line is now complete. Preset editing (CLAUDE.md §3.7 "user-editable; reset to defaults") lives in General, since no tab above names it.
+- **Settings tabs shipped: General, Displays, Advanced**, plus **Schedule from C5** (see that cycle's "As built" note below). The License tab this file used to promise no longer exists in the design at all — the 2026-09-09 distribution decision (§4) removed the feature, not just the tab. The Displays tab lists each display with its real brightness-backend name; **C5b added the Experimental DDC toggle**, so that line is now complete. Preset editing (CLAUDE.md §3.7 "user-editable; reset to defaults") lives in General, since no tab above names it.
 - **The settings window is our own `NSWindow`, not SwiftUI's `Settings {}` scene.** Opening that scene programmatically needs `openSettings` (macOS 14+) or an undocumented selector whose name Apple has changed between releases; CLAUDE.md §2 fixes the target at macOS 13. Same result for the user, none of the version risk.
 - **Language override applies live, without relaunch.** CLAUDE.md §5 says "set Bundle on relaunch"; instead `AppState.effectiveLocale` is applied with `.environment(\.locale, …)` at every SwiftUI root (popover, settings, onboarding), which is how `Text` resolves String Catalog lookups. AppKit surfaces (right-click menu, window titles, toast) go through `AppState.localized(_:)`, which sets the resource's locale before `String(localized:)`. Verified by rendering all three surfaces off-screen in en/uz/ru (`DimitTests/LayoutRenderTests`).
 - **Onboarding completion is recorded on "Get Started" or a user-initiated close only** (`windowShouldClose`), never on app termination — first found by a probe where SIGTERM during step 1 marked the intro as done.
@@ -421,15 +346,14 @@ Typography: SF Pro, values in SF Mono for the two numbers so they do not jitter.
 | Level | What | Where |
 |---|---|---|
 | Unit (Swift) | `WarmthCurve`, gamma math, `render`, `LicenseState` transitions incl. grace, `ScheduleEngine` NOAA values, `PWMSafeCoordinator` with a fake backend | `DimitTests` |
-| Unit (TS) | every route and every Payme/Click case in §7 | `server/test` |
 | Manual matrix | CLAUDE.md §8 rows | `docs/QA.md`, one row per machine × macOS × display |
 | Performance | idle CPU, popover open time, slider latency | recorded in `docs/QA.md` per release |
 
-`docs/QA.md` is created in M0 with the gamma spike results as its first two rows.
+`docs/QA.md` was created in C0 with the gamma spike results as its first two rows, and every cycle since has added a section. Its **pending** rows are the standing list of what no unattended session can verify.
 
 ## 12. Open questions to resolve during build
 
-- Auto-brightness detection on macOS 26/27: no public key found on the dev machine (2026-09-08). Timebox 2 h in M2, then fall back to the unconditional banner.
-- Whether Xcode 26 runs on the macOS 27 beta on the dev machine, or the 27 beta of Xcode is required.
-- Payme fiscalisation (`detail` in `CheckPerformTransaction`): required only for some merchant categories; ask Payme during onboarding.
-- The exact home monitor model for DDC; record it in QA.md the first time it is tested.
+- Auto-brightness detection on macOS 26/27: no public key found on the dev machine (2026-09-08). Timeboxed in C3, nothing reliable found, so the banner is unconditional on macOS ≥ 26 — closed, kept here as the reason.
+- The exact home monitor model for DDC; record it in QA.md the first time it is tested (C6).
+- The suggested price to show above the $5 minimum (§4.1) — ask the beta testers in C6.
+- Whether Lemon Squeezy's published Uzbekistan payout support (§4.3) actually clears verification for this LLC. Must be answered before C7 starts.
