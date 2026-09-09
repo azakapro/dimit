@@ -129,6 +129,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        // Stop the schedule *before* restoring anything below — a tick
+        // already sitting on the run loop could otherwise fire between
+        // these calls and the process actually exiting, re-tinting the
+        // display right after this function just restored it. Caught by
+        // an independent C5 review, the same "every coordinator with a
+        // live Timer needs an explicit teardown hook" lesson
+        // PWMSafeCoordinator's restoreAndDisable() already exists for.
+        pipeline?.scheduleCoordinator.stop()
+
         // Persistence is debounced 250 ms, so without this any change made
         // just before quitting is lost — flip a preset, hit Quit, and it's
         // gone. Flush synchronously here.

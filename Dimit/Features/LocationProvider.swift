@@ -27,6 +27,12 @@ final class LocationProvider: NSObject, CLLocationManagerDelegate {
         manager.delegate = self
     }
 
+    /// Overwrites any not-yet-fired `completion` from a previous call — a
+    /// caller must not invoke this again while one is already in flight,
+    /// or the first caller's result is silently dropped. `ScheduleSettingsTab`
+    /// enforces this by disabling its "Use my location" button for exactly
+    /// this reason; there is no queueing here because there is only ever
+    /// the one call site.
     func requestOneTimeLocation(completion: @escaping (Result) -> Void) {
         self.completion = completion
         switch manager.authorizationStatus {

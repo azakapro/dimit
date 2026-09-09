@@ -15,6 +15,23 @@ struct TimeOfDay: Codable, Equatable {
     var minute: Int
 
     static let defaultBedtime = TimeOfDay(hour: 22, minute: 30)
+
+    init(hour: Int, minute: Int) {
+        self.hour = hour
+        self.minute = minute
+    }
+
+    /// Same `decodeIfPresent`-per-field reasoning as `ScheduleConfig`'s own
+    /// decoder just below. Two fields today, but "this type is small and
+    /// won't grow" is exactly the assumption that was wrong twice already
+    /// in this codebase (`fallbackMode`, then three more C4 fields) — the
+    /// custom decoder is cheap enough that there's no reason to bet against
+    /// it a third time.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        hour = try container.decodeIfPresent(Int.self, forKey: .hour) ?? TimeOfDay.defaultBedtime.hour
+        minute = try container.decodeIfPresent(Int.self, forKey: .minute) ?? TimeOfDay.defaultBedtime.minute
+    }
 }
 
 /// Everything the schedule needs to know, persisted as one unit.
@@ -42,6 +59,42 @@ struct ScheduleConfig: Codable, Equatable {
         fixedEveningStart: TimeOfDay(hour: 18, minute: 0),
         rampMinutes: 20
     )
+
+    init(
+        mode: ScheduleMode, location: Coordinate?, selectedCityID: String?,
+        bedtime: TimeOfDay, fixedDayStart: TimeOfDay, fixedEveningStart: TimeOfDay, rampMinutes: Int
+    ) {
+        self.mode = mode
+        self.location = location
+        self.selectedCityID = selectedCityID
+        self.bedtime = bedtime
+        self.fixedDayStart = fixedDayStart
+        self.fixedEveningStart = fixedEveningStart
+        self.rampMinutes = rampMinutes
+    }
+
+    /// A hand-written decoder for the same reason `PersistedState` has one
+    /// (see that type's doc comment): Swift's synthesized `Decodable`
+    /// throws `keyNotFound` for a missing key regardless of a declared
+    /// default, and `Persistence`'s outer `decodeIfPresent(ScheduleConfig
+    /// .self, forKey:)` only protects against the *key itself* being
+    /// absent — it does nothing once decoding has started and a field
+    /// *inside* this struct turns out to be missing. Without this,
+    /// whichever future cycle adds a field here (a schedule feature is
+    /// likely to grow one) reintroduces exactly the "one new key wipes
+    /// every existing user's entire saved state" bug this codebase has
+    /// already hit and fixed twice (`fallbackMode` in C3, C4's trio).
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let fallback = Self.defaults
+        mode = try container.decodeIfPresent(ScheduleMode.self, forKey: .mode) ?? fallback.mode
+        location = try container.decodeIfPresent(Coordinate.self, forKey: .location)
+        selectedCityID = try container.decodeIfPresent(String.self, forKey: .selectedCityID)
+        bedtime = try container.decodeIfPresent(TimeOfDay.self, forKey: .bedtime) ?? fallback.bedtime
+        fixedDayStart = try container.decodeIfPresent(TimeOfDay.self, forKey: .fixedDayStart) ?? fallback.fixedDayStart
+        fixedEveningStart = try container.decodeIfPresent(TimeOfDay.self, forKey: .fixedEveningStart) ?? fallback.fixedEveningStart
+        rampMinutes = try container.decodeIfPresent(Int.self, forKey: .rampMinutes) ?? fallback.rampMinutes
+    }
 }
 
 /// One anchor point in a day's schedule: "starting at `start`, ramp toward
@@ -78,19 +131,47 @@ enum ScheduleEngine {
             // explicitly; the sunrise->DAY transition is this cycle's
             // reading of what "Sunset->Sunrise" as a mode name implies,
             // documented here since the source doc doesn't spell it out.
-            return [
+            return chronological([
                 SchedulePhase(preset: .day, start: sunrise, rampMinutes: config.rampMinutes),
                 SchedulePhase(preset: .evening, start: sunset, rampMinutes: config.rampMinutes),
                 SchedulePhase(preset: .night, start: clockTime(config.bedtime, on: day, calendar: calendar), rampMinutes: config.rampMinutes),
-            ]
+            ])
 
         case .fixedTimes:
-            return [
+            return chronological([
                 SchedulePhase(preset: .day, start: clockTime(config.fixedDayStart, on: day, calendar: calendar), rampMinutes: config.rampMinutes),
                 SchedulePhase(preset: .evening, start: clockTime(config.fixedEveningStart, on: day, calendar: calendar), rampMinutes: config.rampMinutes),
                 SchedulePhase(preset: .night, start: clockTime(config.bedtime, on: day, calendar: calendar), rampMinutes: config.rampMinutes),
-            ]
+            ])
         }
+    }
+
+    /// Enforces `day.start < evening.start < night.start`, nudging a
+    /// later phase forward by one second past the one before it wherever
+    /// the caller's configured times (or, for `.sunsetToSunrise`, a
+    /// bedtime set earlier than sunset) would otherwise put them out of
+    /// order. `phases`/`target` pick the active phase by comparing raw
+    /// start times, so an inverted pair silently breaks the whole
+    /// day→evening→night progression rather than merely looking odd — an
+    /// independent review found exactly this with a real, unremarkable
+    /// configuration: a 21:00 bedtime at a high-latitude city where
+    /// midsummer sunset falls at 21:19. From 21:19 onward, EVENING (the
+    /// later raw start time) silently and permanently outranked the NIGHT
+    /// phase that had already begun 19 minutes earlier, for the rest of
+    /// the night. Callers always pass phases already in [day, evening,
+    /// night] order, matching how the two call sites above construct them.
+    private static func chronological(_ phases: [SchedulePhase]) -> [SchedulePhase] {
+        var result: [SchedulePhase] = []
+        var minimumStart: Date?
+        for phase in phases {
+            var start = phase.start
+            if let minimumStart, start <= minimumStart {
+                start = minimumStart.addingTimeInterval(1)
+            }
+            result.append(SchedulePhase(preset: phase.preset, start: start, rampMinutes: phase.rampMinutes))
+            minimumStart = start
+        }
+        return result
     }
 
     /// `phases(for:)` for one calendar day, merged with the day before it
@@ -118,44 +199,90 @@ enum ScheduleEngine {
         phases.sorted { $0.start < $1.start }.last { $0.start <= now }
     }
 
-    /// The warmth/brightness the schedule wants right now, or `nil` if the
-    /// schedule has nothing to say (no phases at all, or `now` precedes
-    /// every phase in the supplied list) — the caller's cue to leave
-    /// `AppState` exactly as it is rather than snapping to some default.
-    ///
+    /// What the schedule wants applied right now, or `nil` if it has
+    /// nothing to say (no phases at all, or `now` precedes every phase in
+    /// the supplied list) — the caller's cue to leave `AppState` exactly as
+    /// it is rather than snapping to some default.
+    struct Resolution: Equatable {
+        var isOn: Bool
+        var warmthK: Double
+        var brightness: Double
+        /// The preset these values exactly equal, so the caller can
+        /// highlight it (matching what `AppState.apply(preset:)` already
+        /// does for a manual tap) — set only once a ramp has fully
+        /// completed and landed on a real preset's values; `nil` mid-ramp,
+        /// since no single preset is "active" during an interpolation, and
+        /// `nil` while `isOn` is false.
+        var settledPreset: PresetID?
+    }
+
     /// `values` looks up the *effective* (possibly user-overridden, C4)
     /// values for a preset, never `PresetID.defaultValues` directly: a
     /// user who customized EVENING must get their own EVENING from the
     /// schedule, not the factory one.
     ///
-    /// Deliberately returns only warmth/brightness, not an on/off state —
-    /// matching ARCHITECTURE.md §3's function signature exactly. The
-    /// schedule steers *what* the filter would show; whether it is showing
-    /// anything at all stays the user's own ON/OFF toggle, same as the
-    /// popover sliders already behave while OFF. This is also the safer
-    /// choice: an automatic mode that could switch itself on unprompted
-    /// (mid screen-share, say) is a worse surprise than one that only ever
-    /// adjusts values the user has already chosen to display.
-    static func target(at now: Date, phases: [SchedulePhase], values: (PresetID) -> PresetValues) -> PresetValues? {
+    /// The `.day` phase is the schedule's own "off": once its ramp
+    /// completes, `isOn` is `false` and the values are neutral —
+    /// `PresetID.day`'s actual values (4000K/100%, a mild warm daytime
+    /// preset, not neutral 6500K) stay reachable only as a manual preset
+    /// button, never as what an automatic schedule settles on. An earlier
+    /// version had every mode return only warmth/brightness, keeping
+    /// ON/OFF as the user's alone; an independent review pointed out the
+    /// real consequence: once a user turned the filter on and let a
+    /// non-manual schedule run, there was no state it could ever reach
+    /// that looked like "off" again, since even its own "back to DAY"
+    /// phase left `isOn` untouched at a permanent, unexplained 4000K tint.
+    /// A schedule literally named "Sunset→Sunrise" that can never actually
+    /// stop at sunrise defeats the one thing its name promises.
+    static func target(at now: Date, phases: [SchedulePhase], values: (PresetID) -> PresetValues) -> Resolution? {
         let sorted = phases.sorted { $0.start < $1.start }
         guard let activeIndex = sorted.lastIndex(where: { $0.start <= now }) else { return nil }
 
         let active = sorted[activeIndex]
-        let target = values(active.preset)
-        guard active.rampMinutes > 0 else { return target }
+        let isOffPhase = active.preset == .day
+        let targetValues = phaseValues(active.preset, values: values)
 
         let rampEnd = active.start.addingTimeInterval(Double(active.rampMinutes) * 60)
-        guard now < rampEnd else { return target }
+        if active.rampMinutes <= 0 || now >= rampEnd {
+            return Resolution(
+                isOn: !isOffPhase,
+                warmthK: targetValues.warmthK,
+                brightness: targetValues.brightness,
+                settledPreset: isOffPhase ? nil : active.preset
+            )
+        }
 
-        let previousPreset = activeIndex > 0 ? sorted[activeIndex - 1].preset : PresetID.day
-        let previous = values(previousPreset)
+        // Mid-ramp: still "on" regardless of which direction the ramp runs
+        // — fading out is still visibly tinted for most of its duration,
+        // same as fading in. No earlier phase (activeIndex == 0, only
+        // reachable with a deliberately short/synthetic phase list — every
+        // real 2-day window this engine generates always starts with an
+        // off/.day phase) assumes "off," for the same reason `target`
+        // itself treats "nothing configured yet" as off rather than
+        // guessing a preset.
+        let previousValues: PresetValues = activeIndex > 0
+            ? phaseValues(sorted[activeIndex - 1].preset, values: values)
+            : PresetValues(warmthK: Config.maxWarmthK, brightness: Config.maxBrightness)
         let duration = rampEnd.timeIntervalSince(active.start)
         let fraction = duration > 0 ? (now.timeIntervalSince(active.start) / duration).clamped(to: 0...1) : 1.0
 
-        return PresetValues(
-            warmthK: previous.warmthK + (target.warmthK - previous.warmthK) * fraction,
-            brightness: previous.brightness + (target.brightness - previous.brightness) * fraction
+        return Resolution(
+            isOn: true,
+            warmthK: previousValues.warmthK + (targetValues.warmthK - previousValues.warmthK) * fraction,
+            brightness: previousValues.brightness + (targetValues.brightness - previousValues.brightness) * fraction,
+            settledPreset: nil
         )
+    }
+
+    /// A phase's real target values — `.day` means the schedule's "off"
+    /// (neutral, not `PresetID.day`'s own 4000K/100%); `.evening`/`.night`
+    /// mean the user's effective (possibly customized) values for that
+    /// preset. The one place both `target`'s active- and previous-phase
+    /// lookups apply this override, so they can't drift apart the way an
+    /// earlier draft of this function did (the active phase correctly
+    /// resolved to neutral, the previous-phase lookup didn't).
+    private static func phaseValues(_ preset: PresetID, values: (PresetID) -> PresetValues) -> PresetValues {
+        preset == .day ? PresetValues(warmthK: Config.maxWarmthK, brightness: Config.maxBrightness) : values(preset)
     }
 
     private static func clockTime(_ time: TimeOfDay, on day: Date, calendar: Calendar) -> Date {

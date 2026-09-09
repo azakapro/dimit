@@ -44,6 +44,20 @@ final class ScheduleCoordinatorTests: XCTestCase {
         func now() -> Date { current }
     }
 
+    /// `ScheduleCoordinator`'s config-change handling is deliberately
+    /// deferred one main-queue turn (`.receive(on: .main)`, fixing a real
+    /// bug where reading `appState.scheduleConfig` synchronously inside
+    /// the willSet-timed Combine callback saw the *previous* value). Any
+    /// test that mutates `scheduleConfig` after constructing the
+    /// coordinator, expecting to observe the reaction, must flush the main
+    /// queue once first — otherwise it's asserting before that reaction
+    /// has had a chance to run at all.
+    private func flushMainQueue() {
+        let expectation = expectation(description: "main queue flush")
+        DispatchQueue.main.async { expectation.fulfill() }
+        wait(for: [expectation], timeout: 1)
+    }
+
     // MARK: - Basic driving
 
     func test_manualMode_writesNothing_evenWhenEvaluated() {
@@ -114,12 +128,91 @@ final class ScheduleCoordinatorTests: XCTestCase {
         state.warmthK = 3000 // manual override during NIGHT
         XCTAssertNotNil(coordinator.pausedAtPhaseStart)
 
-        // Cross into tomorrow's sunrise phase — a genuinely new boundary.
+        // Cross into tomorrow's sunrise phase — a genuinely new boundary,
+        // well past its own ramp so the schedule has settled into "off."
         clock.current = date(2026, 9, 9, 6, 30)
         coordinator.evaluateNow()
 
         XCTAssertNil(coordinator.pausedAtPhaseStart, "crossing a phase boundary must resume the schedule")
-        XCTAssertEqual(state.warmthK, PresetID.day.defaultValues.warmthK, "and the schedule should be driving again")
+        XCTAssertFalse(state.isOn, "the schedule should be driving again, and sunrise means off")
+    }
+
+    // MARK: - isOn: the schedule's own off state (fixes a real product bug)
+
+    // An independent review found that an earlier version never touched
+    // `isOn` at all — once a user turned the filter on under a non-manual
+    // schedule, nothing could ever turn it back off again, since even the
+    // sunrise phase just kept isOn=true at a permanent tint. These pin the
+    // fix end-to-end through the real coordinator, not just the pure engine.
+    func test_schedule_turnsOffAtSunrise_onceSettled() {
+        let state = freshState()
+        state.isOn = true
+        state.scheduleConfig = sunsetToSunriseConfig(rampMinutes: 20)
+        let sunrise = ScheduleEngine.phases(for: date(2026, 9, 8), mode: .sunsetToSunrise, config: state.scheduleConfig, calendar: calendar)
+            .first { $0.preset == .day }!
+        let clock = TestClock(sunrise.start.addingTimeInterval(21 * 60)) // past the ramp
+        let coordinator = ScheduleCoordinator(appState: state, calendar: { self.calendar }, now: clock.now)
+        coordinator.evaluateNow()
+
+        XCTAssertFalse(state.isOn)
+        XCTAssertEqual(state.warmthK, Config.maxWarmthK)
+    }
+
+    func test_schedule_turnsOnAtSunset() {
+        let state = freshState()
+        state.isOn = false
+        state.scheduleConfig = sunsetToSunriseConfig(rampMinutes: 20)
+        let sunset = ScheduleEngine.phases(for: date(2026, 9, 8), mode: .sunsetToSunrise, config: state.scheduleConfig, calendar: calendar)
+            .first { $0.preset == .evening }!
+        let clock = TestClock(sunset.start.addingTimeInterval(21 * 60))
+        let coordinator = ScheduleCoordinator(appState: state, calendar: { self.calendar }, now: clock.now)
+        coordinator.evaluateNow()
+
+        XCTAssertTrue(state.isOn)
+    }
+
+    // Manually toggling the ON/OFF button is exactly as much of a manual
+    // override as dragging a slider — both mean "not what the schedule
+    // wanted," and both must pause it the same way.
+    func test_manuallyTogglingOnOff_alsoPausesTheSchedule() {
+        let state = freshState()
+        state.isOn = true
+        state.scheduleConfig = sunsetToSunriseConfig(rampMinutes: 20)
+        let clock = TestClock(date(2026, 9, 8, 23, 0)) // settled into NIGHT (on)
+        let coordinator = ScheduleCoordinator(appState: state, calendar: { self.calendar }, now: clock.now)
+        coordinator.evaluateNow()
+        XCTAssertTrue(state.isOn)
+
+        state.isOn = false // the user presses the ZAP button off, by hand
+        XCTAssertNotNil(coordinator.pausedAtPhaseStart, "toggling isOn by hand must register as an override too")
+
+        clock.current = date(2026, 9, 9, 2, 0) // still inside the same NIGHT phase
+        coordinator.evaluateNow()
+        XCTAssertFalse(state.isOn, "schedule must not turn it back on while paused inside the phase the user overrode")
+    }
+
+    func test_settledPreset_reHighlightsInThePopoverPicker_onceARampCompletes() {
+        let state = freshState()
+        state.scheduleConfig = sunsetToSunriseConfig(rampMinutes: 20)
+        let bedtime = ScheduleEngine.phases(for: date(2026, 9, 8), mode: .sunsetToSunrise, config: state.scheduleConfig, calendar: calendar)
+            .first { $0.preset == .night }!
+        let clock = TestClock(bedtime.start.addingTimeInterval(21 * 60)) // past the ramp, landed exactly on NIGHT
+        let coordinator = ScheduleCoordinator(appState: state, calendar: { self.calendar }, now: clock.now)
+        coordinator.evaluateNow()
+
+        XCTAssertEqual(state.activePreset, .night, "the popover's segmented picker must not sit permanently blank while the schedule drives it")
+    }
+
+    func test_activePreset_staysNil_midRamp() {
+        let state = freshState()
+        state.scheduleConfig = sunsetToSunriseConfig(rampMinutes: 20)
+        let bedtime = ScheduleEngine.phases(for: date(2026, 9, 8), mode: .sunsetToSunrise, config: state.scheduleConfig, calendar: calendar)
+            .first { $0.preset == .night }!
+        let clock = TestClock(bedtime.start.addingTimeInterval(10 * 60)) // mid-ramp
+        let coordinator = ScheduleCoordinator(appState: state, calendar: { self.calendar }, now: clock.now)
+        coordinator.evaluateNow()
+
+        XCTAssertNil(state.activePreset, "no preset is 'active' while interpolated values match none of them")
     }
 
     // The coordinator's own writes must never be mistaken for a manual
@@ -135,6 +228,35 @@ final class ScheduleCoordinatorTests: XCTestCase {
         XCTAssertNil(coordinator.pausedAtPhaseStart, "the schedule's own write must not look like a user override")
     }
 
+    // MARK: - Live mode switch (the most severe finding of the C5 review)
+
+    // `@Published` fires from `willSet`, before the new value is actually
+    // stored. `handleConfigChanged()` reads `appState.scheduleConfig`
+    // itself rather than the value the publisher carried, so without
+    // `.receive(on: .main)` deferring that read to the next run-loop turn,
+    // it would observe the *previous* config — the exact bug class
+    // `DisplayCoordinator` already had to fix for itself (see its own doc
+    // comment). An independent review reproduced this directly: switching
+    // live from Manual to Sunset->Sunrise silently did nothing until a
+    // second, unrelated config change happened to also fire the
+    // subscription. This test drives the coordinator the same way the
+    // real Settings UI does — one live mutation of `appState.scheduleConfig`
+    // after construction, with no follow-up change and no direct
+    // `evaluateNow()` call — specifically so it cannot pass by accident the
+    // way every other test in this file (which set `scheduleConfig` before
+    // constructing the coordinator) does.
+    func test_switchingLiveFromManualToSunsetToSunrise_engagesImmediately() {
+        let state = freshState() // starts in the default .manual mode
+        let clock = TestClock(date(2026, 9, 8, 23, 0)) // well past today's bedtime
+        let coordinator = ScheduleCoordinator(appState: state, calendar: { self.calendar }, now: clock.now)
+        withExtendedLifetime(coordinator) {}
+
+        state.scheduleConfig = sunsetToSunriseConfig(rampMinutes: 20) // the one live mutation
+        flushMainQueue()
+
+        XCTAssertEqual(state.warmthK, PresetID.night.defaultValues.warmthK, "the schedule must engage from this one change alone")
+    }
+
     // MARK: - Config changes
 
     func test_changingScheduleConfig_clearsAnExistingPause() {
@@ -147,6 +269,7 @@ final class ScheduleCoordinatorTests: XCTestCase {
         XCTAssertNotNil(coordinator.pausedAtPhaseStart)
 
         state.scheduleConfig.rampMinutes = 30 // any config change
+        flushMainQueue()
 
         XCTAssertNil(coordinator.pausedAtPhaseStart, "a deliberate config change should not leave a stale pause behind")
     }

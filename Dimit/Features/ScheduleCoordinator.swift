@@ -29,8 +29,21 @@ final class ScheduleCoordinator {
     /// that one. While set, `evaluateNow()` writes nothing.
     private(set) var pausedAtPhaseStart: Date?
 
-    /// Guards the one write path that must NOT be mistaken for a manual
-    /// override: this coordinator's own writes to `warmthK`/`brightness`.
+    /// Guards the write path that must NOT be mistaken for a manual
+    /// override: this coordinator's own writes to `isOn`/`warmthK`/
+    /// `brightness`/`activePreset`.
+    ///
+    /// This depends on the Combine subscription below staying fully
+    /// synchronous — `sink` runs inline with the property write that
+    /// triggered it, so this flag is still `true` for every one of this
+    /// method's own writes and back to `false` before any *other* caller's
+    /// write can run (Swift is single-threaded here; nothing preempts
+    /// `evaluateNow()` mid-execution). If `.receive(on:)`, `.debounce`, or
+    /// `.throttle` is ever added to that subscription, this guard breaks —
+    /// the sink would fire after the flag has already reset, and every
+    /// schedule tick would look like a fresh manual override, permanently
+    /// pausing itself after one write. Don't add one without redesigning
+    /// this alongside it.
     private var isApplyingScheduleTick = false
 
     private var cancellables = Set<AnyCancellable>()
@@ -40,25 +53,50 @@ final class ScheduleCoordinator {
         self.calendar = calendar
         self.now = now
 
-        // Only `warmthK`/`brightness` count as "the user touched a slider" —
-        // subscribing to `appState.objectWillChange` instead would also
-        // fire for isOn/pwmSafe/fallbackMode/etc. and pause the schedule
-        // over changes that have nothing to do with it.
-        Publishers.Merge(
+        // isOn/warmthK/brightness are exactly the fields this coordinator
+        // itself writes (see evaluateNow()) — anything else changing on
+        // AppState (pwmSafe, fallbackMode, locale, ...) has nothing to do
+        // with the schedule and must not pause it. Deliberately NOT
+        // `appState.objectWillChange`, which fires for all of those too.
+        Publishers.Merge3(
+            appState.$isOn.dropFirst().map { _ in () },
             appState.$warmthK.dropFirst().map { _ in () },
             appState.$brightness.dropFirst().map { _ in () }
         )
         .sink { [weak self] in self?.handleExternalValueChange() }
         .store(in: &cancellables)
 
+        // `.receive(on: .main)` is not optional here: `@Published` fires
+        // from `willSet`, before the new value is actually stored, and
+        // `handleConfigChanged()` reads `appState.scheduleConfig` itself
+        // rather than the value this publisher carries — a synchronous
+        // sink would see the *previous* config. `DisplayCoordinator` hit
+        // this exact class of bug already (see its own doc comment) and
+        // fixed it the same way. Missing it here was confirmed to break
+        // the feature's most basic case: switching from Manual to a real
+        // mode in Settings silently did nothing until a second, unrelated
+        // config change happened to also fire this subscription.
         appState.$scheduleConfig
             .dropFirst()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.handleConfigChanged() }
             .store(in: &cancellables)
 
         recomputePhases()
         evaluateNow()
         scheduleNextTick()
+    }
+
+    /// Invalidates the timer and drops the Combine subscriptions —
+    /// AppDelegate calls this from `applicationWillTerminate`, before its
+    /// own gamma-restore calls. Without it, a tick already queued on the
+    /// run loop could fire *after* the restore and re-apply a tinted
+    /// state on the way out, which CLAUDE.md §1.8's "on quit, the display
+    /// must return to normal colours" doesn't allow an exception for.
+    func stop() {
+        tickTimer?.invalidate()
+        tickTimer = nil
+        cancellables.removeAll()
     }
 
     /// Computes the schedule's target for right now and writes it — unless
@@ -78,8 +116,19 @@ final class ScheduleCoordinator {
         guard let target = ScheduleEngine.target(at: now(), phases: cachedPhases, values: appState.values(for:)) else { return }
 
         isApplyingScheduleTick = true
+        appState.isOn = target.isOn
         appState.warmthK = target.warmthK
         appState.brightness = target.brightness
+        // Last and unconditional, same pattern `AppState.apply(preset:)`
+        // already uses: `warmthK`/`brightness`'s own `didSet` just cleared
+        // `activePreset` above (nothing matches an interpolated value, or
+        // the neutral off-state, and that's correct) — but once a ramp has
+        // fully landed on a real preset's exact values, this re-highlights
+        // it, so the popover's DAY/EVENING/NIGHT picker doesn't sit
+        // permanently blank the whole time the schedule is driving it.
+        if let settledPreset = target.settledPreset {
+            appState.activePreset = settledPreset
+        }
         isApplyingScheduleTick = false
     }
 

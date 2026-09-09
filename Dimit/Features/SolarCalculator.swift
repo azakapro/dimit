@@ -5,6 +5,19 @@ import Foundation
 struct Coordinate: Codable, Equatable {
     var latitude: Double
     var longitude: Double
+
+    init(latitude: Double, longitude: Double) {
+        self.latitude = latitude
+        self.longitude = longitude
+    }
+
+    /// Same `decodeIfPresent`-per-field reasoning as `ScheduleConfig`'s own
+    /// decoder (`ScheduleEngine.swift`) — persisted inside it as `location`.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        latitude = try container.decodeIfPresent(Double.self, forKey: .latitude) ?? 0
+        longitude = try container.decodeIfPresent(Double.self, forKey: .longitude) ?? 0
+    }
 }
 
 /// Local sunrise/sunset via the NOAA solar position algorithm — CLAUDE.md

@@ -5,10 +5,23 @@ import SwiftUI
 struct ScheduleSettingsTab: View {
     @ObservedObject var appState: AppState
 
-    @State private var locationProvider = LocationProvider()
+    // Lazy, not eagerly constructed: this view rebuilds on every AppState
+    // change (including every schedule tick's own writes), and a plain
+    // `= LocationProvider()` default would allocate a fresh
+    // CLLocationManager on each rebuild only to discard it — SwiftUI keeps
+    // just the first result. Created once, on first actual use, in
+    // requestLocation() below.
+    @State private var locationProvider: LocationProvider?
     @State private var locationMessage: String?
     @State private var manualLatitudeText = ""
     @State private var manualLongitudeText = ""
+    // True while a one-shot CoreLocation request is outstanding — disables
+    // the button so a slow permission dialog or GPS fix can't be
+    // double-clicked into two overlapping requests, the second of which
+    // would silently replace `LocationProvider`'s single stored completion
+    // and drop the first click's result forever (found by an independent
+    // review).
+    @State private var isRequestingLocation = false
 
     var body: some View {
         Form {
@@ -52,6 +65,7 @@ struct ScheduleSettingsTab: View {
                 } label: {
                     Text("schedule.use_location")
                 }
+                .disabled(isRequestingLocation)
                 if let locationMessage {
                     Text(locationMessage)
                         .font(.caption)
@@ -79,7 +93,7 @@ struct ScheduleSettingsTab: View {
                     } label: {
                         Text("schedule.apply_coordinates")
                     }
-                    .disabled(Double(manualLatitudeText) == nil || Double(manualLongitudeText) == nil)
+                    .disabled(!manualCoordinatesAreValid)
                 }
             } label: {
                 Text("schedule.manual_coordinates")
@@ -108,7 +122,7 @@ struct ScheduleSettingsTab: View {
 
     private var currentLocationDescription: String {
         if let cityID = appState.scheduleConfig.selectedCityID, let city = CityList.city(id: cityID) {
-            return appState.localized("schedule.location_using_city", String(localized: city.titleKey))
+            return appState.localized("schedule.location_using_city", appState.localized(city.titleKey))
         }
         if appState.scheduleConfig.location != nil {
             return appState.localized("schedule.location_using_coordinates")
@@ -118,22 +132,41 @@ struct ScheduleSettingsTab: View {
 
     private func requestLocation() {
         locationMessage = nil
-        locationProvider.requestOneTimeLocation { result in
+        isRequestingLocation = true
+        let provider = locationProvider ?? LocationProvider()
+        locationProvider = provider
+        provider.requestOneTimeLocation { result in
+            isRequestingLocation = false
             switch result {
             case .success(let coordinate):
                 appState.scheduleConfig.location = coordinate
                 appState.scheduleConfig.selectedCityID = nil
                 locationMessage = nil
             case .denied:
-                locationMessage = String(localized: "schedule.location_denied")
+                locationMessage = appState.localized("schedule.location_denied")
             case .failed:
-                locationMessage = String(localized: "schedule.location_failed")
+                locationMessage = appState.localized("schedule.location_failed")
             }
         }
     }
 
+    /// Real latitude/longitude range, not just "parses as a Double" — a
+    /// fat-fingered "413" instead of "41.3" used to sail straight through
+    /// into `SolarCalculator`, which would either compute a nonsensical
+    /// time or silently return `nil` ("sun never rises"), with no error
+    /// shown anywhere (found by an independent review).
+    private static let latitudeRange = -90.0...90.0
+    private static let longitudeRange = -180.0...180.0
+
+    private var manualCoordinatesAreValid: Bool {
+        guard let lat = Double(manualLatitudeText), let lon = Double(manualLongitudeText) else { return false }
+        return Self.latitudeRange.contains(lat) && Self.longitudeRange.contains(lon)
+    }
+
     private func applyManualCoordinates() {
-        guard let lat = Double(manualLatitudeText), let lon = Double(manualLongitudeText) else { return }
+        guard let lat = Double(manualLatitudeText), let lon = Double(manualLongitudeText),
+              Self.latitudeRange.contains(lat), Self.longitudeRange.contains(lon)
+        else { return }
         appState.scheduleConfig.location = Coordinate(latitude: lat, longitude: lon)
         appState.scheduleConfig.selectedCityID = nil
         locationMessage = nil
@@ -177,7 +210,7 @@ struct ScheduleSettingsTab: View {
                 HStack {
                     Text("schedule.transition")
                     Spacer()
-                    Text(String(format: String(localized: "schedule.ramp_minutes_value"), appState.scheduleConfig.rampMinutes))
+                    Text(appState.localized("schedule.ramp_minutes_value", appState.scheduleConfig.rampMinutes))
                         .foregroundStyle(.secondary)
                 }
             }

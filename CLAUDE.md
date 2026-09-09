@@ -234,6 +234,14 @@ GET  /r/:handle              → affiliate redirect (sets 60-day cookie, forward
 | settings.launch_at_login_error *(added C4)* | Couldn't change the login item: %@ | TODO(i18n) | TODO(i18n) |
 | hotkey.section_title *(added C4)* | Global Shortcuts | TODO(i18n) | TODO(i18n) |
 | hotkey.toggle / .cycle_presets / .warmth_up / .warmth_down / .brightness_up / .brightness_down *(added C4)* | Toggle Dimit / Cycle Presets / Warmth Up / Warmth Down / Brightness Up / Brightness Down | TODO(i18n) | TODO(i18n) |
+| schedule.mode_title *(added C5)* | Mode | TODO(i18n) | TODO(i18n) |
+| schedule.use_location *(added C5)* | Use my location | TODO(i18n) | TODO(i18n) |
+| schedule.location_none / .location_using_city / .location_using_coordinates *(added C5)* | No location set / Using: %@ / Using manual coordinates | TODO(i18n) | TODO(i18n) |
+| schedule.location_denied / .location_failed *(added C5)* | Location access denied. Choose a city instead. / Couldn't get your location. Choose a city instead. | TODO(i18n) | TODO(i18n) |
+| schedule.manual_coordinates / .latitude / .longitude / .apply_coordinates *(added C5)* | Manual coordinates / Latitude / Longitude / Use These Coordinates | TODO(i18n) | TODO(i18n) |
+| schedule.fixed_day_start / .fixed_evening_start / .bedtime *(added C5)* | Day starts at / Evening starts at / Bedtime | TODO(i18n) | TODO(i18n) |
+| schedule.ramp_minutes_value *(added C5)* | %d min | TODO(i18n) | TODO(i18n) |
+| schedule.city.tashkent / .samarkand / .bukhara / .namangan / .andijan / .fergana / .nukus / .moscow / .almaty / .bishkek / .dushanbe / .istanbul / .london / .new_york *(added C5)* | Tashkent / Samarkand / Bukhara / Namangan / Andijan / Fergana / Nukus / Moscow / Almaty / Bishkek / Dushanbe / Istanbul / London / New York | Toshkent / Samarqand / Buxoro / Namangan / Andijon / Farg'ona / Nukus / Moskva / Almati / Bishkek / Dushanbe / Istanbul / London / Nyu-York | Ташкент / Самарканд / Бухара / Наманган / Андижан / Фергана / Нукус / Москва / Алматы / Бишкек / Душанбе / Стамбул / Лондон / Нью-Йорк — standard geographic exonyms, provided directly rather than marked TODO(i18n): factual/referential data (the way any atlas renders these names), not creative or marketing copy. |
 
 (Claude Code: when adding a string, add all three languages; if unsure of Uzbek/Russian, add the English and mark `// TODO(i18n)` so a human translator sees it. Do not machine-translate silently. In the catalog, TODO(i18n) is represented as the English value with `state: needs_review` for uz/ru — Xcode's String Catalog editor flags those for a translator.)
 

@@ -63,7 +63,21 @@ final class LayoutRenderTests: XCTestCase {
                     .frame(width: 520)
                 let size = render(view, name: "schedule-\(mode.rawValue)-\(locale)")
                 XCTAssertGreaterThan(size.height, 0, "\(mode.rawValue)/\(locale): view produced no content")
-                XCTAssertLessThan(size.height, 900, "\(mode.rawValue)/\(locale): unreasonably tall — a string is probably wrapping badly or a section is duplicating")
+                // SettingsView's real window is a fixed 520x460, and its
+                // TabView reserves roughly 40pt for the tab bar itself,
+                // leaving ~420pt of actual content height. An earlier
+                // version of this test only checked "&lt; 900" — comfortably
+                // true even for content that would need to scroll inside
+                // the real window, so it never actually proved the tab
+                // fits (an independent review caught the gap, though not
+                // a live failure: every mode measures well under the real
+                // budget). `Form`/`.formStyle(.grouped)` scrolls
+                // gracefully if this ever needs to grow past it, so this
+                // is a real ceiling, not a hard crash risk — but a
+                // regression here means the tab now needs scrolling to
+                // see everything, in the one language (Russian) most
+                // likely to hit it first.
+                XCTAssertLessThan(size.height, 420, "\(mode.rawValue)/\(locale): exceeds the real Settings window's content height — this tab would now need scrolling")
             }
         }
     }
