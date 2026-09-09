@@ -11,7 +11,7 @@ Warm your Mac's screen down to a pure-red "0K", dim it below the keyboard's floo
 - **PWM-Safe mode** pins the hardware backlight at 100% and dims in software instead, so LED backlights that dim by pulsing (PWM) stop pulsing. Apple displays today; third-party monitors over DDC/CI are experimental and off by default.
 - **Screenshots, recordings and screen shares keep their real colours** at brightness 30% and above, because the tint lives in the display's colour tables, not in a window. Verified with QuickTime and Zoom on macOS 27 (docs/QA.md). Below 30% and in Fallback mode an overlay window is used, and some recorders may capture it.
 - **Sunset→sunrise or fixed-time schedules**, computed locally from a bundled city list or a one-time location read. Nothing is sent anywhere.
-- **Fail-safe.** OFF, quit, `kill -9`, sleep/wake and unplugging a monitor all leave the display normal; a "Restore Colours" button exists for anything else.
+- **Fail-safe.** OFF, quit, sleep/wake and unplugging a monitor all leave the display normal; after a crash or `kill -9` the next launch restores it before doing anything else (on macOS 27 WindowServer even does it immediately); a "Restore Colours" button exists for anything else.
 
 Requires macOS 13 or later, Apple silicon or Intel. Never asks for Accessibility, Screen Recording or admin. Not on the Mac App Store, because the sandbox forbids the display access it needs.
 

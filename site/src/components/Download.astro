@@ -14,7 +14,10 @@ const d = t(lang); const g = d.download;
       checkout. The button is disabled until the owner fills in checkoutUrl. */}
   {checkoutReady
     ? <p><a class="btn lemonsqueezy-button" href={checkoutHref}>{g.cta}</a></p>
-    : <p><a class="btn disabled" aria-disabled="true" href="#">{g.cta}</a><br /><span class="note">{g.ctaSoon}</span></p>}
+    : <p><a class="btn disabled" aria-disabled="true" href="#">{g.cta}</a><br /><span class="note">{g.ctaSoon}</span>
+        {/* Visible to `npm run build:release`'s placeholder grep, not to people:
+            a site without a checkout must never pass the deploy gate. */}
+        <span hidden>TODO_LEMON_SQUEEZY_CHECKOUT_URL missing in site/src/config.ts</span></p>}
   <p class="note">{g.from}</p>
   <p>{g.requires}</p>
 
@@ -26,7 +29,7 @@ const d = t(lang); const g = d.download;
   <ol>{g.install.map((s) => <li>{s}</li>)}</ol>
 
   <h2>{g.lostTitle}</h2>
-  <p>{g.lost} <a href={config.myOrdersUrl} rel="noopener">My Orders →</a></p>
+  <p>{g.lost} <a href={config.myOrdersUrl} rel="noopener">{g.myOrdersLink}</a></p>
 
   <h2>{g.afterTitle}</h2>
   <ul>{g.after.map((s) => <li>{s}</li>)}</ul>

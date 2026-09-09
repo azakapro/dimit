@@ -1,3 +1,5 @@
+> **Superseded in part on 2026-09-09** (docs/PLAN.md → Decisions): Dimit is a *paid* download (pay what you want, $5 minimum, Lemon Squeezy) and the repository stays private — not free, not open source, no MIT licence, no GitHub link. §§3–4 and the "free and open source" wording in §§8–9 no longer apply; the beta process (§7), the claims table (§2) and the launch sequence still do. Substitute "pay what you want, from $5" and drop every source/GitHub reference when using the drafts.
+
 # Dimit — first-product launch strategy
 
 Prepared 9 September 2026; pricing discussion added 10 September 2026. A proposed strategy for a solo maker launching an open-source macOS utility. Platform rules, fees, and payout availability were checked during the launch discussion on 9 September; recheck them before activating checkout. Timelines, targets, and effort estimates below are planning assumptions, not forecasts.

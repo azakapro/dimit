@@ -13,9 +13,11 @@ final class MenuBarController: NSObject {
     private let pwmSafeCoordinator: PWMSafeCoordinator
     private let restoreColours: () -> Void
     private let openSettings: () -> Void
-    /// C7/ARCHITECTURE.md §8: nil disables the "Check for Updates…" item
-    /// (Sparkle refuses a second concurrent check). Evaluated when the menu
-    /// is built, which is every right-click.
+    /// C7/ARCHITECTURE.md §8. `canCheckForUpdates` false greys the "Check
+    /// for Updates…" item (Sparkle refuses a second concurrent check).
+    /// Evaluated when the menu is built, which is every right-click.
+    /// Required, like `restoreColours`/`openSettings`: a caller that forgets
+    /// to wire updates should fail to compile, not ship a dead item.
     private let checkForUpdates: () -> Void
     private let canCheckForUpdates: () -> Bool
     private var cancellables = Set<AnyCancellable>()
@@ -25,8 +27,8 @@ final class MenuBarController: NSObject {
         pwmSafeCoordinator: PWMSafeCoordinator,
         restoreColours: @escaping () -> Void,
         openSettings: @escaping () -> Void,
-        checkForUpdates: @escaping () -> Void = {},
-        canCheckForUpdates: @escaping () -> Bool = { false }
+        checkForUpdates: @escaping () -> Void,
+        canCheckForUpdates: @escaping () -> Bool
     ) {
         self.appState = appState
         self.pwmSafeCoordinator = pwmSafeCoordinator
@@ -118,6 +120,13 @@ final class MenuBarController: NSObject {
 
     private func showContextMenu() {
         let menu = NSMenu()
+        // Every item below sets its own enabled state explicitly. With the
+        // default `autoenablesItems`, NSMenu re-derives enablement from
+        // target validation when the menu pops up and silently overrides
+        // `isEnabled` — which made the updates item's greying dead code
+        // until a C7 review caught it. The items are enabled by default,
+        // so only the one that ever needs greying has to say so.
+        menu.autoenablesItems = false
 
         for preset in PresetID.allCases {
             let item = NSMenuItem(

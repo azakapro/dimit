@@ -311,6 +311,11 @@ The two overlay columns rely on `sharingType = .none`, which Apple describes as 
 | uz/ru copy | **pending — fluent review** | Written alongside the English, not by a fluent reviewer: `site/TRANSLATIONS.md`. A C7 "Done when" line that only a person can close. |
 | Lemon Squeezy test-mode purchase at $5 and above | **pending — owner** | Needs the store, the variant URL in `config.ts`, and a payout method verified in the dashboard (docs/PLAN.md §4). |
 | Notarized v1.0 under the LLC | **pending — owner** | No Developer ID on this machine (§ C6). |
+| Manual "Check for Updates…" before the feed exists | known, documented | `dimit.uz` isn't live, so a manual check shows Sparkle's own "update error" dialog — in Sparkle's localizations, which include `ru` but not `uz`, so Uzbek users see English. docs/RELEASE.md makes a reachable appcast a tagging gate; nothing to fix in the app. |
+| App strings still English in uz/ru (47 keys: Settings tabs, hotkeys, schedule, onboarding, Restore Colours, DDC help) | translated, **review pending** | Written alongside the site copy and left in `needs_review` so the catalog editor flags them (CLAUDE.md §5.1's mechanism). The site names those Settings paths with the same words, so the two must be reviewed together — `site/TRANSLATIONS.md`. |
+
+**`/code-review high`, 8 angles, 10 findings, all fixed before merge.** The three that mattered: the "Check for Updates…" enable state was dead code (NSMenu auto-enables items and re-derives the state on pop-up; fixed with `autoenablesItems = false`); `make_appcast.sh` would have committed and deployed every old zip and delta forever (archives now gitignored and deployed from the local build, deltas off, `old_updates/` removed); and the uz/ru site copy named Settings paths the app still showed in English (fixed by translating the app, flagged for review). Also: the `SPUStandardUpdaterController` is now retained rather than dropped after `init`; the tools lookup prefers the DerivedData `build.sh` uses; a missing checkout URL now trips the deploy gate; the legal pages render text nodes instead of `set:html`; the tests assert that opting in never starts a check by itself; the download page no longer claims a notarized build while advertising 0.4; the Mi Monitor line says "unconfirmed", not "not supported".
+
 
 ## Performance
 

@@ -15,7 +15,7 @@ type Dict = {
   nav: { download: string; faq: string; help: string; science: string; changelog: string };
   footer: { terms: string; privacy: string; refund: string; contact: string; myOrders: string; noTracking: string };
   home: {
-    title: string; tagline: string; lead: string; cta: string; secondary: string;
+    tagline: string; lead: string; cta: string; secondary: string; pwmLabel: string;
     features: { title: string; body: string }[];
     vsTitle: string; vs: { name: string; warmth: string; pwm: string }[];
     priceTitle: string; priceBody: string; priceNote: string;
@@ -24,7 +24,7 @@ type Dict = {
   download: {
     title: string; lead: string; cta: string; ctaSoon: string; from: string;
     requires: string; testedOn: string; testedList: string[]; notarized: string;
-    installTitle: string; install: string[]; lostTitle: string; lost: string;
+    installTitle: string; install: string[]; lostTitle: string; lost: string; myOrdersLink: string;
     afterTitle: string; after: string[];
   };
   faq: { title: string; items: Faq[] };
@@ -43,7 +43,6 @@ const en: Dict = {
     myOrders: "Find your download again", noTracking: "No analytics beyond cookieless page counts. The app never connects to the internet unless you turn on update checks.",
   },
   home: {
-    title: "Dimit",
     tagline: "Warm your Mac's screen down to pure red. Dim it below the keyboard's floor. Stop the backlight from flickering.",
     lead: "A menu-bar app for macOS. Two sliders, three presets, one button. No account, no tracking, no subscription.",
     cta: "Download for Mac",
@@ -56,6 +55,7 @@ const en: Dict = {
       { title: "Sunset to sunrise", body: "Warms up at sunset and turns itself off at sunrise, computed on your Mac from your city or, if you allow it once, your location. Nothing is sent anywhere. Fixed times work too." },
       { title: "Uzbek, Russian, English", body: "The whole app in three languages, switchable without a restart." },
     ],
+    pwmLabel: "PWM:",
     vsTitle: "Compared with what's built in",
     vs: [
       { name: "Night Shift", warmth: "~2500K", pwm: "no" },
@@ -84,9 +84,9 @@ const en: Dict = {
     testedOn: "Tested on",
     testedList: [
       "MacBook Pro 16\" (M1 Pro), macOS 27 beta, built-in display — all features",
-      "External monitor (Xiaomi Mi Monitor, 2560×1440) — warmth and dimming; DDC/CI brightness not supported by that monitor",
+      "External monitor (Xiaomi Mi Monitor, 2560×1440) — warmth and dimming; DDC/CI backlight control unconfirmed (the monitor didn't answer)",
     ],
-    notarized: "Signed with a Developer ID and notarized by Apple: it opens like any other download. (Beta builds before 1.0 were not; see the beta notes if you have one.)",
+    notarized: "Releases from 1.0 are signed with a Developer ID and notarized by Apple, so they open like any other download. Beta builds (0.x) are not — their release notes say how to open them.",
     installTitle: "Install",
     install: [
       "Open the DMG and drag Dimit to Applications.",
@@ -95,6 +95,7 @@ const en: Dict = {
     ],
     lostTitle: "Bought it already?",
     lost: "Your download link is in your receipt email, and always at Lemon Squeezy → My Orders (enter the email you paid with). New versions appear there too.",
+    myOrdersLink: "My Orders →",
     afterTitle: "If something looks wrong",
     after: [
       "Right-click the menu-bar icon → Restore Colours puts the screen back to normal instantly.",
@@ -124,7 +125,7 @@ const en: Dict = {
       { title: "Schedule", body: ["Settings → Schedule. Sunset to sunrise: pick your city, or press \"Use my location\" once. Dimit warms to EVENING at sunset, to NIGHT at your bedtime, and turns itself off at sunrise, ramping over a duration you choose. Fixed times: the same three phases with times you set.", "Moving a slider while a schedule is active pauses it until the next phase."] },
       { title: "Fallback mode", body: ["On some Macs running macOS 26 or later with automatic brightness on, the system ignores colour-table changes. Fallback mode (Settings → Advanced, or the right-click menu) tints with an overlay window instead. It works everywhere, but screenshots and recordings will show the tint."] },
       { title: "Keyboard shortcuts", body: ["Toggle ON/OFF: ⌃⌥⌘Z by default. Cycle presets, warmth up/down and brightness up/down can be assigned in Settings → General. They work from any app."] },
-      { title: "Diagnostics", body: ["Settings → Advanced → Copy diagnostics puts a short text on the clipboard: your macOS version, Mac model, display list and Dimit's own recent log lines. Nothing else, and it's never sent automatically — paste it into a message to us if you need help."] },
+      { title: "Diagnostics", body: ["Settings → Advanced → Copy diagnostics puts a short text on the clipboard: the app version, your macOS version, Mac model, display list and Dimit's own recent log lines. Nothing else, and it's never sent automatically — paste it into a message to us if you need help."] },
     ],
   },
   science: {
@@ -159,7 +160,7 @@ const en: Dict = {
       "The app collects nothing. It has no account, no analytics, no crash reporting, no identifiers, and it does not connect to the internet — with one exception you control: if you turn on \"Check for updates automatically\" (off by default), it fetches a small signed file from dimit.uz once a day to see whether a new version exists. A manual \"Check for Updates…\" does the same when you click it. Nothing about you is included in that request beyond what any web request carries.",
       "If you press \"Use my location\" for the sunset schedule, macOS asks your permission and the app reads your coordinates once, on your Mac, to compute sunrise and sunset. They are stored in the app's own settings on your Mac and never leave it.",
       "The website uses Cloudflare Web Analytics, which counts page views without cookies or identifiers, and Lemon Squeezy's checkout, which sets its own cookies when you open it. We never see your payment details. Lemon Squeezy holds your email address and order to deliver the download and receipt; their privacy policy covers that data.",
-      "Diagnostics you copy from the app (Settings → Advanced) contain your macOS version, Mac model, display list and the app's recent log lines. You choose whether to send them to us.",
+      "Diagnostics you copy from the app (Settings → Advanced) contain the app version, your macOS version, Mac model, display list with the brightness mechanism used for each, and the app's recent log lines. You choose whether to send them to us.",
       "Controller: {legalEntity}, {supportEmail}.",
     ],
   },
@@ -179,7 +180,6 @@ const uz: Dict = {
     myOrders: "Yuklab olish havolasini qayta topish", noTracking: "Cookie-siz sahifa hisobidan boshqa hech qanday analitika yo‘q. Ilova siz yangilanishlarni tekshirishni yoqmaguningizcha internetga ulanmaydi.",
   },
   home: {
-    title: "Dimit",
     tagline: "Mac ekranini to‘liq qizil ranggacha iliqlashtiring. Klaviatura chegarasidan ham pastroq xiralashtiring. Orqa yoritish miltillashini to‘xtating.",
     lead: "macOS uchun menyu paneli ilovasi. Ikki slayder, uch rejim, bitta tugma. Akkaunt yo‘q, kuzatuv yo‘q, obuna yo‘q.",
     cta: "Mac uchun yuklab olish",
@@ -192,6 +192,7 @@ const uz: Dict = {
       { title: "Quyosh botishidan chiqishigacha", body: "Quyosh botganda iliqlashadi, chiqqanda o‘zini o‘chiradi — shahringiz yoki (bir marta ruxsat bersangiz) joylashuvingiz asosida Mac’ingizning o‘zida hisoblanadi. Hech narsa hech qayerga yuborilmaydi. Belgilangan vaqtlar ham ishlaydi." },
       { title: "O‘zbek, rus, ingliz", body: "Butun ilova uch tilda, qayta ishga tushirmasdan almashtiriladi." },
     ],
+    pwmLabel: "PWM:",
     vsTitle: "O‘rnatilgan vositalar bilan taqqoslash",
     vs: [
       { name: "Night Shift", warmth: "~2500K", pwm: "yo‘q" },
@@ -220,9 +221,9 @@ const uz: Dict = {
     testedOn: "Sinovdan o‘tgan",
     testedList: [
       "MacBook Pro 16\" (M1 Pro), macOS 27 beta, o‘rnatilgan displey — barcha funksiyalar",
-      "Tashqi monitor (Xiaomi Mi Monitor, 2560×1440) — iliqlik va xiralashtirish; DDC/CI yorqinligini bu monitor qo‘llab-quvvatlamaydi",
+      "Tashqi monitor (Xiaomi Mi Monitor, 2560×1440) — iliqlik va xiralashtirish; DDC/CI orqali orqa yoritishni boshqarish tasdiqlanmagan (monitor javob bermadi)",
     ],
-    notarized: "Developer ID bilan imzolangan va Apple tomonidan notarizatsiya qilingan: boshqa har qanday yuklab olingan ilova kabi ochiladi. (1.0 gacha bo‘lgan beta nusxalar bunday emas edi; agar sizda shunday nusxa bo‘lsa, beta eslatmalariga qarang.)",
+    notarized: "1.0 dan boshlab chiqarilgan versiyalar Developer ID bilan imzolangan va Apple tomonidan notarizatsiya qilingan, shuning uchun boshqa har qanday yuklab olingan ilova kabi ochiladi. Beta nusxalar (0.x) bunday emas — ularni qanday ochish chiqarilish eslatmalarida yozilgan.",
     installTitle: "O‘rnatish",
     install: [
       "DMG faylini oching va Dimit’ni Applications papkasiga torting.",
@@ -231,6 +232,7 @@ const uz: Dict = {
     ],
     lostTitle: "Allaqachon sotib olganmisiz?",
     lost: "Yuklab olish havolasi kvitansiya xatingizda va har doim Lemon Squeezy → My Orders sahifasida (to‘lov qilgan pochtangizni kiriting). Yangi versiyalar ham o‘sha yerda paydo bo‘ladi.",
+    myOrdersLink: "My Orders →",
     afterTitle: "Agar biror narsa noto‘g‘ri ko‘rinsa",
     after: [
       "Menyu panelidagi belgini o‘ng tugma bilan bosing → «Ranglarni tiklash» ekranni darhol oddiy holatga qaytaradi.",
@@ -260,7 +262,7 @@ const uz: Dict = {
       { title: "Jadval", body: ["Sozlamalar → Jadval. Quyosh botishidan chiqishigacha: shahringizni tanlang yoki bir marta «Joylashuvimdan foydalanish» tugmasini bosing. Dimit quyosh botganda KECH ga, uxlash vaqtingizda TUN ga iliqlashadi va quyosh chiqqanda o‘zini o‘chiradi — siz tanlagan davomiylikda silliq o‘tadi. Belgilangan vaqtlar: o‘sha uch bosqich, siz belgilagan vaqtlar bilan.", "Jadval faol paytda slayderni surish uni keyingi bosqichgacha to‘xtatib turadi."] },
       { title: "Zaxira rejim", body: ["macOS 26 yoki undan yangisi o‘rnatilgan, avtomatik yorqinlik yoqilgan ba’zi Mac’larda tizim rang jadvali o‘zgarishlarini e’tiborsiz qoldiradi. Zaxira rejim (Sozlamalar → Qo‘shimcha yoki o‘ng tugma menyusi) o‘rniga qatlam oynasi bilan bo‘yaydi. U hamma joyda ishlaydi, lekin skrinshot va yozuvlarda rang ko‘rinadi."] },
       { title: "Tezkor tugmalar", body: ["YOQISH/O‘CHIRISH: sukut bo‘yicha ⌃⌥⌘Z. Rejimlarni almashtirish, iliqlik va yorqinlikni oshirish/kamaytirish Sozlamalar → Umumiy bo‘limida tayinlanadi. Ular istalgan ilovadan ishlaydi."] },
-      { title: "Diagnostika", body: ["Sozlamalar → Qo‘shimcha → Diagnostikani nusxalash — almashish buferiga qisqa matn qo‘yadi: macOS versiyangiz, Mac modeli, displeylar ro‘yxati va Dimit’ning so‘nggi jurnal satrlari. Boshqa hech narsa, va u hech qachon avtomatik yuborilmaydi — yordam kerak bo‘lsa, bizga xabarga qo‘shib yuboring."] },
+      { title: "Diagnostika", body: ["Sozlamalar → Qo‘shimcha → Diagnostikani nusxalash — almashish buferiga qisqa matn qo‘yadi: ilova versiyasi, macOS versiyangiz, Mac modeli, displeylar ro‘yxati va Dimit’ning so‘nggi jurnal satrlari. Boshqa hech narsa, va u hech qachon avtomatik yuborilmaydi — yordam kerak bo‘lsa, bizga xabarga qo‘shib yuboring."] },
     ],
   },
   science: {
@@ -295,7 +297,7 @@ const uz: Dict = {
       "Ilova hech narsa yig‘maydi. Unda akkaunt, analitika, xatolik hisobotlari, identifikatorlar yo‘q va u internetga ulanmaydi — siz boshqaradigan bitta istisno bilan: agar «Yangilanishlarni avtomatik tekshirish» (sukut bo‘yicha o‘chiq) ni yoqsangiz, u kuniga bir marta dimit.uz dan yangi versiya bor-yo‘qligini bilish uchun kichik imzolangan faylni oladi. Qo‘lda «Yangilanishlarni tekshirish…» bosganingizda ham xuddi shunday. Bu so‘rovda siz haqingizda har qanday veb-so‘rov olib yuradigan ma’lumotdan boshqa hech narsa yo‘q.",
       "Agar quyosh jadvali uchun «Joylashuvimdan foydalanish» tugmasini bossangiz, macOS ruxsat so‘raydi va ilova koordinatalaringizni bir marta, Mac’ingizning o‘zida, quyosh chiqishi va botishini hisoblash uchun o‘qiydi. Ular ilovaning o‘z sozlamalarida, Mac’ingizda saqlanadi va uni hech qachon tark etmaydi.",
       "Veb-sayt Cloudflare Web Analytics’dan foydalanadi — u sahifa ko‘rishlarini cookie va identifikatorlarsiz hisoblaydi — hamda Lemon Squeezy to‘lov oynasidan, u ochilganda o‘z cookie’larini o‘rnatadi. Biz to‘lov ma’lumotlaringizni hech qachon ko‘rmaymiz. Lemon Squeezy yuklab olish va kvitansiyani yetkazish uchun elektron pochtangiz va buyurtmangizni saqlaydi; bu ma’lumotlarga ularning maxfiylik siyosati qo‘llanadi.",
-      "Ilovadan nusxalagan diagnostika (Sozlamalar → Qo‘shimcha) macOS versiyangiz, Mac modeli, displeylar ro‘yxati va ilovaning so‘nggi jurnal satrlarini o‘z ichiga oladi. Uni bizga yuborish-yubormaslikni o‘zingiz hal qilasiz.",
+      "Ilovadan nusxalagan diagnostika (Sozlamalar → Qo‘shimcha) ilova versiyasi, macOS versiyangiz, Mac modeli, har bir displey uchun yorqinlik boshqaruv usuli ko‘rsatilgan displeylar ro‘yxati va ilovaning so‘nggi jurnal satrlarini o‘z ichiga oladi. Uni bizga yuborish-yubormaslikni o‘zingiz hal qilasiz.",
       "Nazoratchi: {legalEntity}, {supportEmail}.",
     ],
   },
@@ -315,7 +317,6 @@ const ru: Dict = {
     myOrders: "Найти свою загрузку снова", noTracking: "Никакой аналитики, кроме подсчёта страниц без cookie. Приложение не выходит в интернет, пока вы не включите проверку обновлений.",
   },
   home: {
-    title: "Dimit",
     tagline: "Сделайте экран Mac тёплым вплоть до чистого красного. Затемните ниже предела клавиш. Остановите мерцание подсветки.",
     lead: "Приложение для строки меню macOS. Два ползунка, три режима, одна кнопка. Без аккаунта, без слежки, без подписки.",
     cta: "Скачать для Mac",
@@ -328,6 +329,7 @@ const ru: Dict = {
       { title: "От заката до рассвета", body: "Теплеет на закате и выключается на рассвете — вычисляется на вашем Mac по городу или, если вы один раз разрешите, по местоположению. Ничего никуда не отправляется. Заданное время тоже работает." },
       { title: "Узбекский, русский, английский", body: "Всё приложение на трёх языках, переключение без перезапуска." },
     ],
+    pwmLabel: "PWM:",
     vsTitle: "В сравнении со встроенными средствами",
     vs: [
       { name: "Night Shift", warmth: "~2500K", pwm: "нет" },
@@ -356,9 +358,9 @@ const ru: Dict = {
     testedOn: "Проверено на",
     testedList: [
       "MacBook Pro 16\" (M1 Pro), macOS 27 beta, встроенный дисплей — все функции",
-      "Внешний монитор (Xiaomi Mi Monitor, 2560×1440) — теплота и затемнение; яркость по DDC/CI этим монитором не поддерживается",
+      "Внешний монитор (Xiaomi Mi Monitor, 2560×1440) — теплота и затемнение; управление подсветкой по DDC/CI не подтверждено (монитор не ответил)",
     ],
-    notarized: "Подписано Developer ID и нотаризовано Apple: открывается как любая другая загрузка. (Бета-сборки до 1.0 не были нотаризованы; если у вас такая, см. заметки к бете.)",
+    notarized: "Выпуски начиная с 1.0 подписаны Developer ID и нотаризованы Apple, поэтому открываются как любая другая загрузка. Бета-сборки (0.x) — нет; как их открыть, написано в заметках к выпуску.",
     installTitle: "Установка",
     install: [
       "Откройте DMG и перетащите Dimit в Applications.",
@@ -367,6 +369,7 @@ const ru: Dict = {
     ],
     lostTitle: "Уже купили?",
     lost: "Ссылка на загрузку есть в письме с чеком и всегда на Lemon Squeezy → My Orders (введите почту, с которой платили). Новые версии появляются там же.",
+    myOrdersLink: "My Orders →",
     afterTitle: "Если что-то выглядит не так",
     after: [
       "Правый клик по значку в строке меню → «Восстановить цвета» мгновенно возвращает экран в норму.",
@@ -396,7 +399,7 @@ const ru: Dict = {
       { title: "Расписание", body: ["Настройки → Расписание. От заката до рассвета: выберите город или один раз нажмите «Использовать моё местоположение». Dimit теплеет до ВЕЧЕРА на закате, до НОЧИ в ваше время сна и выключается на рассвете, плавно за выбранную вами длительность. Заданное время: те же три фазы с вашими временами.", "Движение ползунка при активном расписании приостанавливает его до следующей фазы."] },
       { title: "Резервный режим", body: ["На некоторых Mac с macOS 26 и новее при включённой автояркости система игнорирует изменения цветовых таблиц. Резервный режим (Настройки → Дополнительно или меню по правому клику) окрашивает наложенным окном. Он работает везде, но скриншоты и записи будут окрашены."] },
       { title: "Горячие клавиши", body: ["ВКЛ/ВЫКЛ: по умолчанию ⌃⌥⌘Z. Переключение режимов, теплота и яркость вверх/вниз назначаются в Настройках → Основные. Работают из любого приложения."] },
-      { title: "Диагностика", body: ["Настройки → Дополнительно → Скопировать диагностику помещает в буфер обмена короткий текст: версия macOS, модель Mac, список дисплеев и последние строки журнала Dimit. Больше ничего, и это никогда не отправляется автоматически — вставьте в сообщение нам, если нужна помощь."] },
+      { title: "Диагностика", body: ["Настройки → Дополнительно → Скопировать диагностику помещает в буфер обмена короткий текст: версия приложения, версия macOS, модель Mac, список дисплеев и последние строки журнала Dimit. Больше ничего, и это никогда не отправляется автоматически — вставьте в сообщение нам, если нужна помощь."] },
     ],
   },
   science: {
@@ -431,7 +434,7 @@ const ru: Dict = {
       "Приложение ничего не собирает. В нём нет аккаунта, аналитики, отчётов о сбоях, идентификаторов, и оно не выходит в интернет — с одним исключением, которым управляете вы: если включить «Проверять обновления автоматически» (по умолчанию выключено), оно раз в день загружает небольшой подписанный файл с dimit.uz, чтобы узнать, есть ли новая версия. Ручная «Проверить обновления…» делает то же самое по нажатию. В этом запросе нет ничего о вас сверх того, что несёт любой веб-запрос.",
       "Если нажать «Использовать моё местоположение» для расписания по солнцу, macOS спросит разрешение, и приложение один раз прочитает ваши координаты на вашем Mac, чтобы вычислить восход и закат. Они хранятся в настройках приложения на вашем Mac и никогда его не покидают.",
       "Сайт использует Cloudflare Web Analytics, который считает просмотры страниц без cookie и идентификаторов, и оплату Lemon Squeezy, которая ставит свои cookie при открытии. Мы никогда не видим ваши платёжные данные. Lemon Squeezy хранит ваш адрес электронной почты и заказ, чтобы доставить загрузку и чек; эти данные регулирует их политика конфиденциальности.",
-      "Диагностика, которую вы копируете из приложения (Настройки → Дополнительно), содержит версию macOS, модель Mac, список дисплеев и последние строки журнала приложения. Отправлять ли её нам — решаете вы.",
+      "Диагностика, которую вы копируете из приложения (Настройки → Дополнительно), содержит версию приложения, версию macOS, модель Mac, список дисплеев с механизмом яркости для каждого и последние строки журнала приложения. Отправлять ли её нам — решаете вы.",
       "Контролёр: {legalEntity}, {supportEmail}.",
     ],
   },

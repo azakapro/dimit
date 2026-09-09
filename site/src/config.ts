@@ -9,7 +9,8 @@ export const config = {
   checkoutUrl: "TODO_LEMON_SQUEEZY_CHECKOUT_URL",
   checkoutParams: "embed=1&media=0&desc=0",
   myOrdersUrl: "https://app.lemonsqueezy.com/my-orders",
-  minPriceUSD: 5,
+  // The minimum price appears in the copy itself ("$5" / "5 $" in
+  // src/i18n/index.ts, every locale) — grep for it when it changes.
   currentVersion: "0.4",
   minMacOS: "13",
   // Shown in the footer and on the legal pages (docs/ARCHITECTURE.md §7:
@@ -17,7 +18,6 @@ export const config = {
   legalEntity: "TODO_LEGAL_ENTITY_NAME (LLC)",
   supportEmail: "TODO_support@dimit.uz",
   telegram: "TODO_https://t.me/…",
-  githubReleases: "", // intentionally empty: the repo is private
 } as const;
 
 export const checkoutReady = !config.checkoutUrl.startsWith("TODO");

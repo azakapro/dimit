@@ -81,13 +81,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Dismiss"
+            "value": "Скрыть"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Dismiss"
+            "value": "Yopish"
           }
         }
       }
@@ -192,13 +192,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Brightness Down"
+            "value": "Уменьшить яркость"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Brightness Down"
+            "value": "Yorqinlikni kamaytirish"
           }
         }
       }
@@ -214,13 +214,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Brightness Up"
+            "value": "Увеличить яркость"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Brightness Up"
+            "value": "Yorqinlikni oshirish"
           }
         }
       }
@@ -236,13 +236,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Cycle Presets"
+            "value": "Переключить режим"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Cycle Presets"
+            "value": "Rejimlarni almashtirish"
           }
         }
       }
@@ -258,13 +258,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Global Shortcuts"
+            "value": "Глобальные горячие клавиши"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Global Shortcuts"
+            "value": "Global tezkor tugmalar"
           }
         }
       }
@@ -280,13 +280,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Toggle Dimit"
+            "value": "Включить/выключить Dimit"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Toggle Dimit"
+            "value": "Dimit'ni yoqish/o'chirish"
           }
         }
       }
@@ -302,13 +302,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Warmth Down"
+            "value": "Уменьшить теплоту"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Warmth Down"
+            "value": "Iliqlikni kamaytirish"
           }
         }
       }
@@ -324,13 +324,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Warmth Up"
+            "value": "Увеличить теплоту"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Warmth Up"
+            "value": "Iliqlikni oshirish"
           }
         }
       }
@@ -522,13 +522,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Restore Colours"
+            "value": "Восстановить цвета"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Restore Colours"
+            "value": "Ranglarni tiklash"
           }
         }
       }
@@ -610,13 +610,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Screenshots, recordings and calls keep their normal colours."
+            "value": "Скриншоты, записи и звонки сохраняют обычные цвета."
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Screenshots, recordings and calls keep their normal colours."
+            "value": "Skrinshotlar, yozuvlar va qo'ng'iroqlar oddiy ranglarini saqlaydi."
           }
         }
       }
@@ -654,13 +654,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "No account, no analytics, no tracking. Dimit connects to the internet only if you turn on update checks."
+            "value": "Без аккаунта, без аналитики, без слежки. Dimit выходит в интернет, только если вы включите проверку обновлений."
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "No account, no analytics, no tracking. Dimit connects to the internet only if you turn on update checks."
+            "value": "Akkaunt yo'q, analitika yo'q, kuzatuv yo'q. Dimit internetga faqat siz yangilanishlarni tekshirishni yoqsangiz ulanadi."
           }
         }
       }
@@ -698,13 +698,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Get Started"
+            "value": "Начать"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Get Started"
+            "value": "Boshlash"
           }
         }
       }
@@ -720,13 +720,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Next"
+            "value": "Далее"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Next"
+            "value": "Keyingi"
           }
         }
       }
@@ -896,13 +896,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Use These Coordinates"
+            "value": "Использовать эти координаты"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Use These Coordinates"
+            "value": "Shu koordinatalardan foydalanish"
           }
         }
       }
@@ -918,13 +918,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Bedtime"
+            "value": "Время сна"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Bedtime"
+            "value": "Uxlash vaqti"
           }
         }
       }
@@ -1292,13 +1292,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Day starts at"
+            "value": "Начало дня"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Day starts at"
+            "value": "Kun boshlanishi"
           }
         }
       }
@@ -1314,13 +1314,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Evening starts at"
+            "value": "Начало вечера"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Evening starts at"
+            "value": "Kech boshlanishi"
           }
         }
       }
@@ -1336,13 +1336,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Latitude"
+            "value": "Широта"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Latitude"
+            "value": "Kenglik"
           }
         }
       }
@@ -1358,13 +1358,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Location access denied. Choose a city instead."
+            "value": "Доступ к геопозиции запрещён. Выберите город."
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Location access denied. Choose a city instead."
+            "value": "Joylashuvga ruxsat berilmadi. Shahar tanlang."
           }
         }
       }
@@ -1380,13 +1380,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Couldn't get your location. Choose a city instead."
+            "value": "Не удалось определить местоположение. Выберите город."
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Couldn't get your location. Choose a city instead."
+            "value": "Joylashuvni aniqlab bo'lmadi. Shahar tanlang."
           }
         }
       }
@@ -1402,13 +1402,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "No location set"
+            "value": "Местоположение не задано"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "No location set"
+            "value": "Joylashuv tanlanmagan"
           }
         }
       }
@@ -1424,13 +1424,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Using: %@"
+            "value": "Используется: %@"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Using: %@"
+            "value": "Tanlangan: %@"
           }
         }
       }
@@ -1446,13 +1446,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Using manual coordinates"
+            "value": "Координаты введены вручную"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Using manual coordinates"
+            "value": "Qo'lda kiritilgan koordinatalar"
           }
         }
       }
@@ -1468,13 +1468,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Longitude"
+            "value": "Долгота"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Longitude"
+            "value": "Uzunlik"
           }
         }
       }
@@ -1512,13 +1512,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Manual coordinates"
+            "value": "Координаты вручную"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Manual coordinates"
+            "value": "Qo'lda koordinatalar"
           }
         }
       }
@@ -1534,13 +1534,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Mode"
+            "value": "Режим"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Mode"
+            "value": "Rejim"
           }
         }
       }
@@ -1556,13 +1556,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%d min"
+            "value": "%d мин"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "%d min"
+            "value": "%d daqiqa"
           }
         }
       }
@@ -1644,13 +1644,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Use my location"
+            "value": "Использовать моё местоположение"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Use my location"
+            "value": "Joylashuvimdan foydalanish"
           }
         }
       }
@@ -1688,13 +1688,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "DDC/CI brightness control (Experimental)"
+            "value": "Управление яркостью по DDC/CI (экспериментально)"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "DDC/CI brightness control (Experimental)"
+            "value": "DDC/CI yorqinlik boshqaruvi (tajribaviy)"
           }
         }
       }
@@ -1704,19 +1704,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lets PWM-Safe mode pin the backlight on third-party external monitors over DDC/CI. Off by default, and untested on real hardware — turn it on only if you're willing to report what happens."
+            "value": "Lets PWM-Safe mode pin the backlight on third-party external monitors over DDC/CI. Off by default and not yet confirmed working on any monitor — turn it on only if you're willing to report what happens."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Lets PWM-Safe mode pin the backlight on third-party external monitors over DDC/CI. Off by default, and untested on real hardware — turn it on only if you're willing to report what happens."
+            "value": "Позволяет режиму без мерцания удерживать подсветку сторонних мониторов через DDC/CI. Выключено по умолчанию и пока не подтверждено ни на одном мониторе — включайте, только если готовы сообщить о результате."
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Lets PWM-Safe mode pin the backlight on third-party external monitors over DDC/CI. Off by default, and untested on real hardware — turn it on only if you're willing to report what happens."
+            "value": "PWM-xavfsiz rejimga tashqi monitorlarning orqa yoritishini DDC/CI orqali ushlab turishga imkon beradi. Sukut bo'yicha o'chiq va hali birorta monitorda ishlashi tasdiqlanmagan — faqat natijani xabar qilishga tayyor bo'lsangiz yoqing."
           }
         }
       }
@@ -1732,13 +1732,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Only used when exactly one external monitor is connected — with several, Dimit can't yet tell which is which and leaves them alone."
+            "value": "Используется, только когда подключён ровно один внешний монитор — при нескольких Dimit пока не может их различить и не трогает их."
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Only used when exactly one external monitor is connected — with several, Dimit can't yet tell which is which and leaves them alone."
+            "value": "Faqat bitta tashqi monitor ulanganida ishlatiladi — bir nechtasi bo'lsa, Dimit hali qaysi biri qaysiligini ajrata olmaydi va ularga tegmaydi."
           }
         }
       }
@@ -1754,13 +1754,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Diagnostics copied to clipboard"
+            "value": "Диагностика скопирована в буфер обмена"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Diagnostics copied to clipboard"
+            "value": "Diagnostika almashish buferiga nusxalandi"
           }
         }
       }
@@ -1776,13 +1776,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Apple display"
+            "value": "Дисплей Apple"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Apple display"
+            "value": "Apple displeyi"
           }
         }
       }
@@ -1798,13 +1798,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Backend: %@"
+            "value": "Механизм: %@"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Backend: %@"
+            "value": "Boshqaruv: %@"
           }
         }
       }
@@ -1820,13 +1820,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Built-in"
+            "value": "Встроенный"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Built-in"
+            "value": "O'rnatilgan"
           }
         }
       }
@@ -1842,13 +1842,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "No brightness backend"
+            "value": "Нет способа управлять яркостью"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "No brightness backend"
+            "value": "Yorqinlikni boshqarish usuli yo'q"
           }
         }
       }
@@ -1909,13 +1909,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "English"
+            "value": "Английский"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "English"
+            "value": "Inglizcha"
           }
         }
       }
@@ -1931,13 +1931,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Russian"
+            "value": "Русский"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Russian"
+            "value": "Ruscha"
           }
         }
       }
@@ -1953,13 +1953,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "System"
+            "value": "Как в системе"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "System"
+            "value": "Tizim tili"
           }
         }
       }
@@ -1975,13 +1975,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Uzbek"
+            "value": "Узбекский"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Uzbek"
+            "value": "O'zbekcha"
           }
         }
       }
@@ -2019,13 +2019,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Couldn't change the login item: %@"
+            "value": "Не удалось изменить автозапуск: %@"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Couldn't change the login item: %@"
+            "value": "Kirishda ishga tushirishni o'zgartirib bo'lmadi: %@"
           }
         }
       }
@@ -2064,13 +2064,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Reset"
+            "value": "Сбросить"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Reset"
+            "value": "Tiklash"
           }
         }
       }
@@ -2086,13 +2086,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Reset All to Defaults"
+            "value": "Сбросить всё по умолчанию"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Reset All to Defaults"
+            "value": "Hammasini standart holatga qaytarish"
           }
         }
       }
@@ -2108,13 +2108,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Presets"
+            "value": "Режимы"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Presets"
+            "value": "Rejimlar"
           }
         }
       }
@@ -2130,13 +2130,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Advanced"
+            "value": "Дополнительно"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Advanced"
+            "value": "Qo'shimcha"
           }
         }
       }
@@ -2152,13 +2152,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Displays"
+            "value": "Дисплеи"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Displays"
+            "value": "Displeylar"
           }
         }
       }
@@ -2174,13 +2174,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "General"
+            "value": "Основные"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "General"
+            "value": "Umumiy"
           }
         }
       }
