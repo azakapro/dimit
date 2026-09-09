@@ -1,0 +1,66 @@
+# Generated project source of truth. Run `xcodegen generate` after editing
+# this file; Dimit.xcodeproj itself is not committed (see .gitignore) so
+# there is never a merge conflict in a generated pbxproj.
+name: Dimit
+options:
+  bundleIdPrefix: app.dimit
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0" # Swift 6 toolchain, Swift 5 language mode — CLAUDE.md §2
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    SWIFT_STRICT_CONCURRENCY: minimal
+    GENERATE_INFOPLIST_FILE: NO
+    CODE_SIGN_IDENTITY: "-" # ad-hoc for local dev builds; real Developer ID lands in C6
+targets:
+  Dimit:
+    type: application
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: Dimit
+        excludes:
+          - Info.plist # referenced via INFOPLIST_FILE below, not as a copied resource
+    # No top-level `info:` key: that tells XcodeGen to *generate and own*
+    # the plist (it silently overwrites a hand-written one with its own
+    # minimal template on every `generate`, which cost a debugging round
+    # trip). Pointing INFOPLIST_FILE at our own file instead means XcodeGen
+    # never touches it and Xcode's build system just uses it as-is.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.dimit.mac
+        PRODUCT_NAME: Dimit
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_FILE: Dimit/Info.plist
+        SWIFT_EMIT_LOC_STRINGS: YES
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+  DimitTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: DimitTests
+    dependencies:
+      - target: Dimit
+        embed: false
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Dimit.app/Contents/MacOS/Dimit"
+schemes:
+  Dimit:
+    build:
+      targets:
+        Dimit: all
+        DimitTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - DimitTests
