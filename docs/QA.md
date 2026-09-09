@@ -218,6 +218,39 @@ Two independent review passes plus a spec-research pass caught four things that 
 
 Also fixed: reply checksums are now validated (seed `0x50`, per spec §6.3 — a corrupted reply could otherwise report a pin as successful while the backlight sat elsewhere); enabling the toggle mid-session used to appear to do nothing, because displays already written off as `.unsupported` were never re-probed; and `DiagnosticsBundle` no longer reports `supportsDDC: false` for a monitor DDC may be actively driving.
 
+## External-monitor session (2026-09-10, same MacBook Pro + Xiaomi "Mi Monitor" 2560×1440 @ 144 Hz, vendor 0x61a9 model 0x2701)
+
+The first time a second display has been connected to the dev machine. It closes the external-monitor rows pending since C2, and it is the first real-hardware evidence for C5b's DDC/CI code — evidence that went the *other* way from what a green test suite suggests, which is exactly why these rows exist. Every number below was read from the OS (`CGGetDisplayTransferByTable`, `DisplayServicesGetBrightness`, raw `IOAVService` I2C), not from a screenshot.
+
+### Display engine on two displays — closed
+
+| Check | Result | Evidence |
+|---|---|---|
+| Both displays enumerate with stable UUIDs | pass | Built-in id 1 (vendor 0x610), Mi Monitor id 2 (0x61a9/0x2701); UUIDs match what m1ddc lists independently. |
+| **0K tints the external monitor through the real pipeline** (C2 "Done when", pending since 2026-09-09) | **pass** | Launched the actual 0.3 binary with `isOn: true, warmthK: 0` seeded; both tables read `(0.500, 0.000, 0.000)` at midpoint — green and blue exactly zero on the Mi Monitor too. At 2700K both read `(0.500, 0.375, 0.250)`, the exact multipliers. |
+| Quit restores both displays | pass | SIGTERM → both back to `(0.500, 0.500, 0.500)`; built-in backlight back to its pre-launch 1.0. |
+| **Unplug/replug while ON re-applies** (C2 "Done when") | **pass, with timings** | A watcher sampled the external table every 100 ms while the owner replugged: `04.483` display gone → `09.790` back with the stale 2700K table → `10.030` WindowServer resets it to neutral → `10.135` **Dimit re-applies 2700K, 105 ms after the reset** (the 300 ms debounce is the ceiling, not the typical). Dimit survived the disconnect without a crash or a stuck table. |
+| Both displays follow one set of controls | pass, by design | Owner noticed changing warmth on either screen changes both and asked whether that's right. It is: CLAUDE.md §1.1 and §3.3 — one state, all displays; per-display overrides are a 1.1 item (§10). |
+| Backlight pin/restore on the built-in with a second display attached | consistent, not conclusive | Read 1.0 before, during and after — the owner runs the panel at 100%, so the pin was a no-op. C3's rows already proved pin and exact restore from 0.4559. |
+
+### DDC/CI against a real monitor — the feature does not work on this one, and Dimit says so correctly
+
+| Check | Result | Evidence |
+|---|---|---|
+| Service resolution (`DDCLink.singleExternalService`) | pass | Exactly one `DCPAVServiceProxy` with `Location == External` (plus the `Embedded` one); service created in 0.3 ms. The IORegistry matching built blind in C5b is right. |
+| Monitor speaks DDC/CI at all | **yes** | Idle reads return the spec §6.4 null message `6e 80 be` repeating, with a correct checksum (seed 0x50). Requests change what comes back. This is a DDC/CI endpoint, not a dead bus. |
+| `readVCP(0x10)` through the production code | **nil, every time** | 2 seeds × 2 attempts, 232 ms each, all four rejected by `parseVCPReply`. |
+| What the monitor actually sends to Get VCP | a constant "no" frame | `6e 85 c2 00 00 03 00 71` — **identical** for brightness, contrast, VCP version (0xDF), input source, power, a bogus code 0x99, and a request with the length flag stripped. A monitor that implemented Get VCP would answer differently per code. Interpreted as an error/unsupported frame, not data. |
+| Which checksum seed this monitor accepts | **the spec's, not the reference implementations'** | Requests seeded 0x6E^0x51 (spec, ddcutil) get the null message = "parsed, nothing to say"; requests seeded 0x6E alone (m1ddc, MonitorControl) get the `c2` error frame. Same for Set: spec seed → null (acknowledged), reference seed → error frame. One monitor, one data point, but it is the opposite of what both references assume — `readVCP` tries both, so nothing changes; recorded in `DDCController.swift`. |
+| Set VCP 0x10 = 100 (the exact PWM-Safe command, spec vector checksum `0xCC`) | acknowledged by the bus; **effect unverified** | `IOAVServiceWriteI2C` returned success and the monitor answered null. Whether the panel actually went to 100% only the OSD can say — **owner: check the OSD's brightness value and whether it has a DDC/CI toggle (Xiaomi ships one, often off).** If DDC/CI was off, this whole table is "off" behaviour and needs re-running once. |
+| **Reference implementation cross-check: m1ddc 1.2.0 reads garbage** | the strongest result of the session | `m1ddc get luminance` → **110**, `get contrast` → **110**, `max luminance` → **−128**. It parses that same constant frame at fixed byte offsets with no checksum or opcode check. Dimit's `parseVCPReply` validates the reply checksum (seed 0x50), the 0x02 opcode, the result byte and the echoed VCP code — all added by the C5b review before any hardware was seen — and therefore reports `unsupported` instead of pinning PWM-Safe against a fictitious "110". |
+| DDC toggle ON with this monitor, in the real app | `unsupported`, cleanly, no hang | Full 0.3 launch with `ddcEnabled: true, pwmSafe: true`: pipeline ran, both displays tinted, nothing logged, no stall visible. Resolution is cached as `.unusable` per connection, so the cost is paid once. |
+| Main-thread cost of a non-answering monitor | **232 ms once per connection**, measured | 4 attempts × (50 ms spec wait + ~8 ms I2C). This is the "never hangs the UI" clause PLAN's C5 "Done when" still fails; the fix (DDC off the main actor) stays a prerequisite for leaving Experimental. |
+
+**Net for C5b's "Done when":** "pins the home monitor to 100% or shows `unsupported` cleanly" — closed on the `unsupported` branch, for real this time. "Never hangs the UI" — still not met (232 ms, above). Whether any Mi Monitor can be driven at all depends on the OSD question above.
+
+**Housekeeping:** `m1ddc` was installed via Homebrew for the cross-check (`brew uninstall m1ddc` to remove). The owner's saved state was backed up before the seeded launches and restored after; Dimit was quit with SIGTERM and both displays verified neutral afterwards.
+
 ## Performance
 
 | Date | Version | Machine | Idle CPU (5 min avg) | Popover open (ms) | Slider latency |

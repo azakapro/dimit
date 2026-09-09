@@ -15,14 +15,19 @@ import IOKit
 /// `IOAVServiceWriteI2C` all live inside the *public* IOKit framework at
 /// `/System/Library/Frameworks/IOKit.framework/IOKit` as private symbols.
 ///
-/// **The I2C traffic itself is unverified against real hardware** — this
-/// session had no external monitor. It ships behind two separate gates
-/// (`Config.ddcEnabled`-backed `AppState.ddcEnabled`, default OFF, plus
-/// an "Experimental" toggle in Settings → Displays) precisely because of
-/// that. On a machine with no external display, `canControl` returns
-/// false for every display and nothing below it can run at all — which
-/// *is* verified here, and is the property that makes shipping the rest
-/// untested acceptable.
+/// **Verified against one real monitor on 2026-09-10** (Xiaomi Mi Monitor,
+/// docs/QA.md § External-monitor session): the service resolution, the
+/// framing and the checksums all reach the panel and get DDC/CI replies
+/// back — but that panel answers every Get VCP with a constant error frame
+/// rather than a value, so on it this backend correctly resolves to
+/// `unsupported`. The same session showed m1ddc parsing that frame as
+/// "brightness 110": the reply validation in `parseVCPReply` is what keeps
+/// PWM-Safe from pinning against a number that doesn't exist. No monitor
+/// has yet *answered* through this code, so it stays behind two gates
+/// (`AppState.ddcEnabled`, default OFF, plus the "Experimental" toggle in
+/// Settings → Displays). On a machine with no external display,
+/// `canControl` returns false for every display and nothing below it can
+/// run at all.
 @MainActor
 final class DDCBackend: BrightnessBackend {
     let name = "DDC/CI"
@@ -184,13 +189,18 @@ enum DDCLink {
     /// MonitorControl `Arm64DDC.swift`: `chk: ARM64_DDC_7BIT_ADDRESS << 1`
     /// for a single-byte send, `^ dataAddress` otherwise.
     ///
-    /// With no monitor here to settle it, `readVCP` **tries both**: the
-    /// reference seed first (what millions of monitor-hours actually
-    /// use), then the spec seed. A request whose checksum a monitor
-    /// rejects is discarded silently with no reply, so the fallback costs
-    /// one extra round trip only when the first was already going to
-    /// fail — and the feature works either way rather than being inert if
-    /// the guess is wrong.
+    /// `readVCP` **tries both**: the reference seed first (what millions
+    /// of monitor-hours actually use), then the spec seed. A request whose
+    /// checksum a monitor rejects gets no usable reply, so the fallback
+    /// costs one extra round trip only when the first was already going
+    /// to fail — and the feature works either way rather than being inert
+    /// if the guess is wrong.
+    ///
+    /// First real data point (2026-09-10, Xiaomi Mi Monitor, docs/QA.md):
+    /// that panel accepts the **spec** seed and answers the reference seed
+    /// with an error frame — the opposite of what both references assume.
+    /// One monitor isn't grounds to flip the order, but it is grounds to
+    /// keep trying both.
     private static let setChecksumSeed: UInt8 = 0x6E ^ 0x51
     static let getChecksumSeedReference: UInt8 = 0x6E
     static let getChecksumSeedSpec: UInt8 = 0x6E ^ 0x51
