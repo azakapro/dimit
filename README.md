@@ -20,6 +20,6 @@ First thing to run on any new macOS build:
 swift scripts/gamma_spike.swift
 ```
 
-Status (2026-09-09): C1 skeleton built (menu bar item, popover, string catalog, warmth curve — see PR c1-skeleton). Next is C2 in docs/PLAN.md §2.
+Status (2026-09-09): C0 and C1 done and merged to main (29 tests green) — menu bar item, popover, string catalog, warmth curve. The app does not touch the display yet. Next is C2 in docs/PLAN.md §2: the real gamma engine.
 
 PR rules: docs/PLAN.md §3 and .github/pull_request_template.md.
