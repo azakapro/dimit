@@ -1,9 +1,9 @@
-# Xcode
+# Xcode — project.yml is the source of truth (XcodeGen); the generated
+# .xcodeproj is never committed, so there is never a merge conflict in a
+# generated pbxproj. Run `xcodegen generate` after cloning or editing project.yml.
+/Dimit.xcodeproj/
 build/
 DerivedData/
-*.xcodeproj/xcuserdata/
-*.xcodeproj/project.xcworkspace/xcuserdata/
-*.xcworkspace/xcuserdata/
 *.xcuserstate
 *.moved-aside
 *.hmap

@@ -1,0 +1,86 @@
+import Combine
+import Foundation
+
+/// The single mutable source of truth — ARCHITECTURE.md §2 "AppState is the
+/// only mutable source of truth. UI mutates it; a single apply() pipeline
+/// reacts to it. No UI code calls a controller directly."
+///
+/// Deviation from CLAUDE.md §3.7, disclosed: the spec says `@Observable`
+/// (Swift's Observation framework), but that macro requires macOS 14+ and
+/// CLAUDE.md §2 fixes the deployment target at macOS 13 (deliberately, to
+/// match Tap Zap minus its documented macOS-12 slider bugs). `ObservableObject`
+/// + `@Published` gives the same "UI observes state" shape and has worked
+/// since macOS 10.15, so it is used here instead. If the minimum target
+/// ever moves to 14, this is a mechanical swap.
+///
+/// Only the fields C1 actually uses are here. `schedule`, `hotkeys`,
+/// `launchAtLogin`, `updateChecks`, `locale`, `perDisplayOverrides` from
+/// CLAUDE.md §3.7 arrive with the cycles that implement them (C4/C5/C7) —
+/// adding a `Codable` field with a default later does not break
+/// already-persisted JSON, so there is no reason to stub out types that
+/// don't exist yet (`ScheduleConfig` etc.).
+@MainActor
+final class AppState: ObservableObject {
+    @Published var isOn: Bool
+    @Published var warmthK: Double { didSet { clearPresetIfDrifted() } }
+    @Published var brightness: Double { didSet { clearPresetIfDrifted() } }
+    @Published var pwmSafe: Bool
+    @Published var activePreset: PresetID?
+
+    private let persistence: Persistence
+    private var saveCancellable: AnyCancellable?
+
+    init(persistence: Persistence = .shared) {
+        self.persistence = persistence
+        let saved = persistence.load()
+        self.isOn = saved.isOn
+        self.warmthK = saved.warmthK
+        self.brightness = saved.brightness
+        self.pwmSafe = saved.pwmSafe
+        self.activePreset = saved.activePreset.flatMap(PresetID.init(rawValue:))
+
+        // Debounced 250ms persistence — CLAUDE.md §3.7. `objectWillChange`
+        // fires on every @Published mutation, so this one subscription
+        // covers all of them without listing each property twice.
+        saveCancellable = objectWillChange
+            .debounce(for: .milliseconds(250), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in self?.persist() }
+    }
+
+    /// Sets warmth, brightness and the active-preset marker together.
+    /// Moving a slider afterwards clears `activePreset` (see `warmthK`/
+    /// `brightness` `didSet` below) so the preset picker stops highlighting
+    /// a preset the user has since drifted away from.
+    func apply(preset: PresetID) {
+        isSettingPreset = true
+        warmthK = preset.warmthK
+        brightness = preset.brightness
+        activePreset = preset
+        isSettingPreset = false
+    }
+
+    /// Guards against `apply(preset:)`'s own writes to `warmthK`/`brightness`
+    /// clearing the very `activePreset` it just set.
+    private var isSettingPreset = false
+
+    private func clearPresetIfDrifted() {
+        guard !isSettingPreset, activePreset != nil else { return }
+        activePreset = nil
+    }
+
+    private func persist() {
+        persistence.save(
+            PersistedState(
+                isOn: isOn,
+                warmthK: warmthK,
+                brightness: brightness,
+                pwmSafe: pwmSafe,
+                activePreset: activePreset?.rawValue
+            )
+        )
+    }
+
+    var renderState: RenderState {
+        RenderState(isOn: isOn, warmthK: warmthK, brightness: brightness, pwmSafe: pwmSafe)
+    }
+}
