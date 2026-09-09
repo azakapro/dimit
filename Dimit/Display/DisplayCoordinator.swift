@@ -24,7 +24,11 @@ final class DisplayCoordinator {
     private let appState: AppState
     private let displayManager: DisplayManager
     private let gammaController: GammaController
-    let pwmSafeCoordinator: PWMSafeCoordinator
+    // Private: MenuBarController and PopoverView get their own reference to
+    // the same instance directly from AppDelegate, so exposing it here too
+    // was dead surface area that invited two different paths to the same
+    // object (code review).
+    private let pwmSafeCoordinator: PWMSafeCoordinator
     private let overlayDimmer: OverlayDimmer
 
     private var lastApplied: [DisplayCommand] = []
@@ -154,6 +158,12 @@ final class DisplayCoordinator {
         appState.isOn = false
         gammaController.restoreAll()
         overlayDimmer.removeAll()
+        // Un-pin synchronously too. Code review pointed out this function's
+        // own rationale — "shouldn't depend on the normal pipeline's timing
+        // to take effect" — applied to gamma and the overlay but not to the
+        // backlight, which was left to the deferred reapply(). A panic
+        // button should put every part of the display back at once.
+        pwmSafeCoordinator.restoreAndDisable()
         lastApplied = lastApplied.map { command in
             var restored = command
             restored.gamma = nil

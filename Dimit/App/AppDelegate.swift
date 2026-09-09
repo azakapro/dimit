@@ -107,5 +107,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // what actually restores the screen on a normal Cmd-Q).
         pipeline?.gammaController.restoreAll()
         pipeline?.overlayDimmer.removeAll()
+        // Code review caught this missing: unlike gamma and the overlay
+        // (both of which die with the process anyway), a PWM-Safe pin
+        // changes the real hardware backlight via DisplayServices, which
+        // outlives this process entirely. Quitting with PWM-Safe on used
+        // to leave the screen stuck at 100% until the user pressed a
+        // brightness key. CLAUDE.md §3.6's "On disable: restore remembered
+        // hardware brightness" has to include quitting.
+        pipeline?.pwmSafeCoordinator.restoreAndDisable()
     }
 }

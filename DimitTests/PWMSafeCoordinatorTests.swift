@@ -197,6 +197,84 @@ final class PWMSafeCoordinatorTests: XCTestCase {
         XCTAssertEqual(backend.setCallCount, callsAfterFirstPin, "no extra set() calls for an unchanged, already-pinned display")
     }
 
+    // Code review caught this: `backend.get()` returning nil meant the
+    // remembered-brightness dictionary entry was silently never written
+    // (assigning nil to a dictionary subscript removes the key), so
+    // restoreAndDisable() would skip the display and leave the backlight
+    // pinned at 100% forever. Pinning without knowing how to undo it is
+    // worse than not pinning, so it must not reach .pinned at all.
+    func test_unreadableInitialBrightness_doesNotPin() {
+        let backend = FakeBrightnessBackend()
+        backend.controllable = ["uuid-1"]
+        // No entry in `values` → get() returns nil.
+        let coordinator = makeCoordinator(backend)
+
+        coordinator.sync(pwmSafeRequested: true, displays: [display()])
+        waitBriefly(0.3)
+
+        XCTAssertEqual(coordinator.states["uuid-1"], .wontHold)
+        XCTAssertNotEqual(coordinator.states["uuid-1"], .pinned)
+    }
+
+    // CLAUDE.md §3.4: "Never call set-brightness more than 4x/second."
+    // Code review caught the synchronous-set-failure path recursing
+    // straight back into another set() with no delay at all, firing all
+    // three attempts inside one run-loop turn.
+    func test_setFailureRetries_areSpacedOut_notFiredInOneRunLoopTurn() {
+        let backend = FakeBrightnessBackend()
+        backend.controllable = ["uuid-1"]
+        backend.values["uuid-1"] = 0.5
+        backend.setResults["uuid-1"] = .failed(-1)
+        let coordinator = makeCoordinator(backend) // pinVerifyDelay 0.02s
+
+        coordinator.sync(pwmSafeRequested: true, displays: [display()])
+        // Synchronously after sync() returns, only the FIRST attempt should
+        // have happened — the retries must be scheduled, not immediate.
+        XCTAssertEqual(backend.setCallCount, 1, "retries must be delayed, not fired synchronously in one turn")
+
+        waitBriefly(0.2)
+        XCTAssertEqual(coordinator.states["uuid-1"], .wontHold)
+    }
+
+    // Quitting has to restore the backlight too — it's real hardware state
+    // that outlives the process (code review).
+    func test_restoreAndDisable_restoresBrightness_forQuitPath() {
+        let backend = FakeBrightnessBackend()
+        backend.controllable = ["uuid-1"]
+        backend.values["uuid-1"] = 0.42
+        let coordinator = makeCoordinator(backend)
+
+        coordinator.sync(pwmSafeRequested: true, displays: [display()])
+        waitBriefly()
+        XCTAssertEqual(coordinator.states["uuid-1"], .pinned)
+        XCTAssertEqual(backend.values["uuid-1"], 1.0)
+
+        coordinator.restoreAndDisable()
+        XCTAssertEqual(backend.values["uuid-1"], 0.42)
+        XCTAssertNil(coordinator.states["uuid-1"])
+    }
+
+    // A rapid off→on toggle inside the verify window used to leave the
+    // first chain's stale callback able to act on the second chain's
+    // state. Generation tracking drops it.
+    func test_rapidDisableThenReEnable_doesNotLeaveOverlappingChains() {
+        let backend = FakeBrightnessBackend()
+        backend.controllable = ["uuid-1"]
+        backend.values["uuid-1"] = 0.5
+        let coordinator = makeCoordinator(backend)
+
+        coordinator.sync(pwmSafeRequested: true, displays: [display()])
+        coordinator.sync(pwmSafeRequested: false, displays: [display()]) // inside the verify window
+        coordinator.sync(pwmSafeRequested: true, displays: [display()])
+        waitBriefly(0.2)
+
+        // Should settle cleanly on pinned, with the remembered value still
+        // the true original (not 1.0 captured from a half-pinned state).
+        XCTAssertEqual(coordinator.states["uuid-1"], .pinned)
+        coordinator.restoreAndDisable()
+        XCTAssertEqual(backend.values["uuid-1"], 0.5, "must restore the true original, not a value captured mid-pin")
+    }
+
     func test_disconnectedDisplay_dropsItsState() {
         let backend = FakeBrightnessBackend()
         backend.controllable = ["uuid-1"]

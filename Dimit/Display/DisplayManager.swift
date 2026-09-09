@@ -164,13 +164,11 @@ final class DisplayManager: ObservableObject {
     }
 
     /// `CGDirectDisplayID` has no direct "get the human name" API; the name
-    /// lives on `NSScreen`, matched via the `NSScreenNumber` device
-    /// description key (verified against a live probe: this key's value
-    /// equals the display's `CGDirectDisplayID`).
+    /// lives on `NSScreen`. The ID→screen mapping itself lives in
+    /// `NSScreen.matching(displayID:)` (Support/) — shared with
+    /// `OverlayDimmer`, which needs the same lookup for window frames.
     private static func localizedName(for id: CGDirectDisplayID) -> String? {
-        NSScreen.screens.first { screen in
-            (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == id
-        }?.localizedName
+        NSScreen.matching(displayID: id)?.localizedName
     }
 }
 

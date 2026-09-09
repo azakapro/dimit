@@ -6,7 +6,20 @@ import AppKit
 /// `GammaController`'s baseline cache.
 @MainActor
 final class OverlayDimmer {
+    private struct Applied: Equatable {
+        var tint: OverlayTint
+        var alpha: Double
+    }
+
     private var windows: [String: NSWindow] = [:]
+    /// What each window is currently showing. Code review caught `sync()`
+    /// writing `backgroundColor`/`alphaValue` unconditionally on every
+    /// call — and `sync()` runs on every `reapply()`, i.e. every slider
+    /// tick. With Fallback mode on (where the overlay is always active),
+    /// that pushed a real window-server round trip per tick for an
+    /// unchanged value, exactly the per-tick I/O the gamma path uses
+    /// `Applier`'s diff to avoid. This is the same idea, one layer down.
+    private var appliedByUUID: [String: Applied] = [:]
 
     /// Called on every `DisplayCoordinator.reapply()`, same cadence as
     /// `GammaController`. Creates/updates/removes windows to match
@@ -19,15 +32,19 @@ final class OverlayDimmer {
         for command in commands {
             guard command.overlayAlpha > 0 else { continue }
             guard let uuid = uuidByID[command.displayID] else { continue }
-            guard let screen = Self.screen(for: command.displayID) else {
+            guard let screen = NSScreen.matching(displayID: command.displayID) else {
                 Log.display.error("OverlayDimmer: no NSScreen for display \(command.displayID, privacy: .public)")
                 continue
             }
             neededUUIDs.insert(uuid)
 
             let window = windowForDisplay(uuid: uuid, screen: screen)
-            window.backgroundColor = color(for: command.overlayTint)
-            window.alphaValue = command.overlayAlpha.clamped(to: 0...1)
+            let wanted = Applied(tint: command.overlayTint, alpha: command.overlayAlpha.clamped(to: 0...1))
+            if appliedByUUID[uuid] != wanted {
+                window.backgroundColor = color(for: wanted.tint)
+                window.alphaValue = wanted.alpha
+                appliedByUUID[uuid] = wanted
+            }
             if window.frame != screen.frame {
                 window.setFrame(screen.frame, display: true)
             }
@@ -39,6 +56,7 @@ final class OverlayDimmer {
         for uuid in Set(windows.keys).subtracting(neededUUIDs) {
             windows[uuid]?.orderOut(nil)
             windows.removeValue(forKey: uuid)
+            appliedByUUID.removeValue(forKey: uuid)
         }
     }
 
@@ -49,13 +67,13 @@ final class OverlayDimmer {
     /// behind, at the cost of one extra window alloc on the rare event a
     /// display actually reconfigures.
     func handleDisplaysChanged() {
-        for window in windows.values { window.orderOut(nil) }
-        windows.removeAll()
+        removeAll()
     }
 
     func removeAll() {
         for window in windows.values { window.orderOut(nil) }
         windows.removeAll()
+        appliedByUUID.removeAll()
     }
 
     private func windowForDisplay(uuid: String, screen: NSScreen) -> NSWindow {
@@ -80,15 +98,6 @@ final class OverlayDimmer {
         switch tint {
         case .black: return .black
         case .red: return NSColor(red: 1, green: 0, blue: 0, alpha: 1)
-        }
-    }
-
-    /// Same `NSScreenNumber` matching technique as `DisplayManager` —
-    /// verified against a live probe during C2 that this key's value
-    /// equals the display's `CGDirectDisplayID`.
-    private static func screen(for id: CGDirectDisplayID) -> NSScreen? {
-        NSScreen.screens.first { screen in
-            (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == id
         }
     }
 }

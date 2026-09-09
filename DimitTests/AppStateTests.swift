@@ -42,6 +42,44 @@ final class AppStateTests: XCTestCase {
         XCTAssertNil(state.activePreset)
     }
 
+    // Code review caught that docs/QA.md claimed this logic was verified
+    // while no test existed for it. The banner is only supposed to appear
+    // on an OFF -> ON transition, once ever, on macOS 26+.
+    func test_autoBrightnessBanner_onlyAppearsOnOffToOnTransition() {
+        let state = freshState()
+        XCTAssertFalse(state.showAutoBrightnessBanner, "not shown before the filter is ever turned on")
+
+        state.isOn = true
+        // Guarded by the OS version, so only assert the shape that holds
+        // on every macOS: on 26+ it shows, below that it must not.
+        let expectedOnThisOS = ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26
+        XCTAssertEqual(state.showAutoBrightnessBanner, expectedOnThisOS)
+    }
+
+    func test_autoBrightnessBanner_isNotReshownAfterDismissal_evenAcrossInstances() {
+        let suite = "test.\(UUID().uuidString)"
+        let state = AppState(persistence: Persistence(suiteName: suite))
+        state.isOn = true
+        state.dismissAutoBrightnessBanner()
+        XCTAssertFalse(state.showAutoBrightnessBanner)
+
+        // "Dismissable forever" (CLAUDE.md §3.3) — a fresh launch reading
+        // the same persisted store must not show it again.
+        let relaunched = AppState(persistence: Persistence(suiteName: suite))
+        relaunched.isOn = false
+        relaunched.isOn = true
+        XCTAssertFalse(relaunched.showAutoBrightnessBanner)
+    }
+
+    func test_autoBrightnessBanner_doesNotReappearOnEveryToggle() {
+        let state = freshState()
+        state.isOn = true
+        state.dismissAutoBrightnessBanner()
+        state.isOn = false
+        state.isOn = true
+        XCTAssertFalse(state.showAutoBrightnessBanner)
+    }
+
     func test_renderState_reflectsCurrentFields() {
         let state = freshState()
         state.isOn = true

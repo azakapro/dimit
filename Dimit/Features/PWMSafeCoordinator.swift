@@ -36,7 +36,20 @@ final class PWMSafeCoordinator: ObservableObject {
     private var currentDisplays: [DisplayInfo] = []
     private var pollTimer: Timer?
     private var hasShownRepinnedToastThisSession = false
-    private var pendingVerifications: Set<String> = [] // uuids with an in-flight asyncAfter, to avoid overlapping attempts
+
+    /// Bumped every time a *fresh* pin chain starts for a display. Each
+    /// async verification captures the generation it was scheduled under
+    /// and drops out if it's since been superseded.
+    ///
+    /// This replaces an earlier `pendingVerifications: Set<String>` that
+    /// three separate code-review angles independently flagged as
+    /// write-only: it was inserted and removed but never actually read, so
+    /// the "avoid overlapping attempts" its comment promised didn't exist.
+    /// A plain set couldn't have delivered it either — after a disable
+    /// clears a display's state and a re-enable starts a new chain for the
+    /// same UUID, set membership can't distinguish the new chain's
+    /// callback from the old chain's stale one. A generation counter can.
+    private var pinGeneration: [String: Int] = [:]
 
     init(
         backends: [BrightnessBackend],
@@ -63,7 +76,7 @@ final class PWMSafeCoordinator: ObservableObject {
         currentDisplays = displays
 
         guard pwmSafeRequested else {
-            disableAll()
+            restoreAndDisable()
             return
         }
 
@@ -74,14 +87,37 @@ final class PWMSafeCoordinator: ObservableObject {
         // Drop state for displays that disconnected while pinned/pinning —
         // nothing left to restore brightness on, and a reconnect (possibly
         // a different physical monitor reusing the slot) should start fresh.
+        //
+        // Guarded rather than assigned unconditionally: `states` is
+        // `@Published`, and Combine republishes on *every* assignment
+        // without diffing. This method runs on every `reapply()`, i.e. on
+        // every slider tick, so an unconditional reassignment here made
+        // `$states` fire constantly while pinned — which in turn made
+        // MenuBarController rebuild the composited menu-bar icon (an
+        // NSImage alloc plus a Core Graphics draw) dozens of times per
+        // drag for an identical result. Code review caught both the cause
+        // and that downstream symptom.
         let currentUUIDs = Set(displays.map(\.uuid))
-        states = states.filter { currentUUIDs.contains($0.key) }
-        rememberedBrightness = rememberedBrightness.filter { currentUUIDs.contains($0.key) }
+        if states.keys.contains(where: { !currentUUIDs.contains($0) }) {
+            states = states.filter { currentUUIDs.contains($0.key) }
+        }
+        if rememberedBrightness.keys.contains(where: { !currentUUIDs.contains($0) }) {
+            rememberedBrightness = rememberedBrightness.filter { currentUUIDs.contains($0.key) }
+        }
 
         startPollingIfNeeded()
     }
 
-    private func disableAll() {
+    /// Restores every pinned display's remembered brightness and clears all
+    /// state. Public because quitting has to do this too, not just
+    /// toggling PWM-Safe off: `DisplayServicesSetBrightness` changes the
+    /// real hardware backlight, which outlives this process. Code review
+    /// caught that `applicationWillTerminate` restored gamma and tore down
+    /// overlays but left the backlight pinned at 100% — so quitting with
+    /// PWM-Safe on left the user's screen stuck bright until they pressed
+    /// a brightness key or relaunched. CLAUDE.md §3.6 ("On disable:
+    /// restore remembered hardware brightness") means quit, too.
+    func restoreAndDisable() {
         for display in currentDisplays {
             guard let remembered = rememberedBrightness[display.uuid],
                   let backend = backend(for: display)
@@ -89,7 +125,8 @@ final class PWMSafeCoordinator: ObservableObject {
             _ = backend.set(display, remembered)
         }
         rememberedBrightness.removeAll()
-        states.removeAll()
+        pinGeneration.removeAll() // invalidates any in-flight verification
+        if !states.isEmpty { states.removeAll() }
         pollTimer?.invalidate()
         pollTimer = nil
     }
@@ -98,32 +135,54 @@ final class PWMSafeCoordinator: ObservableObject {
         backends.first { $0.canControl(display) }
     }
 
-    private func beginPinning(_ display: DisplayInfo, attemptsRemaining: Int = 3) {
+    /// `generation == nil` starts a fresh chain (allocating a new
+    /// generation, invalidating any in-flight callback for this display);
+    /// a retry passes its existing generation through so it stays part of
+    /// the same chain.
+    private func beginPinning(_ display: DisplayInfo, attemptsRemaining: Int = 3, generation: Int? = nil) {
         guard let backend = backend(for: display) else {
             states[display.uuid] = .unsupported
             return
         }
 
+        let currentGeneration = generation ?? ((pinGeneration[display.uuid] ?? 0) + 1)
+        pinGeneration[display.uuid] = currentGeneration
+
+        // Capture what to restore to *before* pinning. If that read fails
+        // we deliberately don't pin at all: code review caught that the
+        // old code assigned `backend.get(display)` straight into the
+        // dictionary, and assigning `nil` to a dictionary subscript
+        // removes the key rather than storing a nil — so a single failed
+        // read meant `restoreAndDisable()` would later skip this display
+        // entirely, leaving the backlight stuck at 100% forever with no
+        // error surfaced. Pinning without knowing how to undo it is worse
+        // than not pinning.
         if rememberedBrightness[display.uuid] == nil {
-            rememberedBrightness[display.uuid] = backend.get(display)
+            guard let original = backend.get(display) else {
+                Log.display.error("PWM-Safe: could not read current brightness for \(display.uuid, privacy: .public); not pinning (nothing to restore to later)")
+                scheduleRetryOrGiveUp(display, backend: backend, attemptsRemaining: attemptsRemaining, generation: currentGeneration)
+                return
+            }
+            rememberedBrightness[display.uuid] = original
         }
 
         states[display.uuid] = .pinning
         let result = backend.set(display, 1.0)
         guard result == .ok else {
             Log.display.error("PWM-Safe: set(1.0) failed for \(display.uuid, privacy: .public): \(String(describing: result), privacy: .public)")
-            retryOrGiveUp(display, backend: backend, attemptsRemaining: attemptsRemaining)
+            scheduleRetryOrGiveUp(display, backend: backend, attemptsRemaining: attemptsRemaining, generation: currentGeneration)
             return
         }
 
-        pendingVerifications.insert(display.uuid)
         DispatchQueue.main.asyncAfter(deadline: .now() + pinVerifyDelay) { [weak self] in
-            self?.verifyPin(display, backend: backend, attemptsRemaining: attemptsRemaining)
+            self?.verifyPin(display, backend: backend, attemptsRemaining: attemptsRemaining, generation: currentGeneration)
         }
     }
 
-    private func verifyPin(_ display: DisplayInfo, backend: BrightnessBackend, attemptsRemaining: Int) {
-        pendingVerifications.remove(display.uuid)
+    private func verifyPin(_ display: DisplayInfo, backend: BrightnessBackend, attemptsRemaining: Int, generation: Int) {
+        // Drop stale callbacks from a superseded chain (e.g. PWM-Safe was
+        // toggled off and back on inside the verify window).
+        guard pinGeneration[display.uuid] == generation else { return }
         // The display may have disconnected or PWM-Safe may have been
         // turned off (which removes its entry from `states` entirely —
         // `.off` is never itself a stored value, only the UI-facing
@@ -142,15 +201,28 @@ final class PWMSafeCoordinator: ObservableObject {
             // afterward — caught by the drift test actually failing.
             startPollingIfNeeded()
         } else {
-            retryOrGiveUp(display, backend: backend, attemptsRemaining: attemptsRemaining)
+            scheduleRetryOrGiveUp(display, backend: backend, attemptsRemaining: attemptsRemaining, generation: generation)
         }
     }
 
-    private func retryOrGiveUp(_ display: DisplayInfo, backend: BrightnessBackend, attemptsRemaining: Int) {
-        if attemptsRemaining > 1 {
-            beginPinning(display, attemptsRemaining: attemptsRemaining - 1)
-        } else {
+    /// Always waits `pinVerifyDelay` before the next attempt.
+    ///
+    /// Code review caught a real rule violation here: the failure paths
+    /// that return *synchronously* (a `set()` that reports failure, or an
+    /// unreadable initial brightness) used to recurse straight back into
+    /// `beginPinning`, firing all three `backend.set()` calls back-to-back
+    /// in one run-loop turn. CLAUDE.md §3.4: "Never call set-brightness
+    /// more than 4×/second (some panels wear or lag)." Routing every retry
+    /// through the same delay the verify path already used keeps the
+    /// worst case at 3 sets over ~0.6s, comfortably inside that.
+    private func scheduleRetryOrGiveUp(_ display: DisplayInfo, backend: BrightnessBackend, attemptsRemaining: Int, generation: Int) {
+        guard attemptsRemaining > 1 else {
             states[display.uuid] = .wontHold
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + pinVerifyDelay) { [weak self] in
+            guard let self, self.pinGeneration[display.uuid] == generation else { return }
+            self.beginPinning(display, attemptsRemaining: attemptsRemaining - 1, generation: generation)
         }
     }
 
@@ -175,7 +247,9 @@ final class PWMSafeCoordinator: ObservableObject {
             guard value < 0.99 else { continue }
 
             // Drifted — most likely the user pressed a hardware brightness
-            // key. Re-pin, and surface the toast once per session.
+            // key. Re-pin (as a fresh chain, so any straggler callback
+            // from a previous chain is invalidated), and surface the toast
+            // once per session.
             if !hasShownRepinnedToastThisSession {
                 hasShownRepinnedToastThisSession = true
                 repinnedToastSubject.send()
