@@ -3,8 +3,9 @@ import OSLog
 
 /// CLAUDE.md §7: "macOS version, hardware model, displays (name, builtin,
 /// vendor, DDC support, brightness backend), app version, last 200 log
-/// lines, license state only (never the key). Copied to clipboard as
-/// text." `buildText` is a pure function over already-fetched values so it
+/// lines. Nothing that identifies the user or the machine's owner (§4.2).
+/// Copied to clipboard as text, so the user can read it before sending it
+/// anywhere." `buildText` is a pure function over already-fetched values so it
 /// is unit-testable without touching `sysctl`/`OSLogStore`/`Bundle.main` —
 /// `current()` is the thin, untested glue that gathers those and calls it,
 /// same split as `Renderer.render` vs. the controllers that call it.
@@ -54,12 +55,13 @@ enum DiagnosticsBundle {
             lines.append("  \(index + 1). \(display.name)\(tagSuffix) — brightness backend: \(backend)")
         }
 
-        // CLAUDE.md §7 says to include "license state only (never the
-        // key)" — licensing doesn't exist until C7 (docs/PLAN.md), so
-        // there is no real state to report. Left out entirely rather than
-        // inventing a placeholder like "Unlicensed": that would read as
-        // real product behavior instead of "not built yet," which is
-        // actively misleading in a bundle meant for support diagnosis.
+        // An earlier draft of CLAUDE.md §7 asked for a "license state"
+        // line here. There is no licensing and there never will be — the
+        // 2026-09-09 distribution decision (§4) made every copy
+        // unconditional — so there is no state to report, and inventing a
+        // placeholder like "Unlicensed" would describe product behavior
+        // that doesn't exist. Deliberately absent, and
+        // `DiagnosticsBundleTests` pins that it stays absent.
 
         lines.append("")
         lines.append("Log (last \(recentLogLines.count) lines):")

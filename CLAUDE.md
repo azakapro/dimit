@@ -1,8 +1,10 @@
 # CLAUDE.md — Dimit: blue-light + PWM-flicker utility for macOS, then Windows
 
-> **Build order is MVP-first (decided 2026-09-09).** Work goes in cycles C0…C9 defined in `docs/PLAN.md` §2, one PR each. The MVP (C0–C3, tag v0.1) is the display engine, PWM-Safe, presets and three languages, shared as a zip with friends. **Licensing (§4.1–4.3) starts at C7, payments and the website (§4.4, §6) at C8.** Until then `License/`, `server/` and `site/` do not exist and nothing in the app touches the network. Every cycle starts with the prompt at the top of `docs/PLAN.md` §2, and every PR must satisfy `docs/PLAN.md` §3 and `.github/pull_request_template.md`.
+> **Build order is MVP-first (decided 2026-09-09).** Work goes in cycles C0…C7 defined in `docs/PLAN.md` §2, one PR each. C0–C5 have shipped (v0.1–v0.3): the display engine, PWM-Safe, presets, three languages, settings, scheduling and experimental DDC. **C6 is the signed beta; C7 is the website, the checkout and opt-in updates.** Until C7 lands, `site/` does not exist and **nothing in the app touches the network at all**. Every cycle starts with the prompt at the top of `docs/PLAN.md` §2, and every PR must satisfy `docs/PLAN.md` §3 and `.github/pull_request_template.md`.
 >
-> **Decisions locked on 2026-09-08** (full list in `docs/PLAN.md` → Decisions): product name **Dimit**, bundle ID `app.dimit.mac`, key prefix `DIMT-`, primary domain **dimit.uz** (dimit.app later), **Uzbekistan launch first** (Payme + Click in 1.0, Lemon Squeezy at the global launch, M7), 7-day trial without card, seller is the owner's Uzbek LLC, one developer working part-time with Claude Code + Codex on parallel tracks.
+> **Distribution decided 2026-09-09, replacing the licensing plan this file used to carry** (`docs/PLAN.md` → Decisions): Dimit is a **paid download — pay what you want, minimum $5 USD — through Lemon Squeezy** on our own site, with **no licence keys, no trial, no activation and no server**. §4 below and `docs/ARCHITECTURE.md` §4–§8 are the current design; anything you find elsewhere describing a license server, `DIMT-` keys, seats, Payme or Click is from the superseded plan and is not to be built.
+>
+> **Decisions locked on 2026-09-08 and still standing:** product name **Dimit**, bundle ID `app.dimit.mac`, primary domain **dimit.uz** (dimit.app later), seller is the owner's Uzbek LLC, one developer working part-time with Claude Code.
 >
 > **Dev machine facts** (2026-09-08): MacBook Pro 16" M1 Pro (built-in XDR), macOS **27.0 beta** (26A5416b), no Xcode installed yet, one external monitor available at home, auto-brightness ON. There is no macOS 13–26 machine; older-OS QA comes from beta testers or a macOS 26 install on an external SSD. **Run `swift scripts/gamma_spike.swift` before writing any display code** (see §3.3 and M0).
 
@@ -10,20 +12,20 @@
 
 ## 0. One-paragraph brief
 
-Build a native macOS menu-bar app that (1) warms the screen from 6500K down to a pure-red "0K" by rewriting the display gamma tables, (2) dims the screen in software, (3) offers a **PWM-Safe mode** that pins the hardware backlight at 100% and does all dimming in software so LED backlights never flicker, (4) works on every connected display, (5) ships in **Uzbek (Latin), Russian and English**, (6) is sold as a **one-time license for 3 computers** through Payme and Click (Uzbekistan, in 1.0) and later Lemon Squeezy (worldwide cards, global launch), all issuing keys from **our own** license server. No accounts, no analytics, no telemetry. Phase 2 is a Windows port with feature parity. The reference product is Tap Zap (tapzap.app, $39, one person, $18.8k in 7 weeks); the reference competitor is CircadianShield ($47, adds solar scheduling). We match Tap Zap's core, add scheduling and external-monitor PWM control on Mac, and localize.
+Build a native macOS menu-bar app that (1) warms the screen from 6500K down to a pure-red "0K" by rewriting the display gamma tables, (2) dims the screen in software, (3) offers a **PWM-Safe mode** that pins the hardware backlight at 100% and does all dimming in software so LED backlights never flicker, (4) works on every connected display, (5) ships in **Uzbek (Latin), Russian and English**, (6) is sold as a **pay-what-you-want download, minimum $5**, through a Lemon Squeezy checkout on our own site — no accounts, no licence keys, no trial, no activation, no analytics, no telemetry, and no server of ours anywhere. Phase 2 is a Windows port with feature parity. The reference product is Tap Zap (tapzap.app, $39, one person, $18.8k in 7 weeks); the reference competitor is CircadianShield ($47, adds solar scheduling). We match Tap Zap's core, add scheduling and external-monitor PWM control on Mac, localize, and ask a fraction of the price.
 
 ---
 
 ## 1. Non-negotiable product rules
 
 1. **Two sliders, three presets, one button.** Warmth (6500K→0K), Brightness (100%→10%), presets DAY/EVENING/NIGHT, a big ON/OFF ("ZAP") button. Anything else lives behind a Settings gear.
-2. **Zero network traffic** except license activation/validation. No crash reporters, no analytics SDKs, no auto-update pings without user opt-in (Sparkle update check is opt-in and explained).
-3. **No accounts.** License key in, done. Key stored in Keychain.
+2. **Zero network traffic.** Full stop, with exactly one exception: the Sparkle update check, which is opt-in, explained, and makes no request until the user turns it on. No crash reporters, no analytics SDKs, no activation calls, no "phone home" of any kind.
+3. **No accounts, no licence keys, no trial.** Every copy is identical and fully functional forever. No code may gate a feature on payment (§4).
 4. **Screenshots, screen recordings and screen-shares must not be tinted.** Gamma tables satisfy this; the Extreme-Dim overlay window must set `sharingType = .none`.
 5. **Never require Accessibility, Screen Recording or admin.** (We will use private frameworks via `dlopen`; that is allowed outside the App Store. We are **not** an App Store app.)
 6. **Every user-visible string goes through the String Catalog** (`Localizable.xcstrings`) with `en`, `uz`, `ru`. No hard-coded English. Uzbek is **Latin script**.
 7. **No medical claims** in any language. Allowed: "removes blue light", "stops backlight flicker", "may help with eye strain (see studies)". Not allowed: "cures", "treats", "prevents disease".
-8. **Fail safe.** On quit, crash, sleep, display reconfiguration or license failure, the display must return to (or be restorable to) normal colours. Gamma is restored with `CGDisplayRestoreColorSyncSettings()`; overlay windows are torn down.
+8. **Fail safe.** On quit, crash, sleep or display reconfiguration, the display must return to (or be restorable to) normal colours. Gamma is restored with `CGDisplayRestoreColorSyncSettings()`; overlay windows are torn down.
 
 ---
 
@@ -32,8 +34,8 @@ Build a native macOS menu-bar app that (1) warms the screen from 6500K down to a
 - **Language/UI:** Swift 5.10+, AppKit for the menu-bar item + `NSPopover`, SwiftUI for the popover content and Settings window. Minimum **macOS 13 Ventura** (Tap Zap supports 12, but 12 has sticky-slider bugs per its own help page; don't pay for it). Universal binary (arm64 + x86_64).
 - **Identity:** product name `Dimit`, bundle ID `app.dimit.mac`, both as constants in `Config.swift` (`PRODUCT_NAME`, `PRODUCT_BUNDLE_ID`). Menu-bar name "Dimit".
 - **Build:** Xcode 26 or newer (whatever runs on the dev machine's macOS 27 beta; download from developer.apple.com, not the App Store). Swift 6 toolchain with **Swift 5 language mode** to avoid strict-concurrency churn in AppKit code. Swift Package Manager only (no CocoaPods). Dependencies allowed: `sparkle-project/Sparkle` (updates), `sindresorhus/KeyboardShortcuts` (global hotkey), `sindresorhus/LaunchAtLogin-Modern` or `SMAppService` directly. Nothing else without asking.
-- **License server:** Cloudflare Worker (TypeScript) + D1 (SQLite) + KV for rate limiting. Repo folder `server/`.
-- **Website:** Astro static site in `site/`, three locales `/`, `/uz/`, `/ru/`, deployed to Cloudflare Pages.
+- **No server.** There is nothing to run: payment and file delivery are Lemon Squeezy's, and the app never calls anything (§4).
+- **Website:** Astro static site in `site/`, three locales `/`, `/uz/`, `/ru/`, deployed to Cloudflare Pages. Built in C7; see `docs/ARCHITECTURE.md` §7.
 - **Windows (phase 2):** C++20 / Win32, no frameworks, folder `windows/`. Spec in §11.
 
 ```
@@ -44,17 +46,16 @@ dimit/
     App/            DimitApp.swift, AppDelegate.swift, Config.swift
     Display/        DisplayManager.swift, GammaController.swift, BrightnessController.swift,
                     DDCController.swift, OverlayDimmer.swift, WarmthCurve.swift, DisplayModels.swift
-    Features/       PresetStore.swift, ScheduleEngine.swift, PWMSafeCoordinator.swift, HotkeyManager.swift
-    License/        LicenseClient.swift, LicenseStore.swift (Keychain), DeviceID.swift, LicenseState.swift
+    Features/       PresetStore.swift, ScheduleEngine.swift, ScheduleCoordinator.swift,
+                    PWMSafeCoordinator.swift, HotkeyManager.swift
     UI/             MenuBarController.swift, PopoverView.swift, SettingsView.swift, OnboardingView.swift,
-                    LicenseView.swift, Components/
+                    Settings/, Components/
     Resources/      Localizable.xcstrings, Assets.xcassets, Studies.md
     Support/        Logger.swift, DiagnosticsBundle.swift, Persistence.swift
-  DimitTests/        WarmthCurveTests, LicenseStateTests, ScheduleEngineTests, GammaMathTests
-  server/           worker/src/index.ts, schema.sql, wrangler.toml, README.md
-  site/             Astro project (en/uz/ru)
-  scripts/          build_dmg.sh, notarize.sh, make_appcast.sh
-  docs/             ARCHITECTURE.md, RELEASE.md, SUPPORT.md
+  DimitTests/       WarmthCurveTests, ScheduleEngineTests, GammaMathTests, DDCTests, …
+  site/             Astro project (en/uz/ru) — C7
+  scripts/          bootstrap.sh, build_dmg.sh, notarize.sh, make_appcast.sh
+  docs/             ARCHITECTURE.md, PLAN.md, QA.md, RELEASE.md
 ```
 
 ---
@@ -75,12 +76,12 @@ dimit/
 - Build tables: for i in 0..<n: `x = i/(n-1)`; `r[i] = orig_r[x] * mulR * dim`, same for g, b, where `dim ∈ [dimFloor, 1]` is the software brightness. Apply with `CGSetDisplayTransferByTable(displayID, n, r, g, b)`.
 - Apply to all displays unless `perDisplay` override exists (Settings → per-display sliders, off by default).
 - Restore: `CGDisplayRestoreColorSyncSettings()` on OFF, on quit (`applicationWillTerminate`), and from a `atexit`/signal handler for crashes (SIGTERM/SIGINT; do not try to handle SIGSEGV elaborately).
-- **Verification step (mandatory, this is the Tahoe workaround):** after applying, read back with `CGGetDisplayTransferByTable`. Read-back succeeding does **not** prove the screen changed (the Tahoe bug returns success and stores the table but the display ignores it), and we cannot sample pixels without the Screen Recording permission. So: (a) on macOS ≥ 26, and (b) if auto-brightness is detectably enabled — **the `com.apple.BezelServices dAuto` key does not exist on macOS 27** (checked 2026-09-08); spend at most 2 hours in M2 looking for a replacement (candidates: `com.apple.CoreBrightness` prefs, `CBClient` in the private CoreBrightness framework, keys under `AppleARMBacklight` in `ioreg`), and if nothing reliable is found, skip detection and show the banner unconditionally on macOS ≥ 26 the first time the filter is turned ON, dismissable forever — show a one-time banner "Automatic brightness can block colour changes on macOS 26 — turn it off in System Settings → Displays" with a button that opens `x-apple.systempreferences:com.apple.Displays-Settings.extension`. And (c) provide **Fallback mode** (Settings toggle, auto-suggested when the user reports "no tint"): tint via the overlay described in 3.5 instead of gamma. Fallback mode is visible in recordings — say so in the UI.
+- **Verification step (mandatory, this is the Tahoe workaround):** after applying, read back with `CGGetDisplayTransferByTable`. Read-back succeeding does **not** prove the screen changed (the Tahoe bug returns success and stores the table but the display ignores it), and we cannot sample pixels without the Screen Recording permission. So: (a) on macOS ≥ 26, and (b) if auto-brightness is detectably enabled — **the `com.apple.BezelServices dAuto` key does not exist on macOS 27** (checked 2026-09-08); spend at most 2 hours in C3 looking for a replacement (candidates: `com.apple.CoreBrightness` prefs, `CBClient` in the private CoreBrightness framework, keys under `AppleARMBacklight` in `ioreg`), and if nothing reliable is found, skip detection and show the banner unconditionally on macOS ≥ 26 the first time the filter is turned ON, dismissable forever — show a one-time banner "Automatic brightness can block colour changes on macOS 26 — turn it off in System Settings → Displays" with a button that opens `x-apple.systempreferences:com.apple.Displays-Settings.extension`. And (c) provide **Fallback mode** (Settings toggle, auto-suggested when the user reports "no tint"): tint via the overlay described in 3.5 instead of gamma. Fallback mode is visible in recordings — say so in the UI.
 - Known Apple bugs to reference in code comments: FB18559786, FB19136488, FB22273730 (developer.apple.com/forums/thread/795074 and /819331).
 
 ### 3.4 Hardware brightness (`BrightnessController.swift`)
 - **Apple displays (built-in, Studio Display, Pro Display XDR):** load `/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices` with `dlopen`, `dlsym` → `DisplayServicesGetBrightness(CGDirectDisplayID, float*) -> Int32` and `DisplayServicesSetBrightness(CGDirectDisplayID, float) -> Int32`. Fallback: `CoreDisplay_Display_SetUserBrightness` / `CoreDisplay_Display_GetUserBrightness` from `CoreDisplay.framework`. Wrap in a protocol `BrightnessBackend` with `canControl(display)`, `get`, `set`, and return `.unsupported` cleanly when symbols are missing (future macOS may remove them).
-- **Third-party external displays:** DDC/CI VCP code `0x10` (brightness) via IOKit. On Apple Silicon use the IOAVService path (`IOAVServiceCreateWithService`, `IOAVServiceWriteI2C`/`ReadI2C`, as used by `m1ddc`/MonitorControl/OpenDisplay); on Intel use `IOFramebuffer` I2C (`IOI2CSendRequest`). Implement in `DDCController.swift` in M4, tested on the one external monitor available (record vendor/model/connection in `docs/QA.md`). Ships in 1.0 as an **Experimental** toggle in Settings (`Config.ddcEnabled`, default OFF); promoted to default ON in 1.1 after a second monitor and beta feedback. This is the feature Tap Zap lacks on Mac.
+- **Third-party external displays:** DDC/CI VCP code `0x10` (brightness) via IOKit. On Apple Silicon use the IOAVService path (`IOAVServiceCreateWithService`, `IOAVServiceWriteI2C`/`ReadI2C`, as used by `m1ddc`/MonitorControl/OpenDisplay); on Intel use `IOFramebuffer` I2C (`IOI2CSendRequest`). Implemented in `DDCController.swift` in C5b, to be tested on the one external monitor available (record vendor/model/connection in `docs/QA.md`). Ships in 1.0 as an **Experimental** toggle in Settings (`Config.ddcEnabled`, default OFF); promoted to default ON in 1.1 after a second monitor and beta feedback. This is the feature Tap Zap lacks on Mac.
 - **Verification without private APIs:** on Apple Silicon the built-in backlight exposes `IODisplayParameters.brightness {min 0, max 65536, value}` under `AppleARMBacklight` in the IORegistry (observed on the dev machine). Use it as a read-only cross-check for the PWM pin when the DisplayServices read-back is unavailable.
 - **As built in C5b, two disclosed deviations from the paragraph above.** (1) `Config.ddcEnabled` landed as **`AppState.ddcEnabled`** — persisted and bound to a real Settings toggle, which a `static var` could be neither; `Config.swift` carries a note pointing here rather than a dead second copy. (2) The `IOMobileFramebufferShim` class that `m1ddc` matches against **does not exist on macOS 27** (verified: it matches zero services); the working path is `DCPAVServiceProxy`, whose `Location` property reads `Embedded` for the built-in panel and `External` otherwise. DDC resolution is also deliberately limited to the unambiguous case — exactly one external display and one `External` proxy — because guessing which proxy belongs to which `CGDirectDisplayID` would mean writing brightness to the wrong monitor; multi-monitor DDC needs someone with two external displays to verify an ordering heuristic first.
 - Never call set-brightness more than 4×/second (some panels wear or lag).
@@ -99,7 +100,7 @@ State machine per display: `off → pinning → pinned(verified) | unsupported |
 
 ### 3.7 Presets, state, persistence
 - Presets: `DAY 4000K/100%`, `EVENING 2700K/80%`, `NIGHT 0K/40%` (Tap Zap: 4000/2700/0K). User-editable; "reset to defaults".
-- `AppState` (single `@Observable` class — **C1 uses `ObservableObject` + `@Published` instead**, disclosed in a code comment: `@Observable` needs macOS 14+ and this file fixes the deployment target at 13; mechanical swap if that ever changes): `isOn, warmthK, brightness, pwmSafe, activePreset, perDisplayOverrides, schedule, hotkeys, launchAtLogin, updateChecks, locale`. Persist in `UserDefaults.standard`, debounced 250 ms — **not** `UserDefaults(suiteName: PRODUCT_BUNDLE_ID)` as an earlier draft of this file said: passing an app's own bundle ID as a suite name is not a real app-group suite (Foundation logs "does not make sense and will not work"), and a real one needs an App Groups entitlement we don't have per §1.5. Apply pipeline is a single pure function `render(state, displays) -> [DisplayCommand]` so it is unit-testable.
+- `AppState` (single `@Observable` class — **C1 uses `ObservableObject` + `@Published` instead**, disclosed in a code comment: `@Observable` needs macOS 14+ and this file fixes the deployment target at 13; mechanical swap if that ever changes): `isOn, warmthK, brightness, pwmSafe, fallbackMode, activePreset, presetOverrides, scheduleConfig, ddcEnabled, launchAtLogin, updateChecksEnabled, locale`. Persist in `UserDefaults.standard`, debounced 250 ms — **not** `UserDefaults(suiteName: PRODUCT_BUNDLE_ID)` as an earlier draft of this file said: passing an app's own bundle ID as a suite name is not a real app-group suite (Foundation logs "does not make sense and will not work"), and a real one needs an App Groups entitlement we don't have per §1.5. Apply pipeline is a single pure function `render(state, displays) -> [DisplayCommand]` so it is unit-testable.
 
 ### 3.8 Scheduling (`ScheduleEngine.swift`) — the feature Tap Zap doesn't have
 - Modes: **Manual** (default), **Sunset→Sunrise** (uses `CoreLocation` *only if user grants* — otherwise fall back to a user-chosen city from a bundled list with lat/lon: Tashkent, Samarkand, Bukhara, Namangan, Andijan, Fergana, Nukus, Moscow, Almaty, Bishkek, Dushanbe, Istanbul, London, New York… plus manual lat/lon), **Fixed times**.
@@ -112,47 +113,27 @@ State machine per display: `off → pinning → pinned(verified) | unsupported |
 
 ---
 
-## 4. Licensing and payments
+## 4. Distribution and payment
 
-### 4.1 Key format and crypto
-- Key: `DIMT-XXXX-XXXX-XXXX-XXXX` (Crockford base32, 20 chars payload). Generated by the server as a random ID; **the server is the source of truth**, keys are not self-verifying (simpler, and allows refunds to revoke).
-- Device ID: SHA-256 of (`IOPlatformUUID` + user home path) → hex; store in Keychain so it is stable across reinstalls. Never send hardware serials.
+**Decided 2026-09-09, replacing the license-server design this section used to hold.** Anything anywhere in this repo that still describes `DIMT-` keys, seats, a trial, activation, Payme or Click is superseded and must not be built. Full design in `docs/ARCHITECTURE.md` §4–§8; the rules that bind code are here.
 
-### 4.2 Server API (Cloudflare Worker, `server/`)
-```
-POST /v1/orders      { email, locale:"uz"|"ru"|"en", provider:"payme"|"click", telegram? }
-   → 201 { orderId, checkoutUrl }              (site /buy page calls this, then redirects)
-GET  /v1/orders/:id  → 200 { status:"pending"|"paid"|"cancelled", key? }   (/download page polls, 5 s, max 15 min)
-POST /v1/activate    { key, deviceId, deviceName, platform:"mac", appVersion }
-   → 200 { status:"active", seatsUsed, seatsTotal:3, validUntil (now+90d), instanceId }
-   → 409 { error:"no_seats", devices:[{instanceId, deviceName, activatedAt}] }
-   → 404 { error:"invalid_key" } · 410 { error:"revoked" }
-POST /v1/validate    { key, instanceId }         → 200 { status, validUntil } | 410 revoked
-POST /v1/deactivate  { key, instanceId }         → 200
-POST /webhooks/lemonsqueezy   (HMAC-signed, M7)  → create license row on order_created; revoke on refund
-POST /webhooks/payme          (Payme Merchant API JSON-RPC: CheckPerformTransaction, CreateTransaction,
-                               PerformTransaction, CancelTransaction, CheckTransaction, GetStatement)
-POST /webhooks/click          (Click prepare/complete)
-GET  /r/:handle              → affiliate redirect (sets 60-day cookie, forwards to checkout with ?aff=)
-```
-- D1 tables: `licenses(key PK, email, source enum(ls,payme,click,manual), order_ref, seats INT default 3, status enum(active,revoked), created_at)`, `activations(instance_id PK, key FK, device_id, device_name, platform, activated_at, last_seen)`, `orders(id PK, email, locale, provider enum(payme,click,ls), amount_tiyin INT, status enum(pending,paid,cancelled), license_key FK null, created_at, paid_at)`, `payme_transactions(id PK — Payme's transaction id, order_id FK, state INT, create_time INT, perform_time INT, cancel_time INT, reason INT)`, `click_transactions(click_trans_id PK, order_id FK, prepare_id INT, status, created_at)`, `affiliates(handle PK, payout_method, rate default 0.25)` (M7), `referrals(order_ref, handle, amount, created_at)` (M7). Full schema and the payment sequences are in `docs/ARCHITECTURE.md`.
-- Rate limit per IP and per key (KV). Log nothing but key-hash + timestamps.
-- Email delivery of the key: Resend (or Cloudflare Email Workers) with EN/UZ/RU templates chosen by the checkout locale.
+### 4.1 What the user buys
 
-### 4.3 Client behaviour (`LicenseClient.swift`, `LicenseState.swift`)
-- States: `unlicensed → trial(daysLeft) → active(validUntil) → grace(offlineSince) → expiredNeedsValidation → revoked`.
-- **Trial:** 7 days full-featured, then the filter still works but the app shows a persistent "Trial ended" bar and disables PWM-Safe and scheduling. (Tap Zap has no trial; CircadianShield has 7 days with card. We do 7 days without card.)
-- Re-validate every 30 days silently; if offline, 14-day grace (Tap Zap: 90 days/7 days — we validate more often but forgive longer). Store `validUntil` in Keychain with the key.
-- Deactivate from Settings ("This Mac uses 1 of 3 seats · Manage").
-- All license errors are localized and actionable ("No seats left — deactivate another Mac or contact support").
+- A **paid download**: pay what you want, **minimum $5 USD**, through a Lemon Squeezy checkout overlay on our own site. Lemon Squeezy is the **merchant of record** — it takes the payment, calculates and remits VAT and sales tax worldwide, sends the receipt and hosts the DMG.
+- **The app is unconditional.** Every copy is byte-identical and fully functional forever: no key, no trial, no seat count, no activation, no expiry, no kill switch, no "pro" tier. **No code may ever gate a feature on payment**, and nothing in the app may know whether it was paid for.
+- Updates reach users two ways, both from the same notarized build: Sparkle (opt-in, §7) and the Lemon Squeezy product file, which every past buyer can re-download from My Orders.
 
-### 4.4 Checkout flows
-- **Uzbekistan (1.0):** Payme and Click checkout from `/uz/buy` and `/ru/buy`. Buyer enters email (optional Telegram handle) → site calls `POST /v1/orders` → redirect to the Payme or Click checkout URL → provider calls our webhook → server marks the order paid, mints the key, emails it (Resend, UZ/RU template) and the `/download?order=…` page shows it. Price in UZS lives in exactly two places that must match: `server/src/config.ts` and `site/src/config.ts`. Starting hypothesis 199 000 UZS, to be validated (see `docs/PLAN.md` → Pricing).
-- **International (M7, after 1.0):** Lemon Squeezy product "Dimit Personal (3 Macs)" at `$39`. LS is used **only for payment + tax**; on `order_created` our server mints the same key format and emails it (do not use LS license keys, so all customers get identical keys).
-- **Teams:** 5+ seats → mailto/Telegram; server has an admin script `server/scripts/mint.ts --seats 10 --email …`.
-- Refund policy: 30 days, no questions. Refund webhook → `status=revoked` → app shows "License refunded" on next validation and returns the screen to normal.
+### 4.2 What the app collects, stores and logs
 
----
+**Nothing that identifies anyone.** No accounts, no analytics, no telemetry, no crash reporter, no device ID, no email address, no Keychain secret, no persistent identifier of any kind. Log failures, never payloads. The diagnostics bundle (§7) is assembled locally and copied to the user's own clipboard — the app never transmits it, and the user can read every line before pasting it anywhere. This rule outranks convenience: a feature that needs an identifier does not ship.
+
+### 4.3 Network
+
+The app makes **no network request at all** except Sparkle's update check, and Sparkle must issue nothing until the user opts in (`updateChecksEnabled`, default off, `docs/ARCHITECTURE.md` §8). "No request" is a testable claim, and C7 tests it with a network monitor rather than by reading the code. Any PR that adds an outbound call has to name it in the description (`docs/PLAN.md` §3.6) and justify it against this line.
+
+### 4.4 Refunds and support
+
+30 days, no questions, requested from Lemon Squeezy, which handles them itself. **A refund cannot disable an installed copy** — there is no mechanism and we are not building one — so the refund page must say exactly that. Support is one email address and one Telegram handle, both in the site footer, with no response-time promise (this is a solo project and pretending otherwise is worse than saying so).
 
 ## 5. Localization (EN / UZ / RU)
 
@@ -198,19 +179,6 @@ GET  /r/:handle              → affiliate redirect (sets 60-day cookie, forward
 | settings.updates | Check for updates automatically | Yangilanishlarni avtomatik tekshirish | Проверять обновления автоматически |
 | settings.language | Language | Til | Язык |
 | settings.copy_diag | Copy diagnostics for support | Diagnostikani nusxalash (yordam uchun) | Скопировать диагностику для поддержки |
-| license.title | License | Litsenziya | Лицензия |
-| license.enter | Enter license key | Litsenziya kalitini kiriting | Введите лицензионный ключ |
-| license.activate | Activate | Faollashtirish | Активировать |
-| license.seats | This Mac uses %d of %d seats | Bu Mac %d / %d o'rindan foydalanmoqda | Этот Mac занимает %d из %d мест |
-| license.manage | Manage devices | Qurilmalarni boshqarish | Управление устройствами |
-| license.deactivate | Deactivate this Mac | Bu Mac'ni o'chirish | Отвязать этот Mac |
-| license.trial_days | Trial: %d days left | Sinov: %d kun qoldi | Пробный период: осталось %d дн. |
-| license.trial_over | Trial ended — buy a license to keep PWM‑Safe and scheduling. | Sinov tugadi — PWM‑xavfsiz rejim va jadval uchun litsenziya sotib oling. | Пробный период закончился — купите лицензию, чтобы сохранить режим без мерцания и расписание. |
-| license.buy | Buy — one payment, 3 Macs | Sotib olish — bir marta to'lov, 3 ta Mac | Купить — разовый платёж, 3 Mac |
-| license.invalid | This key is not valid. | Bu kalit yaroqsiz. | Этот ключ недействителен. |
-| license.no_seats | No seats left. Deactivate another Mac or contact support. | Bo'sh o'rin yo'q. Boshqa Mac'ni o'chiring yoki yordamga yozing. | Свободных мест нет. Отвяжите другой Mac или напишите в поддержку. |
-| license.revoked | This license was refunded or revoked. | Bu litsenziya qaytarilgan yoki bekor qilingan. | Лицензия возвращена или отозвана. |
-| license.offline | Can't reach the license server. Works offline for %d more days. | Litsenziya serveriga ulanib bo'lmadi. Yana %d kun oflayn ishlaydi. | Нет связи с сервером лицензий. Работает офлайн ещё %d дн. |
 | onboarding.1.title | Block blue light. Stop the flicker. | Ko'k nurni to'sing. Miltillashni to'xtating. | Уберите синий свет. Остановите мерцание. |
 | onboarding.1.body | Two sliders, three presets, one button. | Ikki slayder, uch rejim, bitta tugma. | Два ползунка, три режима, одна кнопка. |
 | onboarding.2.title | Your screenshots stay normal | Skrinshotlar oddiy qoladi | Скриншоты остаются обычными |
@@ -220,7 +188,7 @@ GET  /r/:handle              → affiliate redirect (sets 60-day cookie, forward
 | menu.restore_colours *(added C2)* | Restore Colours | Restore Colours — TODO(i18n), needs a real uz translation | Restore Colours — TODO(i18n), needs a real ru translation |
 | error.gamma_failed | Couldn't change display colours. Try Fallback mode in Settings. | Displey ranglarini o'zgartirib bo'lmadi. Sozlamalarda Zaxira rejimni sinab ko'ring. | Не удалось изменить цвета дисплея. Попробуйте Резервный режим в Настройках. |
 | onboarding.2.body *(added C4)* | Screenshots, recordings and calls keep their normal colours. | TODO(i18n) | TODO(i18n) |
-| onboarding.3.body *(added C4)* | No account, no analytics — nothing is sent anywhere except a future license check. | TODO(i18n) | TODO(i18n) |
+| onboarding.3.body *(added C4, rewritten 2026-09-09)* | No account, no analytics, no tracking. Dimit connects to the internet only if you turn on update checks. | TODO(i18n) | TODO(i18n) |
 | onboarding.next *(added C4)* | Next | TODO(i18n) | TODO(i18n) |
 | onboarding.get_started *(added C4)* | Get Started | TODO(i18n) | TODO(i18n) |
 | settings.tab.general / .displays / .advanced *(added C4)* | General / Displays / Advanced | TODO(i18n) | TODO(i18n) |
@@ -248,13 +216,17 @@ GET  /r/:handle              → affiliate redirect (sets 60-day cookie, forward
 | settings.ddc_help *(added C5b)* | Lets PWM‑Safe mode pin the backlight on third-party external monitors over DDC/CI. Off by default, and untested on real hardware — turn it on only if you're willing to report what happens. | TODO(i18n) | TODO(i18n) |
 | settings.ddc_single_display_only *(added C5b)* | Only used when exactly one external monitor is connected — with several, Dimit can't yet tell which is which and leaves them alone. | TODO(i18n) | TODO(i18n) |
 
+The `license.*` rows this table used to carry were removed on 2026-09-09 along with the licensing feature itself (§4); the 13 stale entries still sitting in `Localizable.xcstrings` are deleted in C7.
+
 (Claude Code: when adding a string, add all three languages; if unsure of Uzbek/Russian, add the English and mark `// TODO(i18n)` so a human translator sees it. Do not machine-translate silently. In the catalog, TODO(i18n) is represented as the English value with `state: needs_review` for uz/ru — Xcode's String Catalog editor flags those for a translator.)
 
 ---
 
-## 6. Website (`site/`, Astro)
+## 6. Website (`site/`, Astro) — C7
 
-Pages per locale: home, /buy, /faq, /help, /science, /changelog, /affiliates, /terms, /privacy, /refund, /download (post-purchase). Copy structure mirrors tapzap.app but must be original text. Home = headline, 40-second demo video, the "vs" table (Night Shift ~2500K · f.lux ~1900K · Color Filters · us 0K + PWM), pricing card, FAQ accordion, studies list. Buy page shows **two checkouts**: card (Lemon Squeezy overlay) and Payme/Click (UZS). Footer must show a legal entity name and contact email (Tap Zap doesn't — a trust advantage). No analytics; Cloudflare Web Analytics only if cookieless.
+Pages per locale (`en` at `/`, `uz`, `ru`): home, /download, /faq, /help, /science, /changelog, /terms, /privacy, /refund. Copy structure may follow tapzap.app's shape but every word must be original. Home = headline, 40-second demo video, the "vs" table (Night Shift ~2500K · f.lux ~1900K · Color Filters · us 0K + PWM), the price card, FAQ accordion, studies list. **/download is the only commercial surface**: one Lemon Squeezy overlay button (`docs/ARCHITECTURE.md` §7 has the exact markup), the version, the minimum macOS, the **tested-on** list from `docs/QA.md`, notarization status, install steps, and a "find your download again" link to My Orders. Footer must show the legal entity name and a contact email (Tap Zap doesn't — a trust advantage). No analytics; Cloudflare Web Analytics only, cookieless.
+
+**Every claim on the site needs a `docs/QA.md` row behind it.** `docs/LAUNCH_STRATEGY.md` §2 lists the four that are easiest to overstate — capture exclusion, PWM, external monitors, OS compatibility — with the wording that stays inside the evidence.
 
 ---
 
@@ -262,15 +234,16 @@ Pages per locale: home, /buy, /faq, /help, /science, /changelog, /affiliates, /t
 
 - Developer ID Application certificate; hardened runtime ON; entitlements: none special (no sandbox). `scripts/notarize.sh` runs `xcrun notarytool submit … --wait` then `stapler`.
 - DMG via `create-dmg` with background + Applications symlink. Also a `.zip` for Sparkle.
-- Sparkle 2 with EdDSA keys; appcast hosted on the site; update check **opt-in** in onboarding step 3 (default off to honour "zero network").
-- Version scheme `MAJOR.MINOR` starting at `1.0`; build number = CI run.
-- Diagnostics bundle (`DiagnosticsBundle.swift`): macOS version, hardware model, displays (name, builtin, vendor, DDC support, brightness backend), app version, last 200 log lines, license **state only** (never the key). Copied to clipboard as text.
+- Sparkle 2 with EdDSA keys; appcast hosted on the site; update check **opt-in** in onboarding step 3 (default off to honour "zero network"). The private key lives in the login Keychain and is never committed.
+- The same notarized DMG is also uploaded to the Lemon Squeezy product so past buyers get the new version from My Orders (`docs/ARCHITECTURE.md` §5). **Never delete an old file there** — deleting removes it from everyone who already bought it.
+- Version scheme `MAJOR.MINOR` starting at `1.0`; build number = date `YYYYMMDDHH`.
+- Diagnostics bundle (`DiagnosticsBundle.swift`): macOS version, hardware model, displays (name, builtin, vendor, DDC support, brightness backend), app version, last 200 log lines. Nothing that identifies the user or the machine's owner (§4.2). Copied to clipboard as text, so the user can read it before sending it anywhere.
 
 ---
 
 ## 8. Quality bar / acceptance tests (must pass before each milestone is "done")
 
-- Unit: `WarmthCurve` known points; 0K yields (1,0,0); gamma tables monotonic and clamped; `ScheduleEngine` sunset for Tashkent 2026-09-08 within ±3 min of NOAA; `LicenseState` transitions incl. offline grace; `render()` idempotent.
+- Unit: `WarmthCurve` known points; 0K yields (1,0,0); gamma tables monotonic and clamped; `ScheduleEngine` sunset for Tashkent 2026-09-08 within ±3 min of NOAA; `render()` idempotent; `PWMSafeCoordinator` against a fake backend.
 - Manual matrix (document results in `docs/QA.md`): MacBook Air/Pro built-in; one external monitor over USB-C; one over HDMI; clamshell mode; sleep/wake; unplug while ON; fullscreen video (Safari/YouTube, HDR clip); screenshot ⌘⇧4 while at 0K is **not** red; QuickTime screen recording is not red; Zoom/Google Meet share is not red; Fallback mode screenshot **is** red (expected); quit → colours restore; `kill -9` → colours restore on relaunch ("Restore colours" button in onboarding for safety); macOS 13, 14, 15, 26 (Tahoe) with auto-brightness on and off.
 - Performance: idle CPU < 0.5% (Activity Monitor, 5-minute average); popover opens < 100 ms; slider-to-screen latency < 50 ms.
 - Accessibility: VoiceOver labels for both sliders and all buttons in all three languages; full keyboard operation.
@@ -290,28 +263,18 @@ Pages per locale: home, /buy, /faq, /help, /science, /changelog, /affiliates, /t
 | C3 | **v0.1 MVP** | Brightness backends, `PWMSafeCoordinator`, overlay for <30%, Fallback mode, auto-brightness banner, icon states | Opus 5 |
 | C4 | v0.2 | Settings window, hotkeys, login item, onboarding, diagnostics, VoiceOver | Sonnet 5 |
 | C5 | v0.3 | `ScheduleEngine`, DDC/CI experimental | Sonnet 5 / Opus 5 |
-| C6 | v0.4 | Release scripts, DMG, 20 testers, QA matrix, fixes | Sonnet 5 |
-| C7 | **v1.0** | License server + client, trial, keys minted by hand and sold via Telegram, Sparkle opt-in | Opus 5 |
-| C8 | v1.1 | Payme + Click, Astro site | Opus 5 / Sonnet 5 |
-| C9 | v1.2 | Lemon Squeezy, dimit.app, affiliates | Sonnet 5 |
+| C6 | v0.4 | Release scripts, signed + notarized DMG, testers, QA + capture matrix, fixes | Sonnet 5 |
+| C7 | **v1.0** | Astro site, Lemon Squeezy checkout, Sparkle opt-in, licensing dead-code cleanup, launch | Sonnet 5 |
 | Phase 2 | v2 | Windows (§11) | — |
 
-The original milestone list (M0–M7) is kept below only because §3–§7 reference it by name; M0–M2 ≈ C1–C3, M3 ≈ C7–C8, M4 ≈ C5, M5 ≈ C6 + C8, M6 ≈ C6, M7 ≈ C9.
+C0–C5 are merged and tagged (`v0.1`–`v0.3`, 2026-09-09). The old C8/C9 (Payme + Click, then a separate global launch) are gone with the licensing plan: one checkout serves everyone from day one.
 
-- **M0 — Skeleton + gamma spike (week 0, Sep 9–14):** Xcode installed; `swift scripts/gamma_spike.swift` run with auto-brightness ON and OFF, results in `docs/QA.md`; Xcode project, menu-bar item, popover with two sliders/three presets/one button bound to `AppState`, String Catalog with the §5.1 table, unit-test target, `scripts/`. The app itself does not touch the display yet. *Model: Sonnet 5.*
-- **M1 — Gamma warmth + software dim (week 1, Sep 15–21):** `DisplayManager`, `WarmthCurve`, `GammaController`, restore-on-quit/crash, multi-display, wake/reconfigure re-apply. Acceptance: 0K red on all displays; screenshot not red. *Model: Opus 5.*
-- **M2 — PWM-Safe on Apple displays (week 2, Sep 22–28):** `BrightnessController` (DisplayServices + CoreDisplay fallback + IORegistry read-only cross-check), `PWMSafeCoordinator` state machine, overlay dimmer for <30%, auto-brightness banner (see §3.3 for the detection caveat), Fallback mode. Acceptance: pinned/verified states shown correctly; brightness keys re-pin; battery note. *Model: Opus 5.*
-- **M3 — License server + client + Payme/Click (week 3, Sep 29–Oct 5):** Cloudflare Worker + D1 + KV; `/v1/orders`, activate/validate/deactivate; Payme Merchant API JSON-RPC (all six methods) and Click prepare/complete against the sandboxes; Keychain, trial, localized error states; key email via Resend (UZ/RU/EN). The server can start in week 1 on the Codex track from `docs/ARCHITECTURE.md` → Server. *Model: Opus 5 for the payment handlers and the client state machine, Sonnet 5 for scaffolding.*
-- **M4 — Scheduling, hotkeys, login item, DDC experimental (week 4, Oct 6–12):** `ScheduleEngine` with city list + optional CoreLocation, transitions; `KeyboardShortcuts`; `SMAppService`; `DDCController` behind `Config.ddcEnabled`, tested on the home monitor. *Model: Sonnet 5; Opus 5 for DDC.*
-- **M5 — Site, signing, updates (week 5, Oct 13–19):** Astro site with `uz` as default locale, `ru`, `en`; `/uz/buy` and `/ru/buy` with both checkouts; Payme/Click switched to production; notarized DMG under the LLC's Developer ID; Sparkle appcast (opt-in). *Model: Sonnet 5.*
-- **M6 — Beta and 1.0 (weeks 6–7, Oct 20–Nov 1):** 20 testers via Telegram, `docs/QA.md` matrix on every macOS version the testers have (target 13/14/15/26/27), fix list, `1.0` tag, Uzbekistan launch on **Mon 2026-11-02**. *Model: Opus 5 for display bugs, Sonnet 5 otherwise.*
-- **M7 — Global launch (2 weeks after 1.0):** Lemon Squeezy webhook, `/en` copy polish, dimit.app domain, affiliates (`/r/:handle`), r/ledstrain and PWM communities.
-- **Phase 2 — Windows (§11), after M7.**
+The original week-by-week milestone list (M0–M7) that used to sit here is gone: it was written before the MVP-first re-plan and then contradicted twice over — first by the cycles above, then by the 2026-09-09 distribution decision, which deleted its M3 (license server), M5 (Payme/Click site) and M7 (a separate global launch) outright. `docs/PLAN.md` §1–§2 is the only schedule. A few older comments still say "M4" where they mean C5's DDC work; read them as cycle names.
 
 ---
 
 ## 10. Non-goals for 1.0
-Lemon Squeezy / USD checkout (M7) · affiliates (M7) · per-display overrides (1.1) · chromaticity warmth mode (1.1) · Telegram sales bot (1.1) · per-app exclusions · iOS/Android · Linux (watch Tap Zap: they said Linux is "coming out soon" on 2026-09-06) · App Store distribution (impossible with gamma/private APIs) · subscriptions · accounts · cloud sync · analytics · Philips Hue.
+Licence keys, trials, seats or any activation of any kind (§4 — not "later", ever) · a backend of ours (no server, no database, no auth: see §12) · Payme/Click or any UZS checkout · affiliates (Lemon Squeezy has a hub if it's ever wanted) · per-display overrides (1.1) · chromaticity warmth mode (1.1) · per-app exclusions · iOS/Android · Linux (watch Tap Zap: they said Linux is "coming out soon" on 2026-09-06) · App Store distribution (impossible with gamma/private APIs) · subscriptions · accounts · cloud sync · analytics · Philips Hue.
 
 ---
 
@@ -323,7 +286,7 @@ Lemon Squeezy / USD checkout (M7) · affiliates (M7) · per-display overrides (1
 - **Brightness pin:** laptop panels via WMI `root\WMI` → `WmiMonitorBrightnessMethods.WmiSetBrightness(timeout, 100)`, read back with `WmiMonitorBrightness.CurrentBrightness`; external monitors via `dxva2.dll` `GetPhysicalMonitorsFromHMONITOR` + `SetVCPFeature(h, 0x10, 100)` / `GetVCPFeatureAndVCPFeatureReply`. Same state machine as §3.6.
 - **Extreme dim / fallback tint:** layered topmost window `WS_EX_LAYERED|WS_EX_TRANSPARENT|WS_EX_TOOLWINDOW|WS_EX_TOPMOST`, `SetLayeredWindowAttributes` alpha, excluded from capture with `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)` (Win10 2004+).
 - Cursor tinting (Tap Zap v2.19) is optional polish.
-- License: same server, `platform:"win"`, device ID = SHA-256(MachineGuid + username), key stored with DPAPI. Installer: Inno Setup, per-user to `%LocalAppData%`, code-signed (OV/EV certificate to reduce SmartScreen warnings).
+- Distribution: same as the Mac — a paid download from the same Lemon Squeezy product (or a second variant), no keys, no activation. Installer: Inno Setup, per-user to `%LocalAppData%`, code-signed (OV/EV certificate to reduce SmartScreen warnings).
 - Acceptance: same matrix as §8 plus Intel/AMD/NVIDIA GPUs, Win10 1903+ and Win11, one DDC/CI monitor, one that isn't.
 
 ---
@@ -331,7 +294,8 @@ Lemon Squeezy / USD checkout (M7) · affiliates (M7) · per-display overrides (1
 ## 12. Working agreements for Claude Code
 
 - Run `swift scripts/gamma_spike.swift` on every new macOS build before trusting the gamma path; record the result in `docs/QA.md`.
-- `server/` and `site/` do not exist before C7/C8. When they do, they are built against the contract in `docs/ARCHITECTURE.md`; never change a route, payload or table without updating that file in the same commit.
+- **There is no backend, and adding one needs a new decision, not a commit.** No Cloudflare Worker, no Supabase, no database, no auth, no object storage, no serverless function — Lemon Squeezy holds the money, the buyer's email and the DMG, and the app talks to nobody (§4.3). If a task seems to need a server, say so and stop; the answer is almost always that the feature belongs on Lemon Squeezy's side or nowhere.
+- `site/` does not exist before C7. When it does, it is built against `docs/ARCHITECTURE.md` §7; it is a **static** Astro site with no server-side rendering, no API routes and no secrets, so any free static host (Cloudflare Pages, Vercel, Netlify, GitHub Pages) serves it identically — see that section for which one and why.
 - Stay inside the cycle's "In" list. If something in "Out" looks necessary, stop and say so instead of building it.
 - Before writing display code, write the test for the pure function it depends on.
 - Every private-API call is isolated in one file, behind a protocol, with a graceful `.unsupported` path and a comment naming the framework path and symbol.
