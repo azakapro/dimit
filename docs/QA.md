@@ -260,6 +260,40 @@ The first time a second display has been connected to the dev machine. It closes
 | Full system sleep → wake with the schedule active | **pass — owner-run, 2026-09-10** | Owner slept and woke the Mac with the schedule on and both displays attached: "sleep wake working". Closes the row that C2 opened and the C4 review flagged as never actually closed. |
 | Quit restores both displays; owner's saved state restored afterwards | pass | Both `(0.500, 0.500, 0.500)` after SIGTERM; `state.v1` re-imported from the pre-test backup. |
 
+## C6 — release scripts and the beta artifact (2026-09-10, same machine, ad-hoc signed)
+
+No Developer ID certificate and no notarization credentials exist on this machine yet (`security find-identity -v -p codesigning` → 0 identities), so everything below is the **ad-hoc** path. The Developer ID path in the same scripts is written against Apple's documented `xcodebuild archive` / `-exportArchive` / `notarytool` flow and cannot be exercised until the account holder installs the certificate — docs/RELEASE.md §0.
+
+| Check | Result | Evidence |
+|---|---|---|
+| `scripts/build.sh` produces a universal Release app | pass | `lipo -archs` → `x86_64 arm64`; final build `0.4 (202609092103)` — build number is now the UTC minute, after the first two v0.4 builds collided on the hour format (`2026091001` twice); `codesign --verify --deep --strict` satisfied. |
+| Hardened runtime on, no entitlements | **pass after a real catch** | `codesign -dvv` flags `0x10002(adhoc,runtime)`. The script's entitlement check flagged the first v0.4 build, and a hurried re-check dismissed it as a false positive — wrongly: the Release build carried `com.apple.security.get-task-allow`, the debugger-attach entitlement Xcode injects unless `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO`, which notarytool rejects outright. Now passed on every build, the check fails the build instead of warning, and the rebuilt app lists no entitlements. |
+| `scripts/build_dmg.sh` produces a mountable image with the app + Applications link | pass, failure path too | 1.3 MB UDZO; mounted read-only, `Dimit.app` and the `Applications` link asserted present, signature verified *inside* the image, detached. **Failure path exercised:** an unsigned copy of the app → `ERROR: signature broken inside the image`, exit 1, and **no volume left mounted** (the trap the review asked for). Built with `hdiutil`, not create-dmg — deviation and reason in the script header. |
+| The Release build launches and quits cleanly | pass | `open build/release/Dimit.app` → process alive after 3 s → SIGTERM → gone. |
+| `scripts/notarize.sh` | written; only its refusal path can run here | Run against the ad-hoc build: `not Developer-ID signed (ad-hoc build?)`, exit 1, before any upload. The Developer ID path needs the certificate and a `notarytool` keychain profile (docs/RELEASE.md §0). Its first version could never have passed its own gate (`codesign -dv` prints no `Authority=` line) and stapled the app only after sealing it into the DMG — both found by the 8-angle review below, before any release used it. |
+| Fresh-browser download opens on another Mac using the published instructions | **pending — tester** | The C6 "Done when" line that only a tester can close; the instruction text is in docs/TESTING_CHECKLIST.md and docs/RELEASE.md §3. |
+| At least one row per macOS major the testers own | **pending — testers** | Table below fills as reports arrive. |
+
+**`/code-review high`, 8 angles, 10 findings, all fixed before merge.** The three that would have bitten on the first real release: `notarize.sh`'s Developer-ID gate could never pass (`codesign -dv` never prints `Authority=`); the app was stapled only *after* being sealed into the DMG, so a copy dragged out of the image would fail offline Gatekeeper; and every `xcodebuild … | grep … || true` swallowed a failed build. Also fixed: hourly build numbers colliding (now UTC to the minute), `codesign --verify && echo` exempt from `set -e`, a DMG mount with no cleanup trap, `get-task-allow` enforced only in the script (now a Release-config setting in `project.yml`), three checklist rows that contradicted the app (relaunch re-applies the tint by design; PWM-Safe lives in the popover; ~47 uz/ru strings are known placeholders), the right-click→Open instruction that macOS 15+ no longer honours, and four doc passages still promising create-dmg / a different step order / v0.3.
+
+### Capture matrix (C4 review item; the site may only claim what this table shows)
+
+| Capture method | Gamma path (brightness ≥ 30%) | Extreme-dim overlay (< 30%) | Fallback mode |
+|---|---|---|---|
+| ⌘⇧4 screenshot | **not tinted** — owner + C2 probe, macOS 27 | pending | pending (expected: tinted; the UI says so) |
+| ⌘⇧5 / QuickTime recording | **not tinted** — owner, macOS 27 (v0.2) | pending | pending |
+| Zoom screen share | **not tinted** — owner, macOS 27 (v0.2) | pending | pending |
+| Google Meet / Teams | pending | pending | pending |
+| ScreenCaptureKit recorder (OBS or similar) | pending | pending | pending |
+
+The two overlay columns rely on `sharingType = .none`, which Apple describes as legacy with no guarantee against ScreenCaptureKit (docs/QA.md § Independent review). Until they have rows, the download page says "screenshots and screen shares stay normal at brightness 30% and above; below that, and in Fallback mode, they may show the effect" — not the unqualified claim.
+
+### Tester reports (one row per Mac)
+
+| Date | Tester | Mac | macOS | Display(s) | Result | Notes |
+|---|---|---|---|---|---|---|
+| | | | | | | |
+
 ## Performance
 
 | Date | Version | Machine | Idle CPU (5 min avg) | Popover open (ms) | Slider latency |
