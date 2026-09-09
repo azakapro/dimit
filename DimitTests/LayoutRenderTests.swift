@@ -44,6 +44,30 @@ final class LayoutRenderTests: XCTestCase {
         }
     }
 
+    // The whole-window render above always lands on Settings' first tab
+    // (General) — it never actually looks at the Schedule tab's own
+    // controls (a segmented mode picker, DatePickers, a DisclosureGroup,
+    // a Stepper: several control types not used anywhere else in this
+    // codebase yet). Rendered directly, in each of its three modes.
+    func test_scheduleTab_fitsAndRenders_inEveryMode_andEveryLanguage() {
+        for locale in locales {
+            for mode in ScheduleMode.allCases {
+                let state = freshState(locale: locale)
+                state.scheduleConfig.mode = mode
+                if mode == .sunsetToSunrise {
+                    state.scheduleConfig.location = Coordinate(latitude: 41.2995, longitude: 69.2401)
+                    state.scheduleConfig.selectedCityID = "tashkent"
+                }
+                let view = ScheduleSettingsTab(appState: state)
+                    .environment(\.locale, Locale(identifier: locale))
+                    .frame(width: 520)
+                let size = render(view, name: "schedule-\(mode.rawValue)-\(locale)")
+                XCTAssertGreaterThan(size.height, 0, "\(mode.rawValue)/\(locale): view produced no content")
+                XCTAssertLessThan(size.height, 900, "\(mode.rawValue)/\(locale): unreasonably tall — a string is probably wrapping badly or a section is duplicating")
+            }
+        }
+    }
+
     func test_onboarding_fitsItsFixedFrame_inEveryLanguage() {
         for locale in locales {
             let state = freshState(locale: locale)

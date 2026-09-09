@@ -18,6 +18,10 @@ private struct DisplayPipeline {
     let hotkeyManager: HotkeyManager
     let settingsWindowController: SettingsWindowController
     let onboardingWindowController: OnboardingWindowController
+    // C5. Drives AppState.warmthK/brightness on a timer when a non-manual
+    // schedule mode is active; a no-op (no timer even runs) in the default
+    // Manual mode. See ScheduleCoordinator's own doc comment.
+    let scheduleCoordinator: ScheduleCoordinator
 }
 
 // NSApplicationDelegate callbacks all run on the main thread in practice;
@@ -112,7 +116,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menuBarController: menuBarController,
             hotkeyManager: HotkeyManager(appState: appState),
             settingsWindowController: settingsWindowController,
-            onboardingWindowController: onboardingWindowController
+            onboardingWindowController: onboardingWindowController,
+            scheduleCoordinator: ScheduleCoordinator(appState: appState)
         )
 
         // ARCHITECTURE.md §10: "first launch only." After the pipeline is

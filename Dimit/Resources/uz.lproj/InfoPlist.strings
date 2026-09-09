@@ -1,0 +1,6 @@
+/* Reuses "Quyosh botishidan chiqishigacha" — the exact schedule.sun wording
+   already in Localizable.xcstrings — for consistency with the in-app string.
+   Translated directly (not machine-translated); a native speaker should
+   still sanity-check before 1.0, same as any other uz copy in this repo. */
+"NSLocationUsageDescription" = "Dimit joylashuvingizdan faqat \"Quyosh botishidan chiqishigacha\" jadvali uchun bugungi quyosh chiqishi va botishi vaqtini hisoblash uchun foydalanadi. Hech narsa hech qayerga yuborilmaydi.";
+"NSLocationWhenInUseUsageDescription" = "Dimit joylashuvingizdan faqat \"Quyosh botishidan chiqishigacha\" jadvali uchun bugungi quyosh chiqishi va botishi vaqtini hisoblash uchun foydalanadi. Hech narsa hech qayerga yuborilmaydi.";
