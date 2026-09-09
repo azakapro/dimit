@@ -573,6 +573,28 @@
         }
       }
     },
+    "menu.restore_colours": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore Colours"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Восстановить цвета"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ranglarni tiklash"
+          }
+        }
+      }
+    },
     "menu.settings": {
       "localizations": {
         "en": {
