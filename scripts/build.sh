@@ -61,16 +61,20 @@ fi
 codesign --verify --deep --strict --verbose=1 "$OUT/Dimit.app" 2>&1 | tail -1
 echo "architectures: $(lipo -archs "$OUT/Dimit.app/Contents/MacOS/Dimit")"
 echo "version: $(defaults read "$PWD/$OUT/Dimit.app/Contents/Info.plist" CFBundleShortVersionString) ($(defaults read "$PWD/$OUT/Dimit.app/Contents/Info.plist" CFBundleVersion))"
-# `--entitlements -` prints a bracketed listing on current macOS and an XML
-# blob on older ones; match either so the check can't silently pass.
-if codesign -d --entitlements - "$OUT/Dimit.app" 2>/dev/null | grep -qE "\[Key\]|<key>"; then
+# Capture first, grep second. Under `pipefail`, `codesign | grep -q` fails
+# whenever grep matches early and codesign takes SIGPIPE — which turned the
+# entitlement check into a false "none" and the runtime check into a false
+# "OFF" on the same build. `--entitlements -` prints a bracketed listing on
+# current macOS and an XML blob on older ones; match either.
+ENTITLEMENTS=$(codesign -d --entitlements - "$OUT/Dimit.app" 2>/dev/null || true)
+if grep -qE "\[Key\]|<key>" <<<"$ENTITLEMENTS"; then
     echo "ERROR: the app carries entitlements — CLAUDE.md §7 says none, and notarization rejects get-task-allow:"
-    codesign -d --entitlements - "$OUT/Dimit.app" 2>/dev/null | grep -E "\[Key\]|<key>"
+    grep -E "\[Key\]|<key>" <<<"$ENTITLEMENTS"
     exit 1
-else
-    echo "entitlements: none (as specified)"
 fi
-codesign -dvv "$OUT/Dimit.app" 2>&1 | grep -q "runtime" && echo "hardened runtime: on" || echo "WARNING: hardened runtime is OFF"
+echo "entitlements: none (as specified)"
+SIGNATURE=$(codesign -dvv "$OUT/Dimit.app" 2>&1 || true)
+if grep -q "runtime" <<<"$SIGNATURE"; then echo "hardened runtime: on"; else echo "ERROR: hardened runtime is OFF"; exit 1; fi
 
 ditto -c -k --keepParent "$OUT/Dimit.app" "$OUT/Dimit-$VERSION.zip"
 echo "built: $OUT/Dimit.app  and  $OUT/Dimit-$VERSION.zip"
