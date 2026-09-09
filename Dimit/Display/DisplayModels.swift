@@ -39,17 +39,32 @@ struct GammaSpec: Equatable {
     var dim: Double
 }
 
+/// CLAUDE.md §3.5: "black with alpha" for extreme dim (gamma still does
+/// the color, overlay only darkens below the floor), or "red-tinted
+/// overlay" in Fallback mode, where gamma is left alone entirely and the
+/// overlay carries the whole effect.
+enum OverlayTint: Equatable {
+    case black
+    case red
+}
+
 /// The full set of instructions for one display. `nil` fields mean "leave
-/// this alone" so `Applier` (C2) can diff against the last-applied command
-/// and only touch what changed. `overlayTint` arrives in C3 with Fallback
-/// mode; until then every overlay is a plain black dim.
+/// this alone" so `Applier` can diff against the last-applied command and
+/// only touch what changed.
 struct DisplayCommand: Equatable {
     var displayID: CGDirectDisplayID
-    /// `nil` means "restore to the original table" (OFF).
+    /// `nil` means "restore to the original table" — true both for OFF
+    /// and for Fallback mode, which deliberately leaves gamma at baseline
+    /// (CLAUDE.md §3.3/ARCHITECTURE.md §2.7) and does all its work through
+    /// `overlayTint`/`overlayAlpha` instead. `Applier` doesn't need to
+    /// know which reason applies; both want the same "restore, then leave
+    /// alone" behavior.
     var gamma: GammaSpec?
-    /// 0 = no overlay window needed. Only nonzero below `Config.gammaDimFloor`.
+    /// 0 = no overlay window needed. Nonzero below `Config.gammaDimFloor`
+    /// in normal mode, or whenever Fallback mode is on.
     var overlayAlpha: Double
+    var overlayTint: OverlayTint = .black
     /// Intent, not a guarantee: the real pin/verify/retry state machine is
-    /// `PWMSafeCoordinator` in C3. `nil` = leave hardware brightness alone.
+    /// `PWMSafeCoordinator`. `nil` = leave hardware brightness alone.
     var hardwareBrightness: Double?
 }

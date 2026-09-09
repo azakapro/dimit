@@ -2,8 +2,9 @@ import Combine
 import CoreGraphics
 
 /// The apply pipeline — ARCHITECTURE.md §2.1. Owns nothing about *how* to
-/// enumerate displays or touch gamma (that's `DisplayManager` /
-/// `GammaController`); this just wires "something changed" to
+/// enumerate displays or touch gamma/brightness/overlay (that's
+/// `DisplayManager` / `GammaController` / `PWMSafeCoordinator` /
+/// `OverlayDimmer`); this just wires "something changed" to
 /// "render, diff, apply."
 ///
 /// Subscribes to `appState.objectWillChange` rather than each individual
@@ -23,14 +24,29 @@ final class DisplayCoordinator {
     private let appState: AppState
     private let displayManager: DisplayManager
     private let gammaController: GammaController
+    // Private: MenuBarController and PopoverView get their own reference to
+    // the same instance directly from AppDelegate, so exposing it here too
+    // was dead surface area that invited two different paths to the same
+    // object (code review).
+    private let pwmSafeCoordinator: PWMSafeCoordinator
+    private let overlayDimmer: OverlayDimmer
 
     private var lastApplied: [DisplayCommand] = []
+    private var lastDisplayUUIDs: Set<String> = []
     private var cancellables = Set<AnyCancellable>()
 
-    init(appState: AppState, displayManager: DisplayManager, gammaController: GammaController) {
+    init(
+        appState: AppState,
+        displayManager: DisplayManager,
+        gammaController: GammaController,
+        pwmSafeCoordinator: PWMSafeCoordinator,
+        overlayDimmer: OverlayDimmer
+    ) {
         self.appState = appState
         self.displayManager = displayManager
         self.gammaController = gammaController
+        self.pwmSafeCoordinator = pwmSafeCoordinator
+        self.overlayDimmer = overlayDimmer
 
         appState.objectWillChange
             .receive(on: DispatchQueue.main)
@@ -50,7 +66,18 @@ final class DisplayCoordinator {
 
     private func reapply() {
         let displays = displayManager.displays
-        gammaController.evictBaselines(keepingOnly: Set(displays.map(\.uuid)))
+        let currentUUIDs = Set(displays.map(\.uuid))
+        gammaController.evictBaselines(keepingOnly: currentUUIDs)
+
+        // ARCHITECTURE.md §2.7: overlay windows are "recreated, not moved,
+        // on reconfiguration." Detected here (not inside OverlayDimmer)
+        // since this is the one place that already tracks "did the
+        // display list change" for baseline eviction — same signal, two
+        // consumers.
+        if currentUUIDs != lastDisplayUUIDs {
+            overlayDimmer.handleDisplaysChanged()
+            lastDisplayUUIDs = currentUUIDs
+        }
 
         let uuidByID = Dictionary(uniqueKeysWithValues: displays.map { ($0.id, $0.uuid) })
         let commands = Renderer.render(appState.renderState, displays: displays)
@@ -100,6 +127,16 @@ final class DisplayCoordinator {
             nextApplied.append(succeeded ? command : (previousByID[command.displayID] ?? command))
         }
         lastApplied = nextApplied
+
+        // Overlay and PWM-Safe are independent of the gamma apply/restore
+        // above — both run unconditionally off the freshly rendered
+        // `commands`/`displays`, not off `diff`, since neither has a
+        // "skip if unchanged" optimization as cheap as Applier's (an
+        // NSWindow's alphaValue/backgroundColor set is trivial; a
+        // brightness-backend set is the one PWMSafeCoordinator itself
+        // already guards internally, per-display, against redundant work).
+        overlayDimmer.sync(commands: commands, displays: displays)
+        pwmSafeCoordinator.sync(pwmSafeRequested: appState.isOn && appState.pwmSafe, displays: displays)
     }
 
     /// The right-click menu's "Restore colours" — a manual safety valve,
@@ -120,6 +157,13 @@ final class DisplayCoordinator {
     func restoreColours() {
         appState.isOn = false
         gammaController.restoreAll()
+        overlayDimmer.removeAll()
+        // Un-pin synchronously too. Code review pointed out this function's
+        // own rationale — "shouldn't depend on the normal pipeline's timing
+        // to take effect" — applied to gamma and the overlay but not to the
+        // backlight, which was left to the deferred reapply(). A panic
+        // button should put every part of the display back at once.
+        pwmSafeCoordinator.restoreAndDisable()
         lastApplied = lastApplied.map { command in
             var restored = command
             restored.gamma = nil

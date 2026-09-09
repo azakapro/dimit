@@ -1,14 +1,27 @@
 import Foundation
 
 /// Everything `AppState` persists, as one Codable snapshot — ARCHITECTURE.md
-/// §2.8. Adding a new field with a default later is not a breaking change
-/// to already-saved JSON, so fields arrive incrementally with the cycle
-/// that needs them rather than all being stubbed out now.
+/// §2.8.
+///
+/// C1's original comment here claimed "adding a new field with a default
+/// later is not a breaking change to already-saved JSON" — checked that
+/// claim empirically while adding `fallbackMode` for C3 and it was
+/// **wrong**: Swift's synthesized `Decodable` throws `keyNotFound` for a
+/// missing key regardless of the property's declared default, so loading
+/// a C1/C2 user's saved state with this struct's synthesized decoder would
+/// have hit `Persistence.load()`'s catch-all and silently reset
+/// *everything* — `isOn`, `warmthK`, `brightness`, all of it, not just the
+/// new field — to defaults on first launch after upgrading. Fixed with a
+/// custom decoder using `decodeIfPresent` for every field, so the original
+/// claim is now actually true: add a field with a default here, and it
+/// stays true for every field added after this fix too, without another
+/// custom-decoder edit.
 struct PersistedState: Codable, Equatable {
     var isOn: Bool
     var warmthK: Double
     var brightness: Double
     var pwmSafe: Bool
+    var fallbackMode: Bool
     var activePreset: String? // PresetID.rawValue
 
     static let defaults = PersistedState(
@@ -16,8 +29,29 @@ struct PersistedState: Codable, Equatable {
         warmthK: Config.maxWarmthK,
         brightness: Config.maxBrightness,
         pwmSafe: false,
+        fallbackMode: false,
         activePreset: nil
     )
+
+    init(isOn: Bool, warmthK: Double, brightness: Double, pwmSafe: Bool, fallbackMode: Bool, activePreset: String?) {
+        self.isOn = isOn
+        self.warmthK = warmthK
+        self.brightness = brightness
+        self.pwmSafe = pwmSafe
+        self.fallbackMode = fallbackMode
+        self.activePreset = activePreset
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let fallback = Self.defaults
+        isOn = try container.decodeIfPresent(Bool.self, forKey: .isOn) ?? fallback.isOn
+        warmthK = try container.decodeIfPresent(Double.self, forKey: .warmthK) ?? fallback.warmthK
+        brightness = try container.decodeIfPresent(Double.self, forKey: .brightness) ?? fallback.brightness
+        pwmSafe = try container.decodeIfPresent(Bool.self, forKey: .pwmSafe) ?? fallback.pwmSafe
+        fallbackMode = try container.decodeIfPresent(Bool.self, forKey: .fallbackMode) ?? fallback.fallbackMode
+        activePreset = try container.decodeIfPresent(String.self, forKey: .activePreset)
+    }
 }
 
 /// Thin wrapper over `UserDefaults`. Tested at runtime and fixed from CLAUDE.md
@@ -74,5 +108,18 @@ final class Persistence {
             // change stops persisting with zero diagnostic trail.
             Log.app.error("PersistedState encode failed, not saved: \(error, privacy: .public)")
         }
+    }
+
+    // MARK: - One-time UI flags
+
+    /// CLAUDE.md §3.3: the auto-brightness banner shows once, ever,
+    /// "dismissable forever." Kept as its own boolean rather than a field
+    /// on `PersistedState` — it's a one-time UI flag, not part of the
+    /// render-relevant state `RenderState`/`Renderer` care about.
+    private let autoBrightnessBannerShownKey = "autoBrightnessBannerShown.v1"
+
+    var hasShownAutoBrightnessBanner: Bool {
+        get { defaults.bool(forKey: autoBrightnessBannerShownKey) }
+        set { defaults.set(newValue, forKey: autoBrightnessBannerShownKey) }
     }
 }

@@ -108,4 +108,60 @@ final class RendererTests: XCTestCase {
             Renderer.render(RenderState(isOn: true, warmthK: 6500, brightness: 1, pwmSafe: false), displays: [display()])
         )
     }
+
+    // MARK: - Fallback mode (C3)
+
+    // CLAUDE.md §3.3 / ARCHITECTURE.md §2.7: gamma is left at baseline in
+    // Fallback mode — the whole point is not touching gamma at all.
+    func test_fallbackMode_leavesGammaNil() {
+        let state = RenderState(isOn: true, warmthK: 0, brightness: 1.0, pwmSafe: false, fallbackMode: true)
+        let command = Renderer.render(state, displays: [display()]).first!
+        XCTAssertNil(command.gamma)
+        XCTAssertEqual(command.overlayTint, .red)
+    }
+
+    func test_fallbackMode_atNeutralWarmthAndFullBrightness_hasNoOverlay() {
+        let state = RenderState(isOn: true, warmthK: 6500, brightness: 1.0, pwmSafe: false, fallbackMode: true)
+        let command = Renderer.render(state, displays: [display()]).first!
+        XCTAssertEqual(command.overlayAlpha, 0, accuracy: 0.0001)
+    }
+
+    func test_fallbackMode_atZeroKelvin_overlayIsFullyOpaque() {
+        let state = RenderState(isOn: true, warmthK: 0, brightness: 1.0, pwmSafe: false, fallbackMode: true)
+        let command = Renderer.render(state, displays: [display()]).first!
+        XCTAssertEqual(command.overlayAlpha, 1.0, accuracy: 0.0001)
+    }
+
+    func test_fallbackMode_atZeroBrightness_overlayIsFullyOpaque_evenAtNeutralWarmth() {
+        let state = RenderState(isOn: true, warmthK: 6500, brightness: 0.0, pwmSafe: false, fallbackMode: true)
+        let command = Renderer.render(state, displays: [display()]).first!
+        XCTAssertEqual(command.overlayAlpha, 1.0, accuracy: 0.0001)
+    }
+
+    // The stronger of the two effects should win — half-warm-half-dim
+    // should not cancel out to a weaker-than-either overlay.
+    func test_fallbackMode_overlayAlpha_isTheStrongerOfWarmthAndBrightness() {
+        let state = RenderState(isOn: true, warmthK: 3250, brightness: 0.9, pwmSafe: false, fallbackMode: true) // warmthAlpha=0.5, brightnessAlpha=0.1
+        let command = Renderer.render(state, displays: [display()]).first!
+        XCTAssertEqual(command.overlayAlpha, 0.5, accuracy: 0.01)
+    }
+
+    func test_fallbackMode_off_stillRestoresNormally() {
+        let state = RenderState(isOn: false, warmthK: 0, brightness: 1.0, pwmSafe: false, fallbackMode: true)
+        let command = Renderer.render(state, displays: [display()]).first!
+        XCTAssertNil(command.gamma)
+        XCTAssertEqual(command.overlayAlpha, 0)
+    }
+
+    func test_fallbackMode_respectsPWMSafeIntent_likeNormalMode() {
+        let state = RenderState(isOn: true, warmthK: 0, brightness: 1.0, pwmSafe: true, fallbackMode: true)
+        let command = Renderer.render(state, displays: [display()]).first!
+        XCTAssertEqual(command.hardwareBrightness, 1.0)
+    }
+
+    func test_normalMode_overlayTintIsAlwaysBlack() {
+        let belowFloor = RenderState(isOn: true, warmthK: 6500, brightness: 0.1, pwmSafe: false, fallbackMode: false)
+        let command = Renderer.render(belowFloor, displays: [display()]).first!
+        XCTAssertEqual(command.overlayTint, .black)
+    }
 }

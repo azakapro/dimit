@@ -1,14 +1,16 @@
 import AppKit
 
-/// The display pipeline's four pieces are constructed together, live for
-/// the app's entire run, and are torn down together — one struct instead
-/// of four independent optionals (code review: four separate `Optional`
-/// stored properties invited a future partial-teardown bug, e.g. resetting
-/// `menuBarController` alone without the other three, leaving nothing that
-/// actually represents "is the pipeline up").
+/// The display pipeline's pieces are constructed together, live for the
+/// app's entire run, and are torn down together — one struct instead of
+/// independent optionals (code review on C2: separate `Optional` stored
+/// properties invited a future partial-teardown bug, e.g. resetting one
+/// without the others, leaving nothing that actually represents "is the
+/// pipeline up").
 private struct DisplayPipeline {
     let displayManager: DisplayManager
     let gammaController: GammaController
+    let pwmSafeCoordinator: PWMSafeCoordinator
+    let overlayDimmer: OverlayDimmer
     let displayCoordinator: DisplayCoordinator
     let menuBarController: MenuBarController
 }
@@ -48,13 +50,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         let displayManager = DisplayManager()
-        let coordinator = DisplayCoordinator(appState: appState, displayManager: displayManager, gammaController: gammaController)
-        let menuBarController = MenuBarController(appState: appState) { [weak coordinator] in
+
+        // Resolution order matches ARCHITECTURE.md §2.5: DisplayServices
+        // first (verified working end to end on this machine before this
+        // cycle was written), CoreDisplay as fallback (verified it *links*
+        // and its symbols resolve, but its get() returns a constant 1.0 on
+        // this built-in panel regardless of actual brightness — see
+        // BrightnessController.swift's doc comment). DDC is a C5 stub.
+        // IORegistryReadOnlyBackend is deliberately NOT in this list: its
+        // own canControl() always returns false (it's read-only by
+        // design), so PWMSafeCoordinator's `backends.first { canControl }`
+        // would never select it anyway — it exists as a distinct
+        // diagnostic tool for later, not a candidate in this resolution
+        // order.
+        let pwmSafeCoordinator = PWMSafeCoordinator(backends: [
+            DisplayServicesBackend(),
+            CoreDisplayBackend(),
+            DDCBackend(),
+        ])
+        let overlayDimmer = OverlayDimmer()
+
+        let coordinator = DisplayCoordinator(
+            appState: appState,
+            displayManager: displayManager,
+            gammaController: gammaController,
+            pwmSafeCoordinator: pwmSafeCoordinator,
+            overlayDimmer: overlayDimmer
+        )
+        let menuBarController = MenuBarController(
+            appState: appState,
+            pwmSafeCoordinator: pwmSafeCoordinator
+        ) { [weak coordinator] in
             coordinator?.restoreColours()
         }
         pipeline = DisplayPipeline(
             displayManager: displayManager,
             gammaController: gammaController,
+            pwmSafeCoordinator: pwmSafeCoordinator,
+            overlayDimmer: overlayDimmer,
             displayCoordinator: coordinator,
             menuBarController: menuBarController
         )
@@ -73,5 +106,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // here — quitting doesn't change isOn — so this direct call is
         // what actually restores the screen on a normal Cmd-Q).
         pipeline?.gammaController.restoreAll()
+        pipeline?.overlayDimmer.removeAll()
+        // Code review caught this missing: unlike gamma and the overlay
+        // (both of which die with the process anyway), a PWM-Safe pin
+        // changes the real hardware backlight via DisplayServices, which
+        // outlives this process entirely. Quitting with PWM-Safe on used
+        // to leave the screen stuck at 100% until the user pressed a
+        // brightness key. CLAUDE.md §3.6's "On disable: restore remembered
+        // hardware brightness" has to include quitting.
+        pipeline?.pwmSafeCoordinator.restoreAndDisable()
     }
 }
