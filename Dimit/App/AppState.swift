@@ -64,6 +64,12 @@ final class AppState: ObservableObject {
     /// logic, same separation as everything else it holds.
     @Published var scheduleConfig: ScheduleConfig
 
+    /// C5b/CLAUDE.md §3.4's Experimental DDC/CI toggle, default OFF.
+    /// `DDCBackend` reads this through an injected closure rather than
+    /// holding an `AppState` reference, so the private-API layer stays
+    /// ignorant of app state.
+    @Published var ddcEnabled: Bool
+
     /// CLAUDE.md §3.3: "show a one-time banner ... on macOS ≥ 26 the first
     /// time the filter is turned ON, dismissable forever." No reliable
     /// detection key for auto-brightness was found on this macOS 27 beta
@@ -94,6 +100,7 @@ final class AppState: ObservableObject {
         self.locale = saved.locale
         self.updateChecksEnabled = saved.updateChecksEnabled
         self.scheduleConfig = saved.scheduleConfig
+        self.ddcEnabled = saved.ddcEnabled
 
         // Debounced 250ms persistence — CLAUDE.md §3.7. `objectWillChange`
         // fires on every @Published mutation, so this one subscription
@@ -241,7 +248,8 @@ final class AppState: ObservableObject {
                 ),
                 locale: locale,
                 updateChecksEnabled: updateChecksEnabled,
-                scheduleConfig: scheduleConfig
+                scheduleConfig: scheduleConfig,
+                ddcEnabled: ddcEnabled
             )
         )
     }

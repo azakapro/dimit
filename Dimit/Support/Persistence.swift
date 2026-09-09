@@ -42,6 +42,12 @@ struct PersistedState: Codable, Equatable {
     /// behavior exactly — nobody's screen starts ramping on its own the
     /// day this field appears in an update.
     var scheduleConfig: ScheduleConfig
+    /// C5b/CLAUDE.md §3.4: DDC/CI brightness control for third-party
+    /// external monitors. "Ships in 1.0 as an **Experimental** toggle in
+    /// Settings (`Config.ddcEnabled`, default OFF); promoted to default ON
+    /// in 1.1 after a second monitor and beta feedback." Default false, so
+    /// nobody's monitor starts receiving I2C traffic from an update.
+    var ddcEnabled: Bool
 
     static let defaults = PersistedState(
         isOn: false,
@@ -53,7 +59,8 @@ struct PersistedState: Codable, Equatable {
         presetOverrides: [:],
         locale: nil,
         updateChecksEnabled: false,
-        scheduleConfig: .defaults
+        scheduleConfig: .defaults,
+        ddcEnabled: false
     )
 
     init(
@@ -66,7 +73,8 @@ struct PersistedState: Codable, Equatable {
         presetOverrides: [String: PresetValues] = [:],
         locale: String? = nil,
         updateChecksEnabled: Bool = false,
-        scheduleConfig: ScheduleConfig = .defaults
+        scheduleConfig: ScheduleConfig = .defaults,
+        ddcEnabled: Bool = false
     ) {
         self.isOn = isOn
         self.warmthK = warmthK
@@ -78,6 +86,7 @@ struct PersistedState: Codable, Equatable {
         self.locale = locale
         self.updateChecksEnabled = updateChecksEnabled
         self.scheduleConfig = scheduleConfig
+        self.ddcEnabled = ddcEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -93,6 +102,7 @@ struct PersistedState: Codable, Equatable {
         locale = try container.decodeIfPresent(String.self, forKey: .locale)
         updateChecksEnabled = try container.decodeIfPresent(Bool.self, forKey: .updateChecksEnabled) ?? fallback.updateChecksEnabled
         scheduleConfig = try container.decodeIfPresent(ScheduleConfig.self, forKey: .scheduleConfig) ?? fallback.scheduleConfig
+        ddcEnabled = try container.decodeIfPresent(Bool.self, forKey: .ddcEnabled) ?? fallback.ddcEnabled
     }
 }
 

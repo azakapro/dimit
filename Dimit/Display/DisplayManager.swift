@@ -158,7 +158,14 @@ final class DisplayManager: ObservableObject, DisplayProviding {
             // IOKit/CGDisplayVendorNumber)" — confirmed 0x610 on this
             // machine's built-in panel (docs/QA.md).
             isAppleDisplay: CGDisplayVendorNumber(id) == 0x610,
-            supportsDDC: false // C5
+            // Stays false deliberately, even now that C5b implements DDC.
+            // Whether a display *actually* answers DDC is only knowable by
+            // asking it (DDCBackend probes VCP 0x10 once per connection),
+            // and DisplayManager has no business owning a backend or
+            // blocking enumeration on a 50ms I2C round trip. The truthful
+            // answer already reaches diagnostics through the resolved
+            // backend name — see DiagnosticsBundle.
+            supportsDDC: false
         )
     }
 

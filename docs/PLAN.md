@@ -65,12 +65,14 @@ Every cycle starts with this prompt to Claude Code, with the cycle number filled
 
 **Carried into C5 from the independent review** (details in docs/QA.md): a sleep-time restore path (§1.8 requires it; only wake is observed today), the drift poll's run-loop mode (it stalls while a menu is open — one line), and the cold-popover budget (measured 180 ms against §8's 100 ms). **Not code fixes, and both gate claims we plan to make publicly:** capture exclusion is not guaranteed by any public API, so §1.4's "screen-shares must not be tinted" needs a real capture matrix in C6 before it goes on the site; and CoreDisplay can report a false verified pin, which needs a Studio Display, Pro Display XDR or Intel Mac in the hands of a beta tester.
 
-### C5 — Scheduling and DDC experimental · Sonnet 5 (schedule) then Opus 5 (DDC) · ~18 h → **v0.3**
+### C5 — Scheduling and DDC experimental · Sonnet 5 (schedule) then Opus 5 (DDC) · ~18 h → **v0.3** — ✅ C5a merged (#5); C5b in review
 
 **In:** `ScheduleEngine` per ARCHITECTURE §3 with NOAA tests (Tashkent 2026-09-08 within ±3 min), city list, optional CoreLocation only after the user taps "Use my location", fixed-times mode, 20-min linear ramps, manual override pauses until the next phase. Schedule tab in Settings. Then `DDCController` (IOAVService on Apple Silicon, VCP 0x10) behind `Config.ddcEnabled` default OFF, Experimental toggle in the Displays tab, tested on the home monitor with its model recorded in QA.md.
 **Out:** licensing, site.
 **Done when:** with the Mac's clock moved past today's Tashkent sunset the app ramps to EVENING over 20 min; no Location prompt appears unless the button is pressed; DDC toggle either pins the home monitor to 100% or shows `unsupported` cleanly, never hangs the UI.
 **PR:** two PRs, `feat(c5a): schedule engine` and `feat(c5b): DDC/CI experimental`. Tag `v0.3`.
+
+**C5b's "Done when" is only half closed, deliberately.** "Shows `unsupported` cleanly" — yes, verified. "Pins the home monitor to 100%" and "never hangs the UI" — **no**: no external monitor was connected, and DDC's spec-mandated 50 ms read wait blocks the main actor. DDC therefore ships default-OFF behind an Experimental toggle that says so. Two things gate promoting it (CLAUDE.md §3.4 already schedules that for 1.1): one session with the home monitor plugged in, and moving DDC transactions off the main actor. Details and what *was* verified: docs/QA.md § C5b.
 
 ### C6 — Beta · Sonnet 5, Opus 5 for display bugs · ~14 h + tester time → **v0.4**
 

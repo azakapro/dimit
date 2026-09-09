@@ -47,7 +47,20 @@ final class PWMSafeCoordinator: ObservableObject {
     /// the rate limit and then cancelled still produced a restore write to
     /// a value the hardware was already at, which is how rapid toggling
     /// kept breaking §3.4 even after the limit existed.
-    private var pinnedInHardware: Set<String> = []
+    /// Keyed by UUID, holding *the backend that actually drove that
+    /// panel* — not just the fact that one did.
+    ///
+    /// Re-resolving through `backend(for:)` at restore time was a real
+    /// bug, found in C5b review: `DDCBackend.canControl` returns false the
+    /// moment the user switches its Experimental toggle off, so a monitor
+    /// pinned to 100% over DDC and then un-toggled resolved to *no*
+    /// backend, every restore path silently skipped it (`guard let backend
+    /// … else { continue }`), and it stayed at 100% through quit — only
+    /// recoverable from the monitor's own OSD. CLAUDE.md §1.8's "must
+    /// return to normal on quit" has no exception for "the user changed a
+    /// setting in between." DisplayServices and CoreDisplay never exposed
+    /// this because their `canControl` can't flip at runtime; DDC's can.
+    private var pinningBackends: [String: BrightnessBackend] = [:]
 
     private var rememberedBrightness: [String: Float] = [:] // uuid -> brightness before pinning
     private var currentDisplays: [DisplayInfo] = []
@@ -125,6 +138,20 @@ final class PWMSafeCoordinator: ObservableObject {
             return
         }
 
+        // Drop `.unsupported` before the pass below, so a display written
+        // off earlier gets re-probed. Without this, flipping the DDC
+        // Experimental toggle on mid-session appeared to do nothing at
+        // all: the external monitor had already been recorded
+        // `.unsupported` while DDC was off, and `states` is otherwise only
+        // cleared by a disable or a display-list change — so the very
+        // first thing a tester does would look broken (C5b review).
+        // `.unsupported` is a conclusion about the *backends available*,
+        // not about the display, and those can change while it stays
+        // plugged in.
+        if states.contains(where: { $0.value == .unsupported }) {
+            states = states.filter { $0.value != .unsupported }
+        }
+
         for display in displays where states[display.uuid] == nil {
             beginPinning(display)
         }
@@ -181,14 +208,15 @@ final class PWMSafeCoordinator: ObservableObject {
             // Nothing to undo on a panel we never actually drove — skip the
             // write entirely rather than spend a §3.4 budget writing a value
             // the hardware already holds.
-            guard pinnedInHardware.contains(display.uuid) else { continue }
-            guard let remembered = rememberedBrightness[display.uuid],
-                  let backend = backend(for: display)
-            else { continue }
+            guard let backend = pinningBackends[display.uuid] else { continue }
+            guard let remembered = rememberedBrightness[display.uuid] else {
+                Log.display.error("PWM-Safe: \(display.uuid, privacy: .public) was pinned but has no remembered brightness to restore to; leaving it alone")
+                continue
+            }
             let result = writeBrightness(display, backend, remembered)
             if result == .ok {
                 rememberedBrightness.removeValue(forKey: display.uuid)
-                pinnedInHardware.remove(display.uuid)
+                pinningBackends.removeValue(forKey: display.uuid)
             } else {
                 // Keep the value: it is the only record of what this panel
                 // is owed, and forgetting it makes the loss permanent.
@@ -269,7 +297,7 @@ final class PWMSafeCoordinator: ObservableObject {
         }
 
         let result = writeBrightness(display, backend, 1.0)
-        if result == .ok { pinnedInHardware.insert(display.uuid) }
+        if result == .ok { pinningBackends[display.uuid] = backend }
         guard result == .ok else {
             Log.display.error("PWM-Safe: set(1.0) failed for \(display.uuid, privacy: .public): \(String(describing: result), privacy: .public)")
             scheduleRetryOrGiveUp(display, backend: backend, attemptsRemaining: attemptsRemaining, generation: currentGeneration)
@@ -361,7 +389,16 @@ final class PWMSafeCoordinator: ObservableObject {
         for display in currentDisplays {
             guard states[display.uuid] == .pinned, let backend = backend(for: display) else { continue }
             stillAnyPinned = true
-            let value = backend.get(display) ?? 0
+            // `nil` means "couldn't read", which `BrightnessBackend`'s own
+            // contract says must never be treated as 0 — `verifyPin`
+            // already honours that, this didn't. Coercing it to 0 read as
+            // "drifted all the way to zero": it fired the "Brightness was
+            // re-pinned to 100%" toast at a user whose brightness hadn't
+            // moved, and started a fresh pin chain — writing to the panel
+            // every 5s forever on any backend whose reads are flaky. DDC
+            // over I2C is exactly that kind of backend, which is what made
+            // a latent bug real enough to find (C5b review).
+            guard let value = backend.get(display) else { continue }
             guard value < 0.99 else { continue }
 
             // Drifted — most likely the user pressed a hardware brightness

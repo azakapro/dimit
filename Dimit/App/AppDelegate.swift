@@ -72,10 +72,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // would never select it anyway — it exists as a distinct
         // diagnostic tool for later, not a candidate in this resolution
         // order.
+        // C5b: DDCBackend reads the user's Experimental toggle through
+        // this closure rather than holding an AppState reference — the
+        // private-API layer stays ignorant of app state, and the toggle
+        // is honoured live without reconstructing the backend list.
+        let ddcBackend = DDCBackend(isEnabled: { [weak appState] in appState?.ddcEnabled ?? false })
         let pwmSafeCoordinator = PWMSafeCoordinator(backends: [
             DisplayServicesBackend(),
             CoreDisplayBackend(),
-            DDCBackend(),
+            ddcBackend,
         ])
         let overlayDimmer = OverlayDimmer()
 
@@ -84,7 +89,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             displayManager: displayManager,
             gammaController: gammaController,
             pwmSafeCoordinator: pwmSafeCoordinator,
-            overlayDimmer: overlayDimmer
+            overlayDimmer: overlayDimmer,
+            // A cached IOAVService handle belongs to one physical
+            // connection; unplugging and replugging must not reuse it.
+            displaysChanged: { [weak ddcBackend] in ddcBackend?.invalidateCache() }
         )
         let restoreColours: () -> Void = { [weak coordinator] in
             coordinator?.restoreColours()
