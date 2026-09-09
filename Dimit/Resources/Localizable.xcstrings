@@ -584,13 +584,13 @@
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Восстановить цвета"
+            "value": "Restore Colours"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Ranglarni tiklash"
+            "value": "Restore Colours"
           }
         }
       }

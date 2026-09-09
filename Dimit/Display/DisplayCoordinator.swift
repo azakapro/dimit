@@ -25,7 +25,6 @@ final class DisplayCoordinator {
     private let gammaController: GammaController
 
     private var lastApplied: [DisplayCommand] = []
-    private var knownUUIDs: Set<String> = []
     private var cancellables = Set<AnyCancellable>()
 
     init(appState: AppState, displayManager: DisplayManager, gammaController: GammaController) {
@@ -51,29 +50,56 @@ final class DisplayCoordinator {
 
     private func reapply() {
         let displays = displayManager.displays
-        evictBaselinesForDisconnectedDisplays(currentlyConnected: displays)
+        gammaController.evictBaselines(keepingOnly: Set(displays.map(\.uuid)))
 
         let uuidByID = Dictionary(uniqueKeysWithValues: displays.map { ($0.id, $0.uuid) })
         let commands = Renderer.render(appState.renderState, displays: displays)
         let diff = Applier.diff(previous: lastApplied, current: commands)
 
-        for command in diff.toApply {
-            guard let uuid = uuidByID[command.displayID] else { continue }
-            gammaController.apply(command, uuid: uuid)
-        }
+        // Restore BEFORE apply, not after. `CGDisplayRestoreColorSyncSettings()`
+        // is global — it restores every display, not just the ones in
+        // `diff.toRestore` (`Applier.swift`'s own doc comment says so).
+        // `Renderer`'s single global `isOn` flag can't produce a mixed
+        // toApply+toRestore diff *today*, so the order was invisible in
+        // testing, but `Applier` is already built and tested for that mix
+        // (`ApplierTests.test_multipleDisplays_mixedTransitions`), and
+        // AppState's own roadmap (CLAUDE.md §3.7 `perDisplayOverrides`)
+        // plans to produce exactly that mix eventually. Restoring first
+        // means a future per-display toApply is never silently wiped by a
+        // same-pass restore of a different display — caught in code review
+        // before it could ever matter, not after.
         if !diff.toRestore.isEmpty {
             gammaController.restoreAll()
         }
 
-        lastApplied = commands
-    }
-
-    private func evictBaselinesForDisconnectedDisplays(currentlyConnected: [DisplayInfo]) {
-        let currentUUIDs = Set(currentlyConnected.map(\.uuid))
-        for goneUUID in knownUUIDs.subtracting(currentUUIDs) {
-            gammaController.dropBaseline(uuid: goneUUID)
+        // Record what we actually achieved, not what we attempted — code
+        // review caught `lastApplied = commands` unconditionally recording
+        // success even for a failed `apply()` (no baseline, or the
+        // CoreGraphics call itself failing). That would have made a
+        // failure permanent: the next `reapply()` computes the same
+        // `GammaSpec`, `Applier.diff` sees "unchanged" against the
+        // wrongly-recorded success, and the display never gets retried.
+        // Failed displays instead keep their previous `lastApplied` entry,
+        // so the *next* state or display-list change (or nothing at all —
+        // `objectWillChange` fires often enough on its own) looks like a
+        // real change again and retries.
+        let previousByID = Dictionary(uniqueKeysWithValues: lastApplied.map { ($0.displayID, $0) })
+        var nextApplied: [DisplayCommand] = []
+        for command in commands {
+            let isBeingApplied = diff.toApply.contains { $0.displayID == command.displayID }
+            guard isBeingApplied else {
+                nextApplied.append(command)
+                continue
+            }
+            guard let uuid = uuidByID[command.displayID] else {
+                Log.display.error("display \(command.displayID, privacy: .public) in render output has no known UUID; skipping apply")
+                nextApplied.append(previousByID[command.displayID] ?? command)
+                continue
+            }
+            let succeeded = gammaController.apply(command, uuid: uuid)
+            nextApplied.append(succeeded ? command : (previousByID[command.displayID] ?? command))
         }
-        knownUUIDs = currentUUIDs
+        lastApplied = nextApplied
     }
 
     /// The right-click menu's "Restore colours" — a manual safety valve,
@@ -82,8 +108,22 @@ final class DisplayCoordinator {
     /// rather than only flipping `isOn` and waiting for the async
     /// `objectWillChange` hop: this is explicitly a panic button, so it
     /// shouldn't depend on the normal pipeline's timing to take effect.
+    ///
+    /// `lastApplied` is updated here too, synchronously — code review
+    /// caught that without this, the deferred `reapply()` triggered by
+    /// `appState.isOn = false` (it runs on the next run-loop turn, per this
+    /// class's own doc comment) leaves a window where `lastApplied` still
+    /// says gamma is on. If something turned the filter back on with the
+    /// exact same values in that window, `Applier.diff` would see no
+    /// change and skip re-applying — the display would silently stay
+    /// restored while `AppState.isOn` and the UI both said ON.
     func restoreColours() {
         appState.isOn = false
         gammaController.restoreAll()
+        lastApplied = lastApplied.map { command in
+            var restored = command
+            restored.gamma = nil
+            return restored
+        }
     }
 }

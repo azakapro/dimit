@@ -215,7 +215,7 @@ GET  /r/:handle              → affiliate redirect (sets 60-day cookie, forward
 | onboarding.3.title | No account. No tracking. | Akkaunt yo'q. Kuzatuv yo'q. | Без аккаунта. Без слежки. |
 | menu.quit | Quit | Chiqish | Выйти |
 | menu.settings | Settings… | Sozlamalar… | Настройки… |
-| menu.restore_colours *(added C2, uz/ru need human review)* | Restore Colours | Ranglarni tiklash | Восстановить цвета |
+| menu.restore_colours *(added C2)* | Restore Colours | Restore Colours — TODO(i18n), needs a real uz translation | Restore Colours — TODO(i18n), needs a real ru translation |
 | error.gamma_failed | Couldn't change display colours. Try Fallback mode in Settings. | Displey ranglarini o'zgartirib bo'lmadi. Sozlamalarda Zaxira rejimni sinab ko'ring. | Не удалось изменить цвета дисплея. Попробуйте Резервный режим в Настройках. |
 
 (Claude Code: when adding a string, add all three languages; if unsure of Uzbek/Russian, add the English and mark `// TODO(i18n)` so a human translator sees it. Do not machine-translate silently.)

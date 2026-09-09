@@ -64,7 +64,7 @@ final class ApplierTests: XCTestCase {
     // isn't iterated — DisplayManager drops it from the list it hands to
     // Renderer, so there's nothing for Applier to report either way; the
     // baseline eviction for a gone display is DisplayCoordinator's job via
-    // GammaController.dropBaseline, not this pure diff.
+    // GammaController.evictBaselines(keepingOnly:), not this pure diff.
     func test_displayGoneFromCurrentList_producesNoEntryForIt() {
         let previous = [command(1, gamma: gammaA), command(2, gamma: gammaA)]
         let current = [command(1, gamma: gammaA)]

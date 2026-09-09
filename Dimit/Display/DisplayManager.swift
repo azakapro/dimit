@@ -13,6 +13,23 @@ final class DisplayManager: ObservableObject {
     private var wakeReapplyWorkItem: DispatchWorkItem?
     private var wakeObservers: [NSObjectProtocol] = []
 
+    /// Last-known-good UUID per `CGDirectDisplayID`, session-scoped. Code
+    /// review caught a real risk in the original fallback: if
+    /// `CGDisplayCreateUUIDFromDisplayID` ever failed *transiently* for a
+    /// display that's already on and tinted (no actual disconnect), the old
+    /// code would mint a fresh `"unknown-\(id)"` string as its UUID for
+    /// that one `refresh()` — a different cache key than `GammaController`
+    /// already has a baseline under. The next `apply()` would then miss the
+    /// cache, re-read `CGGetDisplayTransferByTable` from the *currently
+    /// tinted* table, and cache that as if it were neutral, permanently
+    /// baking the tint in — exactly what UUID-keying exists to prevent, just
+    /// triggered by a UUID lookup hiccup instead of a physical unplug.
+    /// Falling back to the last real UUID this `CGDirectDisplayID` ever
+    /// resolved to (when we have one) keeps the cache key stable across a
+    /// one-off failure; `"unknown-\(id)"` is now only reached the very
+    /// first time an ID is ever seen and the lookup fails immediately.
+    private var lastKnownUUID: [CGDirectDisplayID: String] = [:]
+
     init() {
         refresh()
 
@@ -115,14 +132,14 @@ final class DisplayManager: ObservableObject {
             return
         }
 
-        displays = ids.prefix(Int(count)).map(Self.info)
+        displays = ids.prefix(Int(count)).map(info)
     }
 
-    private static func info(for id: CGDirectDisplayID) -> DisplayInfo {
+    private func info(for id: CGDirectDisplayID) -> DisplayInfo {
         DisplayInfo(
             id: id,
             uuid: uuidString(for: id),
-            name: localizedName(for: id) ?? "Display \(id)",
+            name: Self.localizedName(for: id) ?? "Display \(id)",
             isBuiltin: CGDisplayIsBuiltin(id) != 0,
             // CLAUDE.md §3.1: "isAppleDisplay (vendor 0x610 via
             // IOKit/CGDisplayVendorNumber)" — confirmed 0x610 on this
@@ -135,13 +152,15 @@ final class DisplayManager: ObservableObject {
     /// `CGDisplayCreateUUIDFromDisplayID` lives in ColorSync.framework, not
     /// CoreGraphics (verified against the SDK headers — its declaration is
     /// in ColorSyncDevice.h). It's vanishingly unlikely to fail for a real
-    /// connected display; the fallback keeps a stable-for-this-boot string
-    /// instead of crashing.
-    private static func uuidString(for id: CGDirectDisplayID) -> String {
+    /// connected display; see `lastKnownUUID`'s comment for why the
+    /// fallback isn't just a fresh placeholder string.
+    private func uuidString(for id: CGDirectDisplayID) -> String {
         guard let ref = CGDisplayCreateUUIDFromDisplayID(id)?.takeRetainedValue() else {
-            return "unknown-\(id)"
+            return lastKnownUUID[id] ?? "unknown-\(id)"
         }
-        return CFUUIDCreateString(nil, ref) as String
+        let uuid = CFUUIDCreateString(nil, ref) as String
+        lastKnownUUID[id] = uuid
+        return uuid
     }
 
     /// `CGDirectDisplayID` has no direct "get the human name" API; the name
@@ -166,11 +185,15 @@ private func dimitDisplayReconfigurationCallback(
 ) {
     guard let userInfo else { return }
     let manager = Unmanaged<DisplayManager>.fromOpaque(userInfo).takeUnretainedValue()
-    // The header docs: this callback runs "on the event processing
-    // thread," which for a standard AppKit run loop is the main thread.
-    // assumeIsolated documents that assumption rather than silently
-    // hoping it holds.
-    MainActor.assumeIsolated {
+    // The header docs only promise "the thread that is currently
+    // processing events" — weaker than a documented main-thread guarantee.
+    // Code review caught an earlier version using `MainActor.assumeIsolated`
+    // here, which *traps* (crashes the whole process) if that assumption is
+    // ever wrong. `Task { @MainActor in ... }` hops to the main actor
+    // safely from any calling thread — no assumption, no trap risk — at
+    // the cost of one async dispatch, which is free next to this path's
+    // own 300ms debounce.
+    Task { @MainActor in
         manager.handleReconfiguration(flags: flags)
     }
 }

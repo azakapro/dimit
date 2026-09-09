@@ -4,10 +4,10 @@ import Foundation
 /// currently connected displays, decide what every display should show.
 /// No CoreGraphics calls, no side effects — ARCHITECTURE.md §2.1.
 ///
-/// `Applier` (C2) will diff consecutive outputs of this function and only
-/// call the real controllers for fields that changed; that split is what
-/// keeps idle CPU near zero and slider latency low, and it is why this
-/// function must be cheap and pure.
+/// `Applier` (`Dimit/Display/Applier.swift`) diffs consecutive outputs of
+/// this function and only reports fields that actually changed; that split
+/// is what keeps idle CPU near zero and slider latency low, and it is why
+/// this function must be cheap and pure.
 enum Renderer {
     static func render(_ state: RenderState, displays: [DisplayInfo]) -> [DisplayCommand] {
         displays.map { command(for: state, display: $0) }
