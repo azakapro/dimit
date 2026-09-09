@@ -7,10 +7,13 @@ import AppKit
 /// Symbol that reliably means exactly "this, plus a small corner dot"
 /// across macOS versions.
 enum MenuBarIcon {
-    static func image(isOn: Bool, pwmPinned: Bool = false) -> NSImage? {
+    /// `accessibilityDescription` is passed in already resolved rather than
+    /// looked up here: `String(localized:)` would resolve against the system
+    /// language, so VoiceOver announced the status item as "ON" while the
+    /// menu it opens said "ВКЛ" (code review).
+    static func image(isOn: Bool, pwmPinned: Bool = false, accessibilityDescription: String) -> NSImage? {
         let symbolName = isOn ? "circle.fill" : "circle"
-        let description = isOn ? String(localized: "main.on") : String(localized: "main.off")
-        guard let base = NSImage(systemSymbolName: symbolName, accessibilityDescription: description) else {
+        guard let base = NSImage(systemSymbolName: symbolName, accessibilityDescription: accessibilityDescription) else {
             return nil
         }
         base.isTemplate = true
@@ -26,7 +29,7 @@ enum MenuBarIcon {
             return true
         }
         composed.isTemplate = true
-        composed.accessibilityDescription = description
+        composed.accessibilityDescription = accessibilityDescription
         return composed
     }
 }

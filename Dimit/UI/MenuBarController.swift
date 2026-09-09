@@ -12,23 +12,41 @@ final class MenuBarController: NSObject {
     private let appState: AppState
     private let pwmSafeCoordinator: PWMSafeCoordinator
     private let restoreColours: () -> Void
+    private let openSettings: () -> Void
     private var cancellables = Set<AnyCancellable>()
 
-    init(appState: AppState, pwmSafeCoordinator: PWMSafeCoordinator, restoreColours: @escaping () -> Void) {
+    init(
+        appState: AppState,
+        pwmSafeCoordinator: PWMSafeCoordinator,
+        restoreColours: @escaping () -> Void,
+        openSettings: @escaping () -> Void
+    ) {
         self.appState = appState
         self.pwmSafeCoordinator = pwmSafeCoordinator
         self.restoreColours = restoreColours
+        self.openSettings = openSettings
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         self.popover = NSPopover()
         super.init()
 
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(
-            rootView: PopoverView(appState: appState, pwmSafeCoordinator: pwmSafeCoordinator)
+            rootView: PopoverRoot(
+                appState: appState,
+                pwmSafeCoordinator: pwmSafeCoordinator,
+                openSettings: { [weak self] in
+                    // Close the transient popover first — otherwise the
+                    // Settings window opens behind it and the popover's
+                    // click-outside dismissal fights the window activation.
+                    self?.popover.performClose(nil)
+                    self?.openSettings()
+                }
+            )
         )
 
         if let button = statusItem.button {
-            button.image = MenuBarIcon.image(isOn: appState.isOn, pwmPinned: pwmSafeCoordinator.summaryState == .pinned)
+            button.image = MenuBarIcon.image(isOn: appState.isOn, pwmPinned: pwmSafeCoordinator.summaryState == .pinned,
+                                    accessibilityDescription: appState.localized(appState.isOn ? "main.on" : "main.off"))
             button.action = #selector(statusItemClicked)
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -50,13 +68,15 @@ final class MenuBarController: NSObject {
         pwmSafeCoordinator.repinnedToastSubject
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in
-                ToastPresenter.show("pwm.repinned", near: self?.statusItem.button)
+                guard let self else { return }
+                ToastPresenter.show(self.appState.localized("pwm.repinned"), near: self.statusItem.button)
             }
             .store(in: &cancellables)
     }
 
     private func updateIcon() {
-        statusItem.button?.image = MenuBarIcon.image(isOn: appState.isOn, pwmPinned: pwmSafeCoordinator.summaryState == .pinned)
+        statusItem.button?.image = MenuBarIcon.image(isOn: appState.isOn, pwmPinned: pwmSafeCoordinator.summaryState == .pinned,
+                                    accessibilityDescription: appState.localized(appState.isOn ? "main.on" : "main.off"))
     }
 
     @objc private func statusItemClicked() {
@@ -92,7 +112,7 @@ final class MenuBarController: NSObject {
 
         for preset in PresetID.allCases {
             let item = NSMenuItem(
-                title: String(localized: preset.titleKey),
+                title: appState.localized(preset.titleKey),
                 action: #selector(selectPreset(_:)),
                 keyEquivalent: ""
             )
@@ -111,7 +131,7 @@ final class MenuBarController: NSObject {
         // than a per-surface convention.
         let toggleTitleKey: LocalizedStringResource = appState.isOn ? "main.on" : "main.off"
         let toggleItem = NSMenuItem(
-            title: String(localized: toggleTitleKey),
+            title: appState.localized(toggleTitleKey),
             action: #selector(toggleOnOff),
             keyEquivalent: ""
         )
@@ -126,13 +146,13 @@ final class MenuBarController: NSObject {
         // ON/OFF: it changes *how* the filter renders when it's on, not
         // whether it's on.
         let fallbackItem = NSMenuItem(
-            title: String(localized: "fallback.title"),
+            title: appState.localized("fallback.title"),
             action: #selector(toggleFallbackMode),
             keyEquivalent: ""
         )
         fallbackItem.target = self
         fallbackItem.state = appState.fallbackMode ? .on : .off
-        fallbackItem.toolTip = String(localized: "fallback.help")
+        fallbackItem.toolTip = appState.localized("fallback.help")
         menu.addItem(fallbackItem)
 
         menu.addItem(.separator())
@@ -142,7 +162,7 @@ final class MenuBarController: NSObject {
         // read-back mismatch or any other display weirdness leaves the
         // screen looking wrong.
         let restoreItem = NSMenuItem(
-            title: String(localized: "menu.restore_colours"),
+            title: appState.localized("menu.restore_colours"),
             action: #selector(restoreColoursClicked),
             keyEquivalent: ""
         )
@@ -152,15 +172,15 @@ final class MenuBarController: NSObject {
         menu.addItem(.separator())
 
         let settingsItem = NSMenuItem(
-            title: String(localized: "menu.settings"),
-            action: nil, // C4
-            keyEquivalent: ""
+            title: appState.localized("menu.settings"),
+            action: #selector(settingsClicked),
+            keyEquivalent: ","
         )
-        settingsItem.isEnabled = false
+        settingsItem.target = self
         menu.addItem(settingsItem)
 
         let quitItem = NSMenuItem(
-            title: String(localized: "menu.quit"),
+            title: appState.localized("menu.quit"),
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )
@@ -192,5 +212,24 @@ final class MenuBarController: NSObject {
 
     @objc private func restoreColoursClicked() {
         restoreColours()
+    }
+
+    @objc private func settingsClicked() {
+        openSettings()
+    }
+}
+
+/// Wraps `PopoverView` so the language override reaches it. `PopoverView`
+/// reads `@Environment(\.locale)` itself (for the "6500K" vs "6500 K"
+/// formatting), and a view can't see an environment value it sets on its
+/// own body — the override has to be applied one level up, here.
+private struct PopoverRoot: View {
+    @ObservedObject var appState: AppState
+    @ObservedObject var pwmSafeCoordinator: PWMSafeCoordinator
+    let openSettings: () -> Void
+
+    var body: some View {
+        PopoverView(appState: appState, pwmSafeCoordinator: pwmSafeCoordinator, openSettings: openSettings)
+            .environment(\.locale, appState.effectiveLocale)
     }
 }

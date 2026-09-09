@@ -117,7 +117,7 @@ final class RendererTests: XCTestCase {
         let state = RenderState(isOn: true, warmthK: 0, brightness: 1.0, pwmSafe: false, fallbackMode: true)
         let command = Renderer.render(state, displays: [display()]).first!
         XCTAssertNil(command.gamma)
-        XCTAssertEqual(command.overlayTint, .red)
+        XCTAssertEqual(command.overlayTint, .red(intensity: 1.0))
     }
 
     func test_fallbackMode_atNeutralWarmthAndFullBrightness_hasNoOverlay() {
@@ -126,24 +126,49 @@ final class RendererTests: XCTestCase {
         XCTAssertEqual(command.overlayAlpha, 0, accuracy: 0.0001)
     }
 
-    func test_fallbackMode_atZeroKelvin_overlayIsFullyOpaque() {
-        let state = RenderState(isOn: true, warmthK: 0, brightness: 1.0, pwmSafe: false, fallbackMode: true)
-        let command = Renderer.render(state, displays: [display()]).first!
-        XCTAssertEqual(command.overlayAlpha, 1.0, accuracy: 0.0001)
+    // These two replace tests that asserted `overlayAlpha == 1.0` at 0K and
+    // at zero brightness. An independent review pointed out those tests
+    // were pinning a bug, not a requirement: an opaque overlay above the
+    // menu bar hides the controls needed to escape it, in the one mode that
+    // exists because the display is already misbehaving. The property that
+    // actually matters is the opposite one.
+    func test_fallbackMode_neverFullyHidesTheScreen_atAnySetting() {
+        for warmthK in stride(from: 0.0, through: Config.maxWarmthK, by: 250) {
+            for brightness in stride(from: Config.minBrightness, through: Config.maxBrightness, by: 0.05) {
+                let state = RenderState(isOn: true, warmthK: warmthK, brightness: brightness, pwmSafe: false, fallbackMode: true)
+                let command = Renderer.render(state, displays: [display()]).first!
+                XCTAssertLessThan(
+                    command.overlayAlpha, 1.0,
+                    "at \(warmthK)K/\(brightness) the overlay hides the whole screen, menu bar included"
+                )
+            }
+        }
     }
 
-    func test_fallbackMode_atZeroBrightness_overlayIsFullyOpaque_evenAtNeutralWarmth() {
-        let state = RenderState(isOn: true, warmthK: 6500, brightness: 0.0, pwmSafe: false, fallbackMode: true)
+    // The NIGHT preset is the case that shipped broken: 0K at 40% produced
+    // alpha exactly 1.0.
+    func test_fallbackMode_atTheNightPreset_leavesTheScreenVisible() {
+        let night = PresetID.night.defaultValues
+        let state = RenderState(isOn: true, warmthK: night.warmthK, brightness: night.brightness, pwmSafe: false, fallbackMode: true)
         let command = Renderer.render(state, displays: [display()]).first!
-        XCTAssertEqual(command.overlayAlpha, 1.0, accuracy: 0.0001)
+        XCTAssertEqual(command.overlayAlpha, 0.88, accuracy: 0.01)
+        XCTAssertGreaterThan(1 - command.overlayAlpha, 0.1, "at least a tenth of the real screen must survive")
     }
 
-    // The stronger of the two effects should win — half-warm-half-dim
-    // should not cancel out to a weaker-than-either overlay.
-    func test_fallbackMode_overlayAlpha_isTheStrongerOfWarmthAndBrightness() {
-        let state = RenderState(isOn: true, warmthK: 3250, brightness: 0.9, pwmSafe: false, fallbackMode: true) // warmthAlpha=0.5, brightnessAlpha=0.1
+    // Dimming at neutral warmth must darken, not redden: a red veil there
+    // made black pixels brighter and redder, the opposite of "dimmer".
+    func test_fallbackMode_dimmingAtNeutralWarmth_usesABlackVeilNotRed() {
+        let state = RenderState(isOn: true, warmthK: Config.maxWarmthK, brightness: 0.4, pwmSafe: false, fallbackMode: true)
         let command = Renderer.render(state, displays: [display()]).first!
-        XCTAssertEqual(command.overlayAlpha, 0.5, accuracy: 0.01)
+        XCTAssertEqual(command.overlayTint, .red(intensity: 0), "no red at 6500K — this is pure dimming")
+        XCTAssertEqual(command.overlayAlpha, 0.6, accuracy: 0.0001, "alpha 0.6 leaves exactly the 40% asked for")
+    }
+
+    // Warmth and dim both contribute; neither cancels the other out.
+    func test_fallbackMode_warmthAndDim_compose() {
+        let warmOnly = Renderer.render(RenderState(isOn: true, warmthK: 0, brightness: 1.0, pwmSafe: false, fallbackMode: true), displays: [display()]).first!
+        let both = Renderer.render(RenderState(isOn: true, warmthK: 0, brightness: 0.4, pwmSafe: false, fallbackMode: true), displays: [display()]).first!
+        XCTAssertGreaterThan(both.overlayAlpha, warmOnly.overlayAlpha, "adding dim must hide more, not less")
     }
 
     func test_fallbackMode_off_stillRestoresNormally() {

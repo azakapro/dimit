@@ -45,7 +45,7 @@ final class PWMSafeCoordinatorTests: XCTestCase {
     // Tiny delays so tests finish in well under a second while still
     // exercising the real async code path.
     private func makeCoordinator(_ backend: FakeBrightnessBackend) -> PWMSafeCoordinator {
-        PWMSafeCoordinator(backends: [backend], pinVerifyDelay: 0.02, pollInterval: 0.06)
+        PWMSafeCoordinator(backends: [backend], pinVerifyDelay: 0.02, pollInterval: 0.06, minWriteInterval: 0)
     }
 
     private func waitBriefly(_ seconds: TimeInterval = 0.1) {

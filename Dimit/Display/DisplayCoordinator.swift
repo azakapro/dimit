@@ -22,25 +22,24 @@ import CoreGraphics
 @MainActor
 final class DisplayCoordinator {
     private let appState: AppState
-    private let displayManager: DisplayManager
-    private let gammaController: GammaController
+    private let displayManager: DisplayProviding
+    private let gammaController: GammaApplying
     // Private: MenuBarController and PopoverView get their own reference to
     // the same instance directly from AppDelegate, so exposing it here too
     // was dead surface area that invited two different paths to the same
     // object (code review).
     private let pwmSafeCoordinator: PWMSafeCoordinator
-    private let overlayDimmer: OverlayDimmer
+    private let overlayDimmer: OverlayDimming
 
     private var lastApplied: [DisplayCommand] = []
-    private var lastDisplayUUIDs: Set<String> = []
     private var cancellables = Set<AnyCancellable>()
 
     init(
         appState: AppState,
-        displayManager: DisplayManager,
-        gammaController: GammaController,
+        displayManager: DisplayProviding,
+        gammaController: GammaApplying,
         pwmSafeCoordinator: PWMSafeCoordinator,
-        overlayDimmer: OverlayDimmer
+        overlayDimmer: OverlayDimming
     ) {
         self.appState = appState
         self.displayManager = displayManager
@@ -53,9 +52,10 @@ final class DisplayCoordinator {
             .sink { [weak self] _ in self?.reapply() }
             .store(in: &cancellables)
 
-        displayManager.$displays
+        displayManager.displayUpdates
+            .dropFirst() // init's synchronous reapply handles the initial snapshot
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.reapply() }
+            .sink { [weak self] _ in self?.reapply(displaysChanged: true) }
             .store(in: &cancellables)
 
         // Apply once for whatever state was already loaded at launch (e.g.
@@ -64,20 +64,18 @@ final class DisplayCoordinator {
         reapply()
     }
 
-    private func reapply() {
+    private func reapply(displaysChanged: Bool = false) {
         let displays = displayManager.displays
         let currentUUIDs = Set(displays.map(\.uuid))
-        gammaController.evictBaselines(keepingOnly: currentUUIDs)
-
-        // ARCHITECTURE.md §2.7: overlay windows are "recreated, not moved,
-        // on reconfiguration." Detected here (not inside OverlayDimmer)
-        // since this is the one place that already tracks "did the
-        // display list change" for baseline eviction — same signal, two
-        // consumers.
-        if currentUUIDs != lastDisplayUUIDs {
+        if displaysChanged {
+            // Wake/resolution changes can reset gamma without changing UUIDs
+            // or requested values. Restore before any new baseline is read,
+            // then invalidate the achieved commands and overlay backing stores.
+            gammaController.restoreAll()
+            lastApplied = []
             overlayDimmer.handleDisplaysChanged()
-            lastDisplayUUIDs = currentUUIDs
         }
+        gammaController.evictBaselines(keepingOnly: currentUUIDs)
 
         let uuidByID = Dictionary(uniqueKeysWithValues: displays.map { ($0.id, $0.uuid) })
         let commands = Renderer.render(appState.renderState, displays: displays)
@@ -120,11 +118,15 @@ final class DisplayCoordinator {
             }
             guard let uuid = uuidByID[command.displayID] else {
                 Log.display.error("display \(command.displayID, privacy: .public) in render output has no known UUID; skipping apply")
-                nextApplied.append(previousByID[command.displayID] ?? command)
+                if let previous = previousByID[command.displayID] { nextApplied.append(previous) }
                 continue
             }
             let succeeded = gammaController.apply(command, uuid: uuid)
-            nextApplied.append(succeeded ? command : (previousByID[command.displayID] ?? command))
+            if succeeded {
+                nextApplied.append(command)
+            } else if let previous = previousByID[command.displayID] {
+                nextApplied.append(previous)
+            } // No prior success: leave it absent so the next pass retries.
         }
         lastApplied = nextApplied
 

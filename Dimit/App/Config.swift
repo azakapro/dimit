@@ -18,6 +18,20 @@ enum Config {
     /// Below this, gamma dimming bands and loses text; the C3 overlay takes over.
     static let gammaDimFloor: Double = 0.30
 
+    /// The most of the screen Fallback mode's red veil may hide at 0K,
+    /// before dimming is applied on top. Strictly below 1: Fallback exists
+    /// for displays whose gamma is already broken, so it must never leave
+    /// the user staring at an opaque rectangle with no way back to the menu
+    /// bar. At this value 0K keeps 30% of the real screen visible, and the
+    /// NIGHT preset (0K at 40%) keeps 12%.
+    static let fallbackMaxWarmthVeil: Double = 0.70
+
+    // MARK: - Hotkey step sizes (CLAUDE.md §3.9, C4)
+    // Named here (not inlined in HotkeyManager) so a future stepper button
+    // in the UI can't drift from what the hotkey does for the same action.
+    static let warmthHotkeyStepK: Double = 100 // matches the popover slider's own step
+    static let brightnessHotkeyStep: Double = 0.05
+
     // MARK: - Not wired up yet, flags reserved so later cycles don't rename things
     static var ddcEnabled = false // C5, experimental, default OFF per CLAUDE.md §3.4
 }

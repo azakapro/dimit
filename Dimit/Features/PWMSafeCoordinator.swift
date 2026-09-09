@@ -31,6 +31,23 @@ final class PWMSafeCoordinator: ObservableObject {
     private let backends: [BrightnessBackend]
     private let pinVerifyDelay: TimeInterval
     private let pollInterval: TimeInterval
+    /// CLAUDE.md §3.4: "Never call set-brightness more than 4x/second (some
+    /// panels wear or lag)." Injectable so tests that exercise the state
+    /// machine with millisecond delays aren't forced to wait real seconds;
+    /// `PWMRateLimitTests` uses the production default deliberately.
+    private let minWriteInterval: TimeInterval
+
+    /// When each panel was last written to, for the rule above. Keyed by
+    /// UUID because the rule is about a physical panel, not a slot.
+    private var lastBrightnessWrite: [String: Date] = [:]
+
+    /// Panels whose backlight this process has actually driven to 1.0 and
+    /// not yet put back. This is what makes a restore *necessary* — not
+    /// merely "we intended to pin." Without it, a pin that was deferred by
+    /// the rate limit and then cancelled still produced a restore write to
+    /// a value the hardware was already at, which is how rapid toggling
+    /// kept breaking §3.4 even after the limit existed.
+    private var pinnedInHardware: Set<String> = []
 
     private var rememberedBrightness: [String: Float] = [:] // uuid -> brightness before pinning
     private var currentDisplays: [DisplayInfo] = []
@@ -50,15 +67,37 @@ final class PWMSafeCoordinator: ObservableObject {
     /// same UUID, set membership can't distinguish the new chain's
     /// callback from the old chain's stale one. A generation counter can.
     private var pinGeneration: [String: Int] = [:]
+    private var nextPinGeneration = 0
 
     init(
         backends: [BrightnessBackend],
         pinVerifyDelay: TimeInterval = 0.3,
-        pollInterval: TimeInterval = 5.0
+        pollInterval: TimeInterval = 5.0,
+        minWriteInterval: TimeInterval = 0.25
     ) {
         self.backends = backends
         self.pinVerifyDelay = pinVerifyDelay
         self.pollInterval = pollInterval
+        self.minWriteInterval = minWriteInterval
+    }
+
+    // MARK: - Hardware write policy (CLAUDE.md §3.4)
+
+    /// Every hardware brightness write goes through here so the rate rule
+    /// has exactly one place to live. An independent review found the rule
+    /// was only ever enforced on the *retry* path: three rapid enable/
+    /// disable cycles produced six writes inside a millisecond, because
+    /// initial pins and restores had no shared limit.
+    @discardableResult
+    private func writeBrightness(_ display: DisplayInfo, _ backend: BrightnessBackend, _ value: Float) -> BrightnessResult {
+        lastBrightnessWrite[display.uuid] = Date()
+        return backend.set(display, value)
+    }
+
+    /// How long until this panel may be written to again; 0 = now.
+    private func writeCooldown(for display: DisplayInfo) -> TimeInterval {
+        guard let last = lastBrightnessWrite[display.uuid] else { return 0 }
+        return max(0, minWriteInterval - Date().timeIntervalSince(last))
     }
 
     /// Called on every `DisplayCoordinator.reapply()`. Only starts a fresh
@@ -73,6 +112,12 @@ final class PWMSafeCoordinator: ObservableObject {
     /// to one more poll interval (5s worst case) is a much smaller
     /// practical cost — a disclosed simplification, not an oversight.
     func sync(pwmSafeRequested: Bool, displays: [DisplayInfo]) {
+        // A callback captures both UUID and CGDirectDisplayID. Invalidate it
+        // before accepting a removal or an ID reassignment for the same panel.
+        for old in currentDisplays where !displays.contains(where: { $0.uuid == old.uuid && $0.id == old.id }) {
+            pinGeneration.removeValue(forKey: old.uuid)
+            states.removeValue(forKey: old.uuid)
+        }
         currentDisplays = displays
 
         guard pwmSafeRequested else {
@@ -101,9 +146,15 @@ final class PWMSafeCoordinator: ObservableObject {
         if states.keys.contains(where: { !currentUUIDs.contains($0) }) {
             states = states.filter { currentUUIDs.contains($0.key) }
         }
-        if rememberedBrightness.keys.contains(where: { !currentUUIDs.contains($0) }) {
-            rememberedBrightness = rememberedBrightness.filter { currentUUIDs.contains($0.key) }
-        }
+        // `rememberedBrightness` is deliberately NOT filtered to connected
+        // displays. An independent review found that dropping it on
+        // disconnect permanently loses the user's real brightness: unplug a
+        // monitor that was at 40% and is currently pinned to 100%, plug it
+        // back in, and the "original" re-read from hardware is the pin's own
+        // 100% — so disabling later restores 100% and 40% is gone for good.
+        // Hardware brightness outlives the connection, so the value we owe
+        // the user has to outlive it too. Entries are dropped when actually
+        // restored (see `restoreAndDisable`), not when a cable moves.
 
         startPollingIfNeeded()
     }
@@ -117,14 +168,33 @@ final class PWMSafeCoordinator: ObservableObject {
     /// PWM-Safe on left the user's screen stuck bright until they pressed
     /// a brightness key or relaunched. CLAUDE.md §3.6 ("On disable:
     /// restore remembered hardware brightness") means quit, too.
+    ///
+    /// Restores are the one write that is **never** delayed by the §3.4 rate
+    /// limit. This runs from `applicationWillTerminate`, where a deferred
+    /// write would simply never happen and the user's backlight would stay
+    /// pinned at 100% after the app is gone — CLAUDE.md §1.8 "fail safe"
+    /// outranks the panel-wear concern, and a restore is at most one write
+    /// per display. The limit still bounds what follows: the next *pin*
+    /// waits out the cooldown this write starts.
     func restoreAndDisable() {
         for display in currentDisplays {
+            // Nothing to undo on a panel we never actually drove — skip the
+            // write entirely rather than spend a §3.4 budget writing a value
+            // the hardware already holds.
+            guard pinnedInHardware.contains(display.uuid) else { continue }
             guard let remembered = rememberedBrightness[display.uuid],
                   let backend = backend(for: display)
             else { continue }
-            _ = backend.set(display, remembered)
+            let result = writeBrightness(display, backend, remembered)
+            if result == .ok {
+                rememberedBrightness.removeValue(forKey: display.uuid)
+                pinnedInHardware.remove(display.uuid)
+            } else {
+                // Keep the value: it is the only record of what this panel
+                // is owed, and forgetting it makes the loss permanent.
+                Log.display.error("PWM-Safe: restore failed for \(display.uuid, privacy: .public): \(String(describing: result), privacy: .public); keeping the remembered value for a later attempt")
+            }
         }
-        rememberedBrightness.removeAll()
         pinGeneration.removeAll() // invalidates any in-flight verification
         if !states.isEmpty { states.removeAll() }
         pollTimer?.invalidate()
@@ -133,6 +203,13 @@ final class PWMSafeCoordinator: ObservableObject {
 
     private func backend(for display: DisplayInfo) -> BrightnessBackend? {
         backends.first { $0.canControl(display) }
+    }
+
+    /// C4: the Displays settings tab and `DiagnosticsBundle` both need to
+    /// show "which backend controls this display" without duplicating the
+    /// resolution-order logic `backend(for:)` already owns privately.
+    func backendName(for display: DisplayInfo) -> String? {
+        backend(for: display)?.name
     }
 
     /// `generation == nil` starts a fresh chain (allocating a new
@@ -145,8 +222,17 @@ final class PWMSafeCoordinator: ObservableObject {
             return
         }
 
-        let currentGeneration = generation ?? ((pinGeneration[display.uuid] ?? 0) + 1)
+        let currentGeneration: Int
+        if let generation {
+            currentGeneration = generation
+        } else {
+            // Never reuse a token after restoreAndDisable clears the map.
+            nextPinGeneration += 1
+            currentGeneration = nextPinGeneration
+        }
         pinGeneration[display.uuid] = currentGeneration
+        // Reading the original value is part of the in-flight attempt too.
+        states[display.uuid] = .pinning
 
         // Capture what to restore to *before* pinning. If that read fails
         // we deliberately don't pin at all: code review caught that the
@@ -166,8 +252,24 @@ final class PWMSafeCoordinator: ObservableObject {
             rememberedBrightness[display.uuid] = original
         }
 
-        states[display.uuid] = .pinning
-        let result = backend.set(display, 1.0)
+        // Defer rather than drop: the pin still has to happen, just not
+        // this instant. `states` is already `.pinning`, so `sync()` won't
+        // start a competing chain in the meantime, and the deferred call
+        // re-checks the generation like every other callback here.
+        let cooldown = writeCooldown(for: display)
+        guard cooldown <= 0 else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + cooldown) { [weak self] in
+                guard let self,
+                      self.pinGeneration[display.uuid] == currentGeneration,
+                      self.currentDisplays.contains(where: { $0.uuid == display.uuid && $0.id == display.id })
+                else { return }
+                self.beginPinning(display, attemptsRemaining: attemptsRemaining, generation: currentGeneration)
+            }
+            return
+        }
+
+        let result = writeBrightness(display, backend, 1.0)
+        if result == .ok { pinnedInHardware.insert(display.uuid) }
         guard result == .ok else {
             Log.display.error("PWM-Safe: set(1.0) failed for \(display.uuid, privacy: .public): \(String(describing: result), privacy: .public)")
             scheduleRetryOrGiveUp(display, backend: backend, attemptsRemaining: attemptsRemaining, generation: currentGeneration)
@@ -187,7 +289,7 @@ final class PWMSafeCoordinator: ObservableObject {
         // turned off (which removes its entry from `states` entirely —
         // `.off` is never itself a stored value, only the UI-facing
         // default for "no entry") while this verification was in flight.
-        guard currentDisplays.contains(where: { $0.uuid == display.uuid }) else { return }
+        guard currentDisplays.contains(where: { $0.uuid == display.uuid && $0.id == display.id }) else { return }
         guard states[display.uuid] != nil else { return }
 
         let value = backend.get(display) ?? 0
@@ -221,7 +323,10 @@ final class PWMSafeCoordinator: ObservableObject {
             return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + pinVerifyDelay) { [weak self] in
-            guard let self, self.pinGeneration[display.uuid] == generation else { return }
+            guard let self, self.pinGeneration[display.uuid] == generation,
+                  self.states[display.uuid] == .pinning,
+                  self.currentDisplays.contains(where: { $0.uuid == display.uuid && $0.id == display.id })
+            else { return }
             self.beginPinning(display, attemptsRemaining: attemptsRemaining - 1, generation: generation)
         }
     }

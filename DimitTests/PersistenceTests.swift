@@ -25,6 +25,44 @@ final class PersistenceTests: XCTestCase {
         XCTAssertFalse(decoded.fallbackMode, "missing key should default, not throw")
     }
 
+    // Same guarantee, pinned again for the three fields C4 adds
+    // (presetOverrides, locale, updateChecksEnabled): a tester upgrading
+    // from the C3 build (which has fallbackMode but none of these) must
+    // not lose isOn/warmthK/brightness/pwmSafe/fallbackMode/activePreset.
+    func test_decodingJSONFromBeforeC4Fields_preservesEveryOtherField() throws {
+        let c3ShapeJSON = """
+        {"isOn":true,"warmthK":0,"brightness":0.4,"pwmSafe":true,"fallbackMode":false,"activePreset":"night"}
+        """
+        let decoded = try JSONDecoder().decode(PersistedState.self, from: Data(c3ShapeJSON.utf8))
+
+        XCTAssertTrue(decoded.isOn)
+        XCTAssertEqual(decoded.warmthK, 0)
+        XCTAssertEqual(decoded.brightness, 0.4)
+        XCTAssertTrue(decoded.pwmSafe)
+        XCTAssertFalse(decoded.fallbackMode)
+        XCTAssertEqual(decoded.activePreset, "night")
+        XCTAssertTrue(decoded.presetOverrides.isEmpty, "missing key should default, not throw")
+        XCTAssertNil(decoded.locale, "missing key should default to following the system language")
+        XCTAssertFalse(decoded.updateChecksEnabled, "missing key should default to opted out, never silently opted in")
+    }
+
+    func test_presetOverrides_roundTripsThroughJSON() throws {
+        let original = PersistedState(
+            isOn: false,
+            warmthK: Config.maxWarmthK,
+            brightness: Config.maxBrightness,
+            pwmSafe: false,
+            fallbackMode: false,
+            activePreset: nil,
+            presetOverrides: ["night": PresetValues(warmthK: 500, brightness: 0.25)],
+            locale: "ru",
+            updateChecksEnabled: true
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(PersistedState.self, from: data)
+        XCTAssertEqual(decoded, original)
+    }
+
     func test_decodingCompletelyEmptyJSON_fallsBackToDefaultsForEveryField() throws {
         let decoded = try JSONDecoder().decode(PersistedState.self, from: Data("{}".utf8))
         XCTAssertEqual(decoded, PersistedState.defaults)

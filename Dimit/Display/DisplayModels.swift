@@ -45,7 +45,13 @@ struct GammaSpec: Equatable {
 /// overlay carries the whole effect.
 enum OverlayTint: Equatable {
     case black
-    case red
+    /// Fallback mode's red veil. `intensity` is the **red channel of the
+    /// window's colour** (0…1), not its opacity — opacity is
+    /// `DisplayCommand.overlayAlpha`. The two are separate because a single
+    /// window has to stand in for two conceptual veils: a red one for
+    /// warmth and a black one for dimming, applied in that order. Colour
+    /// carries "how red", alpha carries "how much is hidden."
+    case red(intensity: Double)
 }
 
 /// The full set of instructions for one display. `nil` fields mean "leave

@@ -23,6 +23,19 @@ struct PersistedState: Codable, Equatable {
     var pwmSafe: Bool
     var fallbackMode: Bool
     var activePreset: String? // PresetID.rawValue
+    /// C4: user-edited preset values, keyed by `PresetID.rawValue`. Only
+    /// presets that differ from `PresetID.defaultValues` need an entry —
+    /// `AppState.values(for:)` falls back to the default for any preset
+    /// missing here, so "reset to defaults" is just removing the key.
+    var presetOverrides: [String: PresetValues]
+    /// C4: `nil` follows the system language; otherwise one of "en"/"uz"/"ru".
+    /// CLAUDE.md §5: "Settings has a language override."
+    var locale: String?
+    /// C4/ARCHITECTURE.md §10 onboarding: "opt-in" per CLAUDE.md §1.2 —
+    /// defaults to false so a fresh install makes zero network calls until
+    /// the user explicitly opts in. Sparkle itself doesn't exist until C7;
+    /// this only persists the user's intent for that cycle to read.
+    var updateChecksEnabled: Bool
 
     static let defaults = PersistedState(
         isOn: false,
@@ -30,16 +43,32 @@ struct PersistedState: Codable, Equatable {
         brightness: Config.maxBrightness,
         pwmSafe: false,
         fallbackMode: false,
-        activePreset: nil
+        activePreset: nil,
+        presetOverrides: [:],
+        locale: nil,
+        updateChecksEnabled: false
     )
 
-    init(isOn: Bool, warmthK: Double, brightness: Double, pwmSafe: Bool, fallbackMode: Bool, activePreset: String?) {
+    init(
+        isOn: Bool,
+        warmthK: Double,
+        brightness: Double,
+        pwmSafe: Bool,
+        fallbackMode: Bool,
+        activePreset: String?,
+        presetOverrides: [String: PresetValues] = [:],
+        locale: String? = nil,
+        updateChecksEnabled: Bool = false
+    ) {
         self.isOn = isOn
         self.warmthK = warmthK
         self.brightness = brightness
         self.pwmSafe = pwmSafe
         self.fallbackMode = fallbackMode
         self.activePreset = activePreset
+        self.presetOverrides = presetOverrides
+        self.locale = locale
+        self.updateChecksEnabled = updateChecksEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -51,6 +80,9 @@ struct PersistedState: Codable, Equatable {
         pwmSafe = try container.decodeIfPresent(Bool.self, forKey: .pwmSafe) ?? fallback.pwmSafe
         fallbackMode = try container.decodeIfPresent(Bool.self, forKey: .fallbackMode) ?? fallback.fallbackMode
         activePreset = try container.decodeIfPresent(String.self, forKey: .activePreset)
+        presetOverrides = try container.decodeIfPresent([String: PresetValues].self, forKey: .presetOverrides) ?? fallback.presetOverrides
+        locale = try container.decodeIfPresent(String.self, forKey: .locale)
+        updateChecksEnabled = try container.decodeIfPresent(Bool.self, forKey: .updateChecksEnabled) ?? fallback.updateChecksEnabled
     }
 }
 
@@ -121,5 +153,16 @@ final class Persistence {
     var hasShownAutoBrightnessBanner: Bool {
         get { defaults.bool(forKey: autoBrightnessBannerShownKey) }
         set { defaults.set(newValue, forKey: autoBrightnessBannerShownKey) }
+    }
+
+    /// C4/ARCHITECTURE.md §10: "Onboarding (3 steps, first launch only)."
+    /// Same one-time-flag shape as the banner above, not part of
+    /// `PersistedState` for the same reason: it's a UI event, not
+    /// render-relevant state.
+    private let onboardingCompletedKey = "onboardingCompleted.v1"
+
+    var hasCompletedOnboarding: Bool {
+        get { defaults.bool(forKey: onboardingCompletedKey) }
+        set { defaults.set(newValue, forKey: onboardingCompletedKey) }
     }
 }

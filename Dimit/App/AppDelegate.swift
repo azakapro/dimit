@@ -13,6 +13,11 @@ private struct DisplayPipeline {
     let overlayDimmer: OverlayDimmer
     let displayCoordinator: DisplayCoordinator
     let menuBarController: MenuBarController
+    // C4. Not display-pipeline pieces strictly, but they share its
+    // lifetime and reference its members, so they live and die with it.
+    let hotkeyManager: HotkeyManager
+    let settingsWindowController: SettingsWindowController
+    let onboardingWindowController: OnboardingWindowController
 }
 
 // NSApplicationDelegate callbacks all run on the main thread in practice;
@@ -77,20 +82,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             pwmSafeCoordinator: pwmSafeCoordinator,
             overlayDimmer: overlayDimmer
         )
-        let menuBarController = MenuBarController(
-            appState: appState,
-            pwmSafeCoordinator: pwmSafeCoordinator
-        ) { [weak coordinator] in
+        let restoreColours: () -> Void = { [weak coordinator] in
             coordinator?.restoreColours()
         }
+        let settingsWindowController = SettingsWindowController(
+            appState: appState,
+            displayManager: displayManager,
+            pwmSafeCoordinator: pwmSafeCoordinator,
+            restoreColours: restoreColours
+        )
+        let menuBarController = MenuBarController(
+            appState: appState,
+            pwmSafeCoordinator: pwmSafeCoordinator,
+            restoreColours: restoreColours,
+            openSettings: { [weak settingsWindowController] in
+                settingsWindowController?.show()
+            }
+        )
+        let onboardingWindowController = OnboardingWindowController(
+            appState: appState,
+            restoreColours: restoreColours
+        )
         pipeline = DisplayPipeline(
             displayManager: displayManager,
             gammaController: gammaController,
             pwmSafeCoordinator: pwmSafeCoordinator,
             overlayDimmer: overlayDimmer,
             displayCoordinator: coordinator,
-            menuBarController: menuBarController
+            menuBarController: menuBarController,
+            hotkeyManager: HotkeyManager(appState: appState),
+            settingsWindowController: settingsWindowController,
+            onboardingWindowController: onboardingWindowController
         )
+
+        // ARCHITECTURE.md §10: "first launch only." After the pipeline is
+        // up, so the onboarding's "Restore colours" button has something
+        // real to call.
+        onboardingWindowController.showIfNeeded()
 
         Log.app.info("Dimit launched, version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?", privacy: .public)")
     }

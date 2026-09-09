@@ -1,12 +1,25 @@
 import AppKit
 import CoreGraphics
 import ColorSync
+import Combine
+
+/// What `DisplayCoordinator` needs from display enumeration. Exists so
+/// the coordinator's lifecycle behaviour (wake, reconfiguration, ID reuse)
+/// can be driven deterministically in tests — that behaviour was untested
+/// and wrong, and no amount of care with the real `DisplayManager` can
+/// make a sleep/wake cycle reproducible in a unit test.
+@MainActor
+protocol DisplayProviding {
+    var displays: [DisplayInfo] { get }
+    var displayUpdates: AnyPublisher<[DisplayInfo], Never> { get }
+}
 
 /// Owns real display enumeration and the two lifecycle events that force
 /// a re-apply: reconfiguration (plug/unplug/resolution change) and wake
 /// from sleep — ARCHITECTURE.md §2.2.
 @MainActor
-final class DisplayManager: ObservableObject {
+final class DisplayManager: ObservableObject, DisplayProviding {
+    var displayUpdates: AnyPublisher<[DisplayInfo], Never> { $displays.eraseToAnyPublisher() }
     @Published private(set) var displays: [DisplayInfo] = []
 
     private var reconfigureWorkItem: DispatchWorkItem?
