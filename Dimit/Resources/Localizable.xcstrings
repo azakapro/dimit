@@ -573,6 +573,28 @@
         }
       }
     },
+    "menu.restore_colours": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore Colours"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Restore Colours"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Restore Colours"
+          }
+        }
+      }
+    },
     "menu.settings": {
       "localizations": {
         "en": {

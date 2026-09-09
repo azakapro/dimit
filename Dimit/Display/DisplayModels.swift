@@ -1,9 +1,10 @@
 import CoreGraphics
 
 /// Static facts about one connected display. Real enumeration
-/// (`CGGetActiveDisplayList` etc.) arrives in C2's `DisplayManager`; for now
-/// this is a plain, mockable struct so `Renderer` can be tested without
-/// touching hardware.
+/// (`CGGetActiveDisplayList` etc.) lives in `DisplayManager`
+/// (`Dimit/Display/DisplayManager.swift`); this stays a plain, mockable
+/// struct so `Renderer` and `Applier` can be tested without touching
+/// hardware.
 struct DisplayInfo: Equatable, Identifiable {
     var id: CGDirectDisplayID
     var uuid: String

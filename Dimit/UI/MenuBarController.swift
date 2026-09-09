@@ -10,10 +10,12 @@ final class MenuBarController: NSObject {
     private let statusItem: NSStatusItem
     private let popover: NSPopover
     private let appState: AppState
+    private let restoreColours: () -> Void
     private var cancellables = Set<AnyCancellable>()
 
-    init(appState: AppState) {
+    init(appState: AppState, restoreColours: @escaping () -> Void) {
         self.appState = appState
+        self.restoreColours = restoreColours
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         self.popover = NSPopover()
         super.init()
@@ -98,6 +100,20 @@ final class MenuBarController: NSObject {
 
         menu.addItem(.separator())
 
+        // CLAUDE.md §3.3 / onboarding: a manual "restore colours" safety
+        // valve, independent of the ON/OFF state — useful if a gamma
+        // read-back mismatch or any other display weirdness leaves the
+        // screen looking wrong. C2's new string; see Resources/Localizable.xcstrings.
+        let restoreItem = NSMenuItem(
+            title: String(localized: "menu.restore_colours"),
+            action: #selector(restoreColoursClicked),
+            keyEquivalent: ""
+        )
+        restoreItem.target = self
+        menu.addItem(restoreItem)
+
+        menu.addItem(.separator())
+
         let settingsItem = NSMenuItem(
             title: String(localized: "menu.settings"),
             action: nil, // C4
@@ -131,5 +147,9 @@ final class MenuBarController: NSObject {
 
     @objc private func toggleOnOff() {
         appState.isOn.toggle()
+    }
+
+    @objc private func restoreColoursClicked() {
+        restoreColours()
     }
 }
