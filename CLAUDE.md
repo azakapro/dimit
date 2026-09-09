@@ -267,7 +267,7 @@ Pages per locale (`en` at `/`, `uz`, `ru`): home, /download, /faq, /help, /scien
 | C7 | **v1.0** | Astro site, Lemon Squeezy checkout, Sparkle opt-in, licensing dead-code cleanup, launch | Sonnet 5 |
 | Phase 2 | v2 | Windows (§11) | — |
 
-C0–C5 are merged and tagged (`v0.1`–`v0.3`, 2026-09-09). The old C8/C9 (Payme + Click, then a separate global launch) are gone with the licensing plan: one checkout serves everyone from day one.
+C0–C6 are merged and tagged (`v0.1`–`v0.4`, 2026-09-09/10); C7's code and site are merged, and `v1.0` waits on the owner-only items in `docs/PLAN.md` §1. The old C8/C9 (Payme + Click, then a separate global launch) are gone with the licensing plan: one checkout serves everyone from day one.
 
 The original week-by-week milestone list (M0–M7) that used to sit here is gone: it was written before the MVP-first re-plan and then contradicted twice over — first by the cycles above, then by the 2026-09-09 distribution decision, which deleted its M3 (license server), M5 (Payme/Click site) and M7 (a separate global launch) outright. `docs/PLAN.md` §1–§2 is the only schedule. A few older comments still say "M4" where they mean C5's DDC work; read them as cycle names.
 

@@ -46,3 +46,12 @@ site/.astro/
 
 # Scratch
 *.orig
+
+# Claude Code session tooling (launch configs, locks) — per machine, not project
+.claude/
+
+# Sparkle archives are deployed from the local build, never committed
+# (scripts/make_appcast.sh, docs/RELEASE.md). appcast.xml stays tracked.
+site/public/updates/*.zip
+site/public/updates/*.delta
+site/public/updates/old_updates/

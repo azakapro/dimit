@@ -294,6 +294,29 @@ The two overlay columns rely on `sharingType = .none`, which Apple describes as 
 |---|---|---|---|---|---|---|
 | | | | | | | |
 
+## C7 — Sparkle opt-in updates, the site, cleanup (2026-09-10, same machine)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Build and tests with Sparkle 2.9.6 linked | pass | 183 tests (180 → 183): `UpdateControllerTests` pin that automatic checks are off on a fresh install even though the fake updater defaults them on, follow the opt-in both ways, and that a manual check is forwarded regardless. |
+| **No network request with the opt-in off** (CLAUDE.md §4.3; C7 "Done when") | **pass** | Real Debug build launched with `updateChecksEnabled: false`; `lsof -nP -i -a -p <pid>` sampled every 5 s for 60 s: **0 sockets**, and no Sparkle log line. Repeated with Sparkle's own bookkeeping back-dated (`SUHasLaunchedBefore`, `SULastCheckTime` = nine days ago) so a check would be *due*: still 0 sockets — the opt-in, not the schedule, is what gates it. |
+| **The opt-in path actually fires, and only then** | **pass — definitive both ways** | `dimit.uz` doesn't resolve yet, so a copy of the build was pointed (Info.plist patched, re-signed ad-hoc) at a local `http.server` serving a minimal appcast, with Sparkle's last-check date back-dated so a check was due. **Opt-in off, 60 s: 0 requests. Opt-in on, 60 s: exactly one `GET /appcast.xml`.** Same binary, same schedule state; the only difference was the checkbox. |
+| `SUEnableAutomaticChecks = NO` in Info.plist | pass, by construction | Sparkle's own "check automatically?" dialog never appears; the onboarding checkbox is the only place the question is asked. |
+| EdDSA key pair | generated | `generate_keys` (Sparkle 2.9.6) — private half in the login Keychain, public half `SUPublicEDKey` in Info.plist. `generate_keys -x` exports it for a second Mac; docs/RELEASE.md §0. |
+| `scripts/make_appcast.sh` | written; refuses to run here | Requires a Developer-ID-signed app (an ad-hoc build in the appcast would be refused by Gatekeeper on the user's Mac); exits before touching `site/public/updates/`. |
+| "Check for Updates…" menu item | pass (by construction, not clicked) | Right-click menu, `menu.check_updates` in en/uz/ru, enabled only while `SPUUpdater.canCheckForUpdates`. Same standing click limitation as every menu item since C1. |
+| Site builds, three locales | pass | `npm run build`: 27 pages (9 × en/uz/ru). Rendered in the browser pane: home, download (uz), FAQ (ru) — styled, dark-mode aware, language switcher and hreflang links present. |
+| Download page without a checkout URL | pass | Button rendered disabled with "checkout opens soon" until `site/src/config.ts` has the Lemon Squeezy URL; `npm run build:release` fails while any `TODO_` placeholder remains, so a placeholder can't be deployed by accident. |
+| Every site claim has a QA row | pass, by review of the copy | Capture claim limited to ≥ 30% brightness (this file § C6 capture matrix); DDC described as experimental and unconfirmed; PWM described as a mechanism, no health claim (CLAUDE.md §1.7); tested-on list is exactly the hardware in this file. |
+| uz/ru copy | **pending — fluent review** | Written alongside the English, not by a fluent reviewer: `site/TRANSLATIONS.md`. A C7 "Done when" line that only a person can close. |
+| Lemon Squeezy test-mode purchase at $5 and above | **pending — owner** | Needs the store, the variant URL in `config.ts`, and a payout method verified in the dashboard (docs/PLAN.md §4). |
+| Notarized v1.0 under the LLC | **pending — owner** | No Developer ID on this machine (§ C6). |
+| Manual "Check for Updates…" before the feed exists | known, documented | `dimit.uz` isn't live, so a manual check shows Sparkle's own "update error" dialog — in Sparkle's localizations, which include `ru` but not `uz`, so Uzbek users see English. docs/RELEASE.md makes a reachable appcast a tagging gate; nothing to fix in the app. |
+| App strings still English in uz/ru (47 keys: Settings tabs, hotkeys, schedule, onboarding, Restore Colours, DDC help) | translated, **review pending** | Written alongside the site copy and left in `needs_review` so the catalog editor flags them (CLAUDE.md §5.1's mechanism). The site names those Settings paths with the same words, so the two must be reviewed together — `site/TRANSLATIONS.md`. |
+
+**`/code-review high`, 8 angles, 10 findings, all fixed before merge.** The three that mattered: the "Check for Updates…" enable state was dead code (NSMenu auto-enables items and re-derives the state on pop-up; fixed with `autoenablesItems = false`); `make_appcast.sh` would have committed and deployed every old zip and delta forever (archives now gitignored and deployed from the local build, deltas off, `old_updates/` removed); and the uz/ru site copy named Settings paths the app still showed in English (fixed by translating the app, flagged for review). Also: the `SPUStandardUpdaterController` is now retained rather than dropped after `init`; the tools lookup prefers the DerivedData `build.sh` uses; a missing checkout URL now trips the deploy gate; the legal pages render text nodes instead of `set:html`; the tests assert that opting in never starts a check by itself; the download page no longer claims a notarized build while advertising 0.4; the Mi Monitor line says "unconfirmed", not "not supported".
+
+
 ## Performance
 
 | Date | Version | Machine | Idle CPU (5 min avg) | Popover open (ms) | Slider latency |

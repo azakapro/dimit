@@ -35,7 +35,11 @@ Why the app is stapled before the DMG is built: a buyer who drags Dimit.app out 
 Then the two distribution steps, both C7 (docs/ARCHITECTURE.md §5, §8):
 
 5. **Lemon Squeezy:** upload `Dimit-X.Y.dmg` to the product as a **new or replacement** file. Every past buyer sees it in My Orders. **Never delete an older file** — deleting removes it from everyone who already bought it.
-6. **Sparkle:** `scripts/make_appcast.sh` (C7) regenerates `site/public/updates/appcast.xml` from `build/release/Dimit-X.Y.zip`; deploy the site.
+6. **Sparkle:** `scripts/make_appcast.sh` copies `build/release/Dimit-X.Y.zip` into `site/public/updates/` and regenerates the signed `appcast.xml` there. The zips are gitignored — only `appcast.xml` is committed — so the site must be deployed **from the local build**, never from the git tree alone:
+   ```bash
+   cd site && npm run build:release && npx wrangler pages deploy dist --project-name dimit
+   ```
+   (`wrangler` runs via npx; one-time `npx wrangler login`.) Before tagging, `curl -sI https://dimit.uz/updates/appcast.xml` must return 200 — until the feed exists, a manual "Check for Updates…" shows Sparkle's own error dialog (English for Uzbek users: Sparkle ships no `uz` localization).
 
 ## 2. Before tagging — the release gates
 

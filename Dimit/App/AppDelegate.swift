@@ -22,6 +22,9 @@ private struct DisplayPipeline {
     // schedule mode is active; a no-op (no timer even runs) in the default
     // Manual mode. See ScheduleCoordinator's own doc comment.
     let scheduleCoordinator: ScheduleCoordinator
+    // C7. Mirrors the user's opt-in onto Sparkle; the only network code in
+    // the app, inert until that opt-in is on (ARCHITECTURE.md §8).
+    let updateController: UpdateController
 }
 
 // NSApplicationDelegate callbacks all run on the main thread in practice;
@@ -103,13 +106,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             pwmSafeCoordinator: pwmSafeCoordinator,
             restoreColours: restoreColours
         )
+        let updateController = UpdateController(appState: appState)
         let menuBarController = MenuBarController(
             appState: appState,
             pwmSafeCoordinator: pwmSafeCoordinator,
             restoreColours: restoreColours,
             openSettings: { [weak settingsWindowController] in
                 settingsWindowController?.show()
-            }
+            },
+            checkForUpdates: { [weak updateController] in updateController?.checkForUpdates() },
+            canCheckForUpdates: { [weak updateController] in updateController?.canCheckForUpdates ?? false }
         )
         let onboardingWindowController = OnboardingWindowController(
             appState: appState,
@@ -125,7 +131,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             hotkeyManager: HotkeyManager(appState: appState),
             settingsWindowController: settingsWindowController,
             onboardingWindowController: onboardingWindowController,
-            scheduleCoordinator: ScheduleCoordinator(appState: appState)
+            scheduleCoordinator: ScheduleCoordinator(appState: appState),
+            updateController: updateController
         )
 
         // ARCHITECTURE.md §10: "first launch only." After the pipeline is

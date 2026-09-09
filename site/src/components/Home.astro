@@ -1,0 +1,33 @@
+---
+import Base from "../layouts/Base.astro";
+import { config } from "../config";
+import { prefix, t, type Lang } from "../i18n";
+const { lang } = Astro.props as { lang: Lang };
+const d = t(lang); const h = d.home; const p = prefix(lang);
+---
+<Base lang={lang} title="Dimit" description={h.tagline} page="index">
+  <h1>{h.tagline}</h1>
+  <p class="lead">{h.lead}</p>
+  <p>
+    <a class="btn" href={`${p}/download`}>{h.cta}</a>
+    &nbsp; <a class="btn secondary" href={`${p}/help`}>{h.secondary}</a>
+  </p>
+  <p class="note">macOS {config.minMacOS}+ · v{config.currentVersion}</p>
+
+  <div class="grid" style="margin-top:32px">
+    {h.features.map((f) => <div class="card"><h3>{f.title}</h3><p>{f.body}</p></div>)}
+  </div>
+
+  <h2>{h.vsTitle}</h2>
+  <table>
+    <tbody>{h.vs.map((r) => <tr><th>{r.name}</th><td>{r.warmth}</td><td>{h.pwmLabel} {r.pwm}</td></tr>)}</tbody>
+  </table>
+
+  <h2>{h.priceTitle}</h2>
+  <p>{h.priceBody}</p>
+  <p><a class="btn" href={`${p}/download`}>{h.cta}</a></p>
+  <p class="note">{h.priceNote}</p>
+
+  <h2>{h.honestyTitle}</h2>
+  <ul>{h.honesty.map((s) => <li>{s}</li>)}</ul>
+</Base>
