@@ -1,11 +1,20 @@
 import AppKit
 
+/// What `DisplayCoordinator` needs from the overlay. A test seam only —
+/// see `DisplayProviding` for why the coordinator's lifecycle needs one.
+@MainActor
+protocol OverlayDimming {
+    func sync(commands: [DisplayCommand], displays: [DisplayInfo])
+    func handleDisplaysChanged()
+    func removeAll()
+}
+
 /// One borderless `NSWindow` per screen for brightness below the gamma
 /// dim floor, or the entire visual effect in Fallback mode — CLAUDE.md
 /// §3.5 / ARCHITECTURE.md §2.7. Keyed by display UUID, matching
 /// `GammaController`'s baseline cache.
 @MainActor
-final class OverlayDimmer {
+final class OverlayDimmer: OverlayDimming {
     private struct Applied: Equatable {
         var tint: OverlayTint
         var alpha: Double
@@ -97,7 +106,9 @@ final class OverlayDimmer {
     private func color(for tint: OverlayTint) -> NSColor {
         switch tint {
         case .black: return .black
-        case .red: return NSColor(red: 1, green: 0, blue: 0, alpha: 1)
+        // Opacity comes from the window's alphaValue, not from here — this
+        // colour is fully opaque and only carries "how red."
+        case .red(let intensity): return NSColor(red: intensity, green: 0, blue: 0, alpha: 1)
         }
     }
 }

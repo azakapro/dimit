@@ -7,13 +7,14 @@ import SwiftUI
 /// list and real backend names only; the toggle arrives with C5's real
 /// `DDCController`.
 struct DisplaysSettingsTab: View {
+    @ObservedObject var appState: AppState
     @ObservedObject var displayManager: DisplayManager
     @ObservedObject var pwmSafeCoordinator: PWMSafeCoordinator
 
     var body: some View {
         Form {
             ForEach(displayManager.displays) { display in
-                DisplayRow(display: display, backendName: pwmSafeCoordinator.backendName(for: display))
+                DisplayRow(appState: appState, display: display, backendName: pwmSafeCoordinator.backendName(for: display))
             }
         }
         .formStyle(.grouped)
@@ -21,6 +22,7 @@ struct DisplaysSettingsTab: View {
 }
 
 private struct DisplayRow: View {
+    @ObservedObject var appState: AppState
     let display: DisplayInfo
     let backendName: String?
 
@@ -44,9 +46,9 @@ private struct DisplayRow: View {
 
     private var backendLine: String {
         guard let backendName else {
-            return String(localized: "settings.display_no_backend")
+            return appState.localized("settings.display_no_backend")
         }
-        return String(format: String(localized: "settings.display_backend"), backendName)
+        return appState.localized("settings.display_backend", backendName)
     }
 }
 

@@ -17,6 +17,7 @@ struct SettingsView: View {
                 .tabItem { Text("settings.tab.general") }
 
             DisplaysSettingsTab(
+                appState: appState,
                 displayManager: displayManager,
                 pwmSafeCoordinator: pwmSafeCoordinator
             )

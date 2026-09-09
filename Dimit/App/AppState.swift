@@ -262,4 +262,13 @@ final class AppState: ObservableObject {
         resource.locale = effectiveLocale
         return String(localized: resource)
     }
+
+    /// Same, for catalog entries with `%@`/`%d` placeholders. Exists so no
+    /// call site has to reach for `String(format: String(localized:))`,
+    /// which resolves against the *system* language and silently ignores
+    /// the override — code review found three sites that had already done
+    /// exactly that, inside views the override was otherwise reaching.
+    func localized(_ key: LocalizedStringResource, _ arguments: CVarArg...) -> String {
+        String(format: localized(key), arguments: arguments)
+    }
 }

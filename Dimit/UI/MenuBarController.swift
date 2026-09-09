@@ -45,7 +45,8 @@ final class MenuBarController: NSObject {
         )
 
         if let button = statusItem.button {
-            button.image = MenuBarIcon.image(isOn: appState.isOn, pwmPinned: pwmSafeCoordinator.summaryState == .pinned)
+            button.image = MenuBarIcon.image(isOn: appState.isOn, pwmPinned: pwmSafeCoordinator.summaryState == .pinned,
+                                    accessibilityDescription: appState.localized(appState.isOn ? "main.on" : "main.off"))
             button.action = #selector(statusItemClicked)
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -74,7 +75,8 @@ final class MenuBarController: NSObject {
     }
 
     private func updateIcon() {
-        statusItem.button?.image = MenuBarIcon.image(isOn: appState.isOn, pwmPinned: pwmSafeCoordinator.summaryState == .pinned)
+        statusItem.button?.image = MenuBarIcon.image(isOn: appState.isOn, pwmPinned: pwmSafeCoordinator.summaryState == .pinned,
+                                    accessibilityDescription: appState.localized(appState.isOn ? "main.on" : "main.off"))
     }
 
     @objc private func statusItemClicked() {

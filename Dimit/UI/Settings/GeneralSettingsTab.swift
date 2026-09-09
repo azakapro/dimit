@@ -82,9 +82,8 @@ struct GeneralSettingsTab: View {
                     // while SMAppService silently refused — a wrong-but-
                     // confident UI is worse than a visible error here.
                     launchAtLoginEnabled = LaunchAtLogin.isEnabled
-                    launchAtLoginError = String(
-                        format: String(localized: "settings.launch_at_login_error"),
-                        error.localizedDescription
+                    launchAtLoginError = appState.localized(
+                        "settings.launch_at_login_error", error.localizedDescription
                     )
                 }
             }
@@ -128,6 +127,9 @@ private struct PresetEditorRow: View {
                     Text("settings.preset_reset")
                 }
                 .buttonStyle(.borderless)
+                // Three identical "Reset, button" rows are indistinguishable
+                // to VoiceOver without naming which preset each resets.
+                .accessibilityLabel(Text("\(String(localized: "settings.preset_reset")) \(String(localized: preset.titleKey))"))
             }
 
             HStack {
@@ -137,6 +139,11 @@ private struct PresetEditorRow: View {
                     in: Config.minWarmthK...Config.maxWarmthK,
                     step: 100
                 )
+                // CLAUDE.md §8: "VoiceOver labels for both sliders and all
+                // buttons." The sibling Text is a separate element, so
+                // without these the row reads as six unlabelled sliders.
+                .accessibilityLabel(Text("\(String(localized: preset.titleKey)) — \(String(localized: "main.warmth"))"))
+                .accessibilityValue(Text(ValueFormatting.warmth(warmthBinding.wrappedValue, locale: locale)))
                 Text(ValueFormatting.warmth(warmthBinding.wrappedValue, locale: locale))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
@@ -148,6 +155,8 @@ private struct PresetEditorRow: View {
                     value: brightnessBinding,
                     in: Config.minBrightness...Config.maxBrightness
                 )
+                .accessibilityLabel(Text("\(String(localized: preset.titleKey)) — \(String(localized: "main.brightness"))"))
+                .accessibilityValue(Text(ValueFormatting.brightness(brightnessBinding.wrappedValue)))
                 Text(ValueFormatting.brightness(brightnessBinding.wrappedValue))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)

@@ -1,12 +1,21 @@
 import CoreGraphics
 
+/// What `DisplayCoordinator` needs from gamma. A test seam only — see
+/// `DisplayProviding` for why the coordinator's lifecycle needs one.
+@MainActor
+protocol GammaApplying {
+    func apply(_ command: DisplayCommand, uuid: String) -> Bool
+    func restoreAll()
+    func evictBaselines(keepingOnly currentUUIDs: Set<String>)
+}
+
 /// Owns the actual `CGSetDisplayTransferByTable` calls and the baseline
 /// cache. Every private/low-level call in this file is named in a comment
 /// with its exact symbol, per CLAUDE.md §12 — though gamma is public
 /// CoreGraphics API, not a private framework; that discipline starts
 /// mattering for real in C3's `BrightnessController`.
 @MainActor
-final class GammaController {
+final class GammaController: GammaApplying {
     /// Keyed by display **UUID**, not `CGDirectDisplayID` — ARCHITECTURE.md
     /// §2.4: IDs change across reconnects, but more importantly, a baseline
     /// must be captured exactly once per physical display and never
