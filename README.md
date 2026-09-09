@@ -20,6 +20,6 @@ First thing to run on any new macOS build:
 swift scripts/gamma_spike.swift
 ```
 
-Status (2026-09-09): C0 and C1 done and merged to main (29 tests green) — menu bar item, popover, string catalog, warmth curve. The app does not touch the display yet. Next is C2 in docs/PLAN.md §2: the real gamma engine.
+Status (2026-09-09): C0, C1, C2 done and merged to main (43 tests green). The app now really warms and dims every connected display, with restore on quit/off/crash-adjacent signals/launch, all verified against the real hardware via direct gamma-table readback. Next is C3 in docs/PLAN.md §2: PWM-Safe mode and the extreme-dim overlay (tags v0.1).
 
 PR rules: docs/PLAN.md §3 and .github/pull_request_template.md.
