@@ -31,6 +31,16 @@
 	     Screen Recording/admin. We are not an App Store app. -->
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<!-- CLAUDE.md §3.8/§8: only shown if the user taps "Use my location" in
+	     the Sunset->Sunrise schedule (LocationProvider.swift is the one call
+	     site). Both keys present since Apple's own guidance on which one
+	     macOS actually consults has changed across releases; base (English)
+	     text here, uz/ru in Resources/{uz,ru}.lproj/InfoPlist.strings — Info.plist
+	     values aren't part of the String Catalog mechanism. -->
+	<key>NSLocationUsageDescription</key>
+	<string>Dimit uses your location only to compute today's sunrise and sunset time for the Sunset→Sunrise schedule. Nothing is sent anywhere.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Dimit uses your location only to compute today's sunrise and sunset time for the Sunset→Sunrise schedule. Nothing is sent anywhere.</string>
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>

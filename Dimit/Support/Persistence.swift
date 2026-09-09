@@ -36,6 +36,12 @@ struct PersistedState: Codable, Equatable {
     /// the user explicitly opts in. Sparkle itself doesn't exist until C7;
     /// this only persists the user's intent for that cycle to read.
     var updateChecksEnabled: Bool
+    /// C5/CLAUDE.md §3.8: Manual/Sunset→Sunrise/Fixed-times, plus whatever
+    /// location or clock times the chosen mode needs. Defaults to
+    /// `.manual`, matching every existing user's current (schedule-free)
+    /// behavior exactly — nobody's screen starts ramping on its own the
+    /// day this field appears in an update.
+    var scheduleConfig: ScheduleConfig
 
     static let defaults = PersistedState(
         isOn: false,
@@ -46,7 +52,8 @@ struct PersistedState: Codable, Equatable {
         activePreset: nil,
         presetOverrides: [:],
         locale: nil,
-        updateChecksEnabled: false
+        updateChecksEnabled: false,
+        scheduleConfig: .defaults
     )
 
     init(
@@ -58,7 +65,8 @@ struct PersistedState: Codable, Equatable {
         activePreset: String?,
         presetOverrides: [String: PresetValues] = [:],
         locale: String? = nil,
-        updateChecksEnabled: Bool = false
+        updateChecksEnabled: Bool = false,
+        scheduleConfig: ScheduleConfig = .defaults
     ) {
         self.isOn = isOn
         self.warmthK = warmthK
@@ -69,6 +77,7 @@ struct PersistedState: Codable, Equatable {
         self.presetOverrides = presetOverrides
         self.locale = locale
         self.updateChecksEnabled = updateChecksEnabled
+        self.scheduleConfig = scheduleConfig
     }
 
     init(from decoder: Decoder) throws {
@@ -83,6 +92,7 @@ struct PersistedState: Codable, Equatable {
         presetOverrides = try container.decodeIfPresent([String: PresetValues].self, forKey: .presetOverrides) ?? fallback.presetOverrides
         locale = try container.decodeIfPresent(String.self, forKey: .locale)
         updateChecksEnabled = try container.decodeIfPresent(Bool.self, forKey: .updateChecksEnabled) ?? fallback.updateChecksEnabled
+        scheduleConfig = try container.decodeIfPresent(ScheduleConfig.self, forKey: .scheduleConfig) ?? fallback.scheduleConfig
     }
 }
 

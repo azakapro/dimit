@@ -1,0 +1,6 @@
+/* Reuses "От заката до рассвета" — the exact schedule.sun wording already
+   in Localizable.xcstrings — for consistency with the in-app string.
+   Translated directly (not machine-translated); a native speaker should
+   still sanity-check before 1.0, same as any other ru copy in this repo. */
+"NSLocationUsageDescription" = "Dimit использует ваше местоположение только для расчёта времени восхода и захода солнца в расписании «От заката до рассвета». Данные никуда не отправляются.";
+"NSLocationWhenInUseUsageDescription" = "Dimit использует ваше местоположение только для расчёта времени восхода и захода солнца в расписании «От заката до рассвета». Данные никуда не отправляются.";

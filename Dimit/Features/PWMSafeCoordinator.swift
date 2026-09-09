@@ -336,11 +336,24 @@ final class PWMSafeCoordinator: ObservableObject {
     private func startPollingIfNeeded() {
         guard pollTimer == nil else { return }
         guard states.values.contains(.pinned) else { return }
-        pollTimer = Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkForDrift()
             }
         }
+        // `Timer.scheduledTimer(withTimeInterval:repeats:)` (used here until
+        // this fix) registers itself on the current run loop in `.default`
+        // mode only, which stops firing while the run loop is in
+        // `.eventTracking` mode — a menu open, a window being dragged. An
+        // independent review found this: drift re-pinning silently stalls
+        // for as long as a menu stays open, and CLAUDE.md §3.6's "poll
+        // every 5s while pinned" quietly stops holding. `.common` covers
+        // both modes. `ScheduleCoordinator`'s tick timer (C5a) used
+        // `.common` from the start for exactly this reason — applying the
+        // same fix here rather than leaving two coordinators disagreeing on
+        // it inside the same cycle.
+        RunLoop.main.add(timer, forMode: .common)
+        pollTimer = timer
     }
 
     private func checkForDrift() {

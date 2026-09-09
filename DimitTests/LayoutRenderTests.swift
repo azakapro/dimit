@@ -44,6 +44,44 @@ final class LayoutRenderTests: XCTestCase {
         }
     }
 
+    // The whole-window render above always lands on Settings' first tab
+    // (General) — it never actually looks at the Schedule tab's own
+    // controls (a segmented mode picker, DatePickers, a DisclosureGroup,
+    // a Stepper: several control types not used anywhere else in this
+    // codebase yet). Rendered directly, in each of its three modes.
+    func test_scheduleTab_fitsAndRenders_inEveryMode_andEveryLanguage() {
+        for locale in locales {
+            for mode in ScheduleMode.allCases {
+                let state = freshState(locale: locale)
+                state.scheduleConfig.mode = mode
+                if mode == .sunsetToSunrise {
+                    state.scheduleConfig.location = Coordinate(latitude: 41.2995, longitude: 69.2401)
+                    state.scheduleConfig.selectedCityID = "tashkent"
+                }
+                let view = ScheduleSettingsTab(appState: state)
+                    .environment(\.locale, Locale(identifier: locale))
+                    .frame(width: 520)
+                let size = render(view, name: "schedule-\(mode.rawValue)-\(locale)")
+                XCTAssertGreaterThan(size.height, 0, "\(mode.rawValue)/\(locale): view produced no content")
+                // SettingsView's real window is a fixed 520x460, and its
+                // TabView reserves roughly 40pt for the tab bar itself,
+                // leaving ~420pt of actual content height. An earlier
+                // version of this test only checked "&lt; 900" — comfortably
+                // true even for content that would need to scroll inside
+                // the real window, so it never actually proved the tab
+                // fits (an independent review caught the gap, though not
+                // a live failure: every mode measures well under the real
+                // budget). `Form`/`.formStyle(.grouped)` scrolls
+                // gracefully if this ever needs to grow past it, so this
+                // is a real ceiling, not a hard crash risk — but a
+                // regression here means the tab now needs scrolling to
+                // see everything, in the one language (Russian) most
+                // likely to hit it first.
+                XCTAssertLessThan(size.height, 420, "\(mode.rawValue)/\(locale): exceeds the real Settings window's content height — this tab would now need scrolling")
+            }
+        }
+    }
+
     func test_onboarding_fitsItsFixedFrame_inEveryLanguage() {
         for locale in locales {
             let state = freshState(locale: locale)

@@ -59,6 +59,11 @@ final class AppState: ObservableObject {
     /// its own.
     @Published var updateChecksEnabled: Bool
 
+    /// C5/CLAUDE.md §3.8. `ScheduleCoordinator` is the only thing that
+    /// reads this to drive anything; AppState itself has no scheduling
+    /// logic, same separation as everything else it holds.
+    @Published var scheduleConfig: ScheduleConfig
+
     /// CLAUDE.md §3.3: "show a one-time banner ... on macOS ≥ 26 the first
     /// time the filter is turned ON, dismissable forever." No reliable
     /// detection key for auto-brightness was found on this macOS 27 beta
@@ -88,6 +93,7 @@ final class AppState: ObservableObject {
         )
         self.locale = saved.locale
         self.updateChecksEnabled = saved.updateChecksEnabled
+        self.scheduleConfig = saved.scheduleConfig
 
         // Debounced 250ms persistence — CLAUDE.md §3.7. `objectWillChange`
         // fires on every @Published mutation, so this one subscription
@@ -234,7 +240,8 @@ final class AppState: ObservableObject {
                     uniqueKeysWithValues: presetOverrides.map { ($0.key.rawValue, $0.value) }
                 ),
                 locale: locale,
-                updateChecksEnabled: updateChecksEnabled
+                updateChecksEnabled: updateChecksEnabled,
+                scheduleConfig: scheduleConfig
             )
         )
     }

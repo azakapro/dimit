@@ -1,0 +1,5 @@
+/* CLAUDE.md §3.8/§8: shown only if the user taps "Use my location" in the
+   Sunset->Sunrise schedule. Base-language copy; see Info.plist's own
+   comment for why both keys exist. */
+"NSLocationUsageDescription" = "Dimit uses your location only to compute today's sunrise and sunset time for the Sunset→Sunrise schedule. Nothing is sent anywhere.";
+"NSLocationWhenInUseUsageDescription" = "Dimit uses your location only to compute today's sunrise and sunset time for the Sunset→Sunrise schedule. Nothing is sent anywhere.";

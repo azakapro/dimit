@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// ARCHITECTURE.md §10's settings window, minus the two tabs whose
-/// features don't exist yet: Schedule (C5) and License (C7). They're
-/// omitted rather than shown disabled — an empty tab the user can click
-/// into and find nothing in is worse than one that isn't there, and
-/// docs/PLAN.md's C4 "Out" list names both.
+/// ARCHITECTURE.md §10's settings window, minus the one tab whose feature
+/// doesn't exist yet: License (C7). It's omitted rather than shown
+/// disabled — an empty tab the user can click into and find nothing in is
+/// worse than one that isn't there. Schedule (C5) is no longer in that
+/// category as of this cycle.
 struct SettingsView: View {
     @ObservedObject var appState: AppState
     @ObservedObject var displayManager: DisplayManager
@@ -15,6 +15,9 @@ struct SettingsView: View {
         TabView {
             GeneralSettingsTab(appState: appState)
                 .tabItem { Text("settings.tab.general") }
+
+            ScheduleSettingsTab(appState: appState)
+                .tabItem { Text("schedule.title") }
 
             DisplaysSettingsTab(
                 appState: appState,
