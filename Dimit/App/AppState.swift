@@ -71,6 +71,18 @@ final class AppState: ObservableObject {
         activePreset = nil
     }
 
+    /// Writes current state immediately, bypassing the 250 ms debounce.
+    ///
+    /// Without this, any change made in the last 250 ms before quit was
+    /// silently lost: `objectWillChange` had fired, but the debounced sink
+    /// never got to run before the process went away. That directly breaks
+    /// C1's "state survives relaunch" criterion for the most common case
+    /// there is — flip something, immediately quit. Called from
+    /// `applicationWillTerminate`.
+    func flush() {
+        persist()
+    }
+
     private func persist() {
         persistence.save(
             PersistedState(

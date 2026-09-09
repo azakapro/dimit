@@ -19,7 +19,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        // C2 adds the actual gamma restore call here. Nothing touches the
-        // display yet in C1, so there is nothing to restore.
+        // Persistence is debounced 250 ms, so without this any change made
+        // just before quitting is lost — flip a preset, hit Quit, and it's
+        // gone. Flush synchronously here.
+        appState.flush()
+
+        // C2 adds the gamma restore call here. Nothing touches the display
+        // yet in C1, so there is nothing to restore.
     }
 }

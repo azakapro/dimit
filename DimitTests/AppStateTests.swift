@@ -81,6 +81,37 @@ final class AppStateTests: XCTestCase {
         XCTAssertTrue(reloaded.pwmSafe)
     }
 
+    // Documents *why* flush() exists: without it, a change made moments
+    // before quitting is still sitting in the 250 ms debounce and never
+    // reaches disk. If this ever starts failing, persistence stopped being
+    // debounced and flush() may no longer be load-bearing.
+    func test_aFreshChange_isNotYetPersisted_becauseTheSaveIsDebounced() {
+        let suite = "test.\(UUID().uuidString)"
+        let persistence = Persistence(suiteName: suite)
+        let state = AppState(persistence: persistence)
+        state.isOn = true
+
+        let onDisk = Persistence(suiteName: suite).load()
+        XCTAssertFalse(onDisk.isOn, "expected the debounced save not to have fired yet")
+    }
+
+    // The fix for that: applicationWillTerminate calls flush().
+    func test_flush_persistsImmediately_withoutWaitingForTheDebounce() {
+        let suite = "test.\(UUID().uuidString)"
+        let persistence = Persistence(suiteName: suite)
+        let state = AppState(persistence: persistence)
+        state.apply(preset: .night)
+        state.isOn = true
+
+        state.flush()
+
+        let onDisk = Persistence(suiteName: suite).load()
+        XCTAssertTrue(onDisk.isOn)
+        XCTAssertEqual(onDisk.warmthK, PresetID.night.warmthK)
+        XCTAssertEqual(onDisk.brightness, PresetID.night.brightness)
+        XCTAssertEqual(onDisk.activePreset, PresetID.night.rawValue)
+    }
+
     // Covers the other direction: AppState -> PersistedState shape, without
     // depending on the debounce timer either (calls persistence.save
     // directly with the same literal AppState.persist() would build).

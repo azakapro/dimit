@@ -59,7 +59,13 @@ struct PopoverView: View {
         }
         .buttonStyle(.borderedProminent)
         .tint(appState.isOn ? .orange : .secondary)
-        .accessibilityHint(Text(appState.isOn ? "main.off" : "main.on"))
+        // Reads as "Dimit, ON, button" rather than the bare "OFF, button, ON"
+        // an earlier hint produced (label, trait, then a lone contradictory
+        // word). Uses only strings already in the catalog; proper
+        // action-phrase hints ("Turns the filter off") need new UZ/RU
+        // translations and belong with C4's full VoiceOver pass.
+        .accessibilityLabel(Text("app.name"))
+        .accessibilityValue(Text(appState.isOn ? "main.on" : "main.off"))
     }
 
     private var warmthRow: some View {
@@ -71,7 +77,12 @@ struct PopoverView: View {
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
+            // CLAUDE.md §8 quality bar: "VoiceOver labels for both sliders."
+            // Without an explicit label a bare Slider announces only its
+            // value ("6500K") with no indication of *what* it controls —
+            // the visible Text above it is a separate a11y element.
             Slider(value: $appState.warmthK, in: Config.minWarmthK...Config.maxWarmthK, step: 100)
+                .accessibilityLabel(Text("main.warmth"))
                 .accessibilityValue(Text(formattedWarmth))
         }
     }
@@ -86,6 +97,7 @@ struct PopoverView: View {
                     .foregroundStyle(.secondary)
             }
             Slider(value: $appState.brightness, in: Config.minBrightness...Config.maxBrightness)
+                .accessibilityLabel(Text("main.brightness"))
                 .accessibilityValue(Text(formattedBrightness))
         }
     }
