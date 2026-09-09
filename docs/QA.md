@@ -260,6 +260,38 @@ The first time a second display has been connected to the dev machine. It closes
 | Full system sleep → wake with the schedule active | **pass — owner-run, 2026-09-10** | Owner slept and woke the Mac with the schedule on and both displays attached: "sleep wake working". Closes the row that C2 opened and the C4 review flagged as never actually closed. |
 | Quit restores both displays; owner's saved state restored afterwards | pass | Both `(0.500, 0.500, 0.500)` after SIGTERM; `state.v1` re-imported from the pre-test backup. |
 
+## C6 — release scripts and the beta artifact (2026-09-10, same machine, ad-hoc signed)
+
+No Developer ID certificate and no notarization credentials exist on this machine yet (`security find-identity -v -p codesigning` → 0 identities), so everything below is the **ad-hoc** path. The Developer ID path in the same scripts is written against Apple's documented `xcodebuild archive` / `-exportArchive` / `notarytool` flow and cannot be exercised until the account holder installs the certificate — docs/RELEASE.md §0.
+
+| Check | Result | Evidence |
+|---|---|---|
+| `scripts/build.sh` produces a universal Release app | pass | `lipo -archs` → `x86_64 arm64`; version `0.4 (2026091001)` (build number from the date, CLAUDE.md §7); `codesign --verify --deep --strict` satisfied. |
+| Hardened runtime on, no entitlements | pass | `codesign -dvv` flags `0x10002(adhoc,runtime)`; `--entitlements :-` prints an empty list. (The script's first version mis-read the older `codesign` output form and warned falsely; fixed to check for `<key>`.) |
+| `scripts/build_dmg.sh` produces a mountable image with the app + Applications link | pass | 1.3 MB UDZO; mounted read-only, listed `Applications Dimit.app`, signature verified *inside* the image, detached. Built with `hdiutil`, not create-dmg — deviation and reason in the script header. |
+| The Release build launches and quits cleanly | pass | `open build/release/Dimit.app` → process alive after 3 s → SIGTERM → gone. |
+| `scripts/notarize.sh` | written, **not run** | Refuses ad-hoc builds by design; needs the Developer ID build and a `notarytool` keychain profile (docs/RELEASE.md §0). |
+| Fresh-browser download opens on another Mac using the published instructions | **pending — tester** | The C6 "Done when" line that only a tester can close; the instruction text is in docs/TESTING_CHECKLIST.md and docs/RELEASE.md §3. |
+| At least one row per macOS major the testers own | **pending — testers** | Table below fills as reports arrive. |
+
+### Capture matrix (C4 review item; the site may only claim what this table shows)
+
+| Capture method | Gamma path (brightness ≥ 30%) | Extreme-dim overlay (< 30%) | Fallback mode |
+|---|---|---|---|
+| ⌘⇧4 screenshot | **not tinted** — owner + C2 probe, macOS 27 | pending | pending (expected: tinted; the UI says so) |
+| ⌘⇧5 / QuickTime recording | **not tinted** — owner, macOS 27 (v0.2) | pending | pending |
+| Zoom screen share | **not tinted** — owner, macOS 27 (v0.2) | pending | pending |
+| Google Meet / Teams | pending | pending | pending |
+| ScreenCaptureKit recorder (OBS or similar) | pending | pending | pending |
+
+The two overlay columns rely on `sharingType = .none`, which Apple describes as legacy with no guarantee against ScreenCaptureKit (docs/QA.md § Independent review). Until they have rows, the download page says "screenshots and screen shares stay normal at brightness 30% and above; below that, and in Fallback mode, they may show the effect" — not the unqualified claim.
+
+### Tester reports (one row per Mac)
+
+| Date | Tester | Mac | macOS | Display(s) | Result | Notes |
+|---|---|---|---|---|---|---|
+| | | | | | | |
+
 ## Performance
 
 | Date | Version | Machine | Idle CPU (5 min avg) | Popover open (ms) | Slider latency |
