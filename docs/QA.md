@@ -110,6 +110,26 @@ This cycle is mostly UI, and this session cannot click a popover, a menu or a wi
 | No new permission prompts | pass (probe) | Five launches during the onboarding probes, only the onboarding window ever appeared. `KeyboardShortcuts` is Carbon `RegisterEventHotKey`, `OSLogStore(scope: .currentProcessIdentifier)` and `SMAppService.mainApp` need no TCC grant — all three checked against their documentation before use. |
 | Diagnostics bundle | pass (unit + real hardware) | `buildText` has six pure tests; `current()` is run once against the real `DisplayManager` and the real backend list and must list every enumerated display. The clipboard write itself needs a click. |
 | VoiceOver reads every control in three languages | **pending — owner only** | Labels are present by construction (sliders and icon buttons carry `accessibilityLabel`; Settings/onboarding use native `Toggle`/`Picker`/`Button` whose visible text is their label). Turn VoiceOver on, open the popover and Settings, switch language, listen. |
+### Owner-run capture test, 2026-09-09 — the §1.4 promise, verified for the first time
+
+Real Zoom call with screen sharing, plus a QuickTime screen recording, on this machine (macOS 27.0 beta, built-in display), driven by the owner with the v0.2 build.
+
+| Check | Result | Notes |
+|---|---|---|
+| Filter keeps working on the physical screen during a Zoom share | **pass** | Owner: "when screen shared it was working ok". |
+| Zoom viewers see normal, untinted colours | **pass** | The share was not tinted. |
+| QuickTime screen recording is not tinted | **pass** | Owner: "in the video no any effects" — no tint in the recorded file. |
+| Filter keeps working while a recording is running | **pass** | Initially reported ambiguously ("nothing worked"), then confirmed on re-test: everything worked. `scripts/watch_gamma.swift` exists to make this unambiguous next time — it prints the live gamma table and flags the moment it changes. |
+
+**This is the core product promise** (CLAUDE.md §1.4: "Screenshots, screen recordings and screen-shares must not be tinted") and it now has real-world evidence rather than only the architectural argument that capture reads the pre-LUT framebuffer.
+
+**Scope, stated precisely so this isn't over-claimed:** this exercises the **gamma** path — normal operation at brightness ≥ 30%. It does **not** cover the two paths that use an actual overlay window, which is where the independent review's capture concern actually lives:
+
+- brightness **below 30%**, where the extreme-dim overlay is on screen, and
+- **Fallback mode**, which is entirely overlay-driven (and is *expected* to appear in recordings — the UI says so).
+
+Those rely on `sharingType = .none`, which Apple now describes as legacy with no guarantee against ScreenCaptureKit. Zoom and QuickTime honoured it or never hit that path; a ScreenCaptureKit-based recorder might not. Still open, still a C6 beta item — see the review table below.
+
 ### Independent review, 2026-09-09 (GPT-5 Astra) — verified findings
 
 A second reviewer with repo access, its own hardware runs and its own probes. Its two patches were read line by line and applied; the P1s it deliberately left unpatched were fixed here. Its report is not in the repo (it lives under the gitignored `build/review/`), so the load-bearing claims are recorded here.
