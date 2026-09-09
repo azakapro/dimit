@@ -56,12 +56,14 @@ Every cycle starts with this prompt to Claude Code, with the cycle number filled
 
 **Carried into C4 as owner-only checks:** three of the "Done when" clauses above can't be closed from an unattended session and were *not* silently ticked off — pressing F1 to trigger a real drift re-pin, and the two screenshot assertions (10% overlay not dark, Fallback mode red). The trigger logic for all three is unit-tested and the overlay's real geometry was confirmed against the window server, but nobody has yet looked at the screen. Same for the external monitor and sleep/wake rows. They're the **pending** rows in docs/QA.md.
 
-### C4 — Daily-use polish · Sonnet 5 · ~12 h → **v0.2**
+### C4 — Daily-use polish · Sonnet 5 · ~12 h → **v0.2** — ✅ merged 2026-09-09 (#4), tagged `v0.2`
 
 **In:** `SettingsView` with tabs General / Displays / Advanced (per ARCHITECTURE §10; License tab hidden until C7, Schedule tab until C5), `HotkeyManager` with `KeyboardShortcuts` (toggle ⌃⌥⌘Z, cycle presets, warmth ±, brightness ±), launch at login via `SMAppService`, 3-step onboarding with "Restore colours" button, `DiagnosticsBundle` copied to clipboard, language override, preset editing + reset, VoiceOver labels on every control in three languages, full keyboard operation of the popover.
 **Out:** schedule, DDC, licensing.
 **Done when:** every hotkey works while another app is frontmost; login item toggles and survives reboot; onboarding shows once; VoiceOver reads every control in all three languages; no new permission prompts appeared.
 **PR:** `feat(c4): settings, hotkeys, login item, onboarding, diagnostics`. Tag `v0.2`.
+
+**Carried into C5 from the independent review** (details in docs/QA.md): a sleep-time restore path (§1.8 requires it; only wake is observed today), the drift poll's run-loop mode (it stalls while a menu is open — one line), and the cold-popover budget (measured 180 ms against §8's 100 ms). **Not code fixes, and both gate claims we plan to make publicly:** capture exclusion is not guaranteed by any public API, so §1.4's "screen-shares must not be tinted" needs a real capture matrix in C6 before it goes on the site; and CoreDisplay can report a false verified pin, which needs a Studio Display, Pro Display XDR or Intel Mac in the hands of a beta tester.
 
 ### C5 — Scheduling and DDC experimental · Sonnet 5 (schedule) then Opus 5 (DDC) · ~18 h → **v0.3**
 

@@ -20,8 +20,12 @@ First thing to run on any new macOS build:
 swift scripts/gamma_spike.swift
 ```
 
-Status (2026-09-09): **C0–C3 done and merged to main — the MVP milestone, tagged `v0.1`** (72 tests green). The app warms every connected display from 6500K to a pure-red 0K, dims in software, pins the backlight at 100% in PWM-Safe mode so LED panels don't flicker, drops to an overlay below the 30% gamma floor, and has a Fallback tint mode for displays that ignore gamma tables. Colours restore on OFF, on quit, on SIGTERM/SIGINT and on launch. All of it verified against the real hardware — gamma tables read back directly, overlay geometry checked against the window server, brightness pin confirmed at the backend — not just unit-tested.
+Status (2026-09-09): **C0–C4 done and merged to main, tagged `v0.2`** (118 tests green). Everything CLAUDE.md §1 puts "behind a Settings gear" now exists: a Settings window (General / Displays / Advanced), editable presets, six global hotkeys, launch at login, a live Uzbek/Russian/English switch, first-run onboarding, and diagnostics to the clipboard — on top of the v0.1 display engine (0K warmth, software dim, PWM-Safe, extreme dim, Fallback mode).
 
-Still needs a human on real hardware before it's trustworthy: an external monitor, sleep/wake, and confirming by eye that 0K looks red (see the **pending** rows in docs/QA.md). Next is C4 in docs/PLAN.md §2: settings window, hotkeys, launch at login, onboarding (tags v0.2).
+An independent second review of the whole repo landed with v0.2 and found a bug that predated it: **the tint was silently lost on every wake**, because the apply pipeline diffed against what it believed was already on the hardware, and WindowServer resets the gamma table across sleep. Reproduced on the real display, fixed, and re-verified. Same review caught Fallback mode going fully opaque at the NIGHT preset — an opaque red window over the menu bar, in the mode that exists *because* the display is misbehaving.
+
+Known and open, both gating public claims: screen-capture exclusion is **not** guaranteed by any public macOS API (`sharingType = .none` is legacy), so "screenshots and screen-shares stay normal" needs a real capture matrix in C6 before it ships as a promise; and the CoreDisplay brightness fallback can report a pin that never happened on hardware nobody has tested. Cold popover measures 180 ms against a 100 ms budget. See docs/QA.md.
+
+Next is C5 in docs/PLAN.md §2: sunset/sunrise scheduling and experimental DDC/CI for external monitors (tags v0.3).
 
 PR rules: docs/PLAN.md §3 and .github/pull_request_template.md.
