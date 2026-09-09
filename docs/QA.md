@@ -13,7 +13,7 @@ One row per check per machine. Fill by hand; a PR that claims a check passed mus
 
 | Date | Version | Machine | macOS | Display(s) | Check | Result | Notes |
 |---|---|---|---|---|---|---|---|
-| 2026-09-09 | C1 (pre-0.1) | MacBookPro18,1 M1 Pro | 27.0 (26A5416b) | built-in | `xcodebuild test` | pass | 22/22, WarmthCurveTests + RendererTests + AppStateTests |
+| 2026-09-09 | C1 (pre-0.1) | MacBookPro18,1 M1 Pro | 27.0 (26A5416b) | built-in | `xcodebuild test` | pass | 27/27 (started at 22, `/code-review high` on the PR found a real inverted-label bug plus several gaps and added 5 more tests while fixing them — see the PR) |
 | 2026-09-09 | C1 | same | same | built-in | App launches, no crash | pass | verified via `ps`, plus os_log line at launch |
 | 2026-09-09 | C1 | same | same | built-in | Menu bar icon shows, toggles outline/filled | pass | confirmed via screenshot; SF Symbol placeholder, real icon is C3 |
 | 2026-09-09 | C1 | same | same | n/a | Left-click opens popover; right-click shows menu | pass (logic), **not confirmed visually on-screen** | AppKit itself confirms the click event is received with the correct type, `togglePopover()` runs, and the popover reports `isShown=true` with a sane content size — but this session's virtual display could not screenshot the live popover: Dimit's frontmost status kept reverting to the terminal within about a second (likely this sandboxed display's window-focus handling for accessory apps), and the automation tool separately refuses to interact with a non-allowlisted app while it is frontmost. **Owner: please click the status item once for real and confirm the popover appears** — this is the one C1 behavior I could not verify end-to-end myself. |

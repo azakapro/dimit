@@ -81,13 +81,19 @@ final class MenuBarController: NSObject {
 
         menu.addItem(.separator())
 
-        let toggleTitleKey: LocalizedStringResource = appState.isOn ? "main.off" : "main.on"
+        // Shows current state (checked = on), matching the popover button
+        // fixed in code review rather than an action-phrased "Turn Off" —
+        // `main.on`/`main.off` are bare state words in the catalog, and one
+        // consistent meaning for them everywhere is simpler to keep correct
+        // than a per-surface convention.
+        let toggleTitleKey: LocalizedStringResource = appState.isOn ? "main.on" : "main.off"
         let toggleItem = NSMenuItem(
             title: String(localized: toggleTitleKey),
             action: #selector(toggleOnOff),
             keyEquivalent: ""
         )
         toggleItem.target = self
+        toggleItem.state = appState.isOn ? .on : .off
         menu.addItem(toggleItem)
 
         menu.addItem(.separator())
@@ -107,12 +113,15 @@ final class MenuBarController: NSObject {
         )
         menu.addItem(quitItem)
 
-        // Attach-click-detach so the next left-click still opens the
-        // popover instead of the menu (the standard idiom for a status
-        // item that shows different UI per click button).
-        statusItem.menu = menu
-        statusItem.button?.performClick(nil)
-        statusItem.menu = nil
+        // popUp(positioning:at:in:) shows the menu directly without ever
+        // touching statusItem.menu — code review on C1 pointed out the
+        // previous attach/click/detach approach (set statusItem.menu, call
+        // performClick to force it open, then clear statusItem.menu again)
+        // worked, but only by relying on an undocumented ordering between
+        // NSStatusItem.menu and NSButton.performClick rather than a menu
+        // API meant for exactly this.
+        guard let button = statusItem.button else { return }
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height), in: button)
     }
 
     @objc private func selectPreset(_ sender: NSMenuItem) {

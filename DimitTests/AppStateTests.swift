@@ -52,15 +52,45 @@ final class AppStateTests: XCTestCase {
         XCTAssertEqual(render, RenderState(isOn: true, warmthK: 1900, brightness: 0.7, pwmSafe: true))
     }
 
-    func test_persistence_roundTrips() {
+    // Deliberately does not go through a live AppState on the write side.
+    // An earlier version built an AppState, mutated it, then *separately*
+    // called persistence.save(...) directly and asserted a second AppState
+    // saw the result — code review pointed out that entangled this test
+    // with AppState's own 250ms-debounced autosave timer for no reason:
+    // nothing here needs AppState to write, only to correctly *read* a
+    // snapshot, so writing the snapshot directly removes the (currently
+    // benign, but real) theoretical race with that pending timer.
+    func test_appState_hydratesFromAPersistedSnapshot() {
+        let suite = "test.\(UUID().uuidString)"
+        let persistence = Persistence(suiteName: suite)
+        persistence.save(
+            PersistedState(
+                isOn: true,
+                warmthK: PresetID.evening.warmthK,
+                brightness: PresetID.evening.brightness,
+                pwmSafe: true,
+                activePreset: PresetID.evening.rawValue
+            )
+        )
+
+        let reloaded = AppState(persistence: Persistence(suiteName: suite))
+        XCTAssertTrue(reloaded.isOn)
+        XCTAssertEqual(reloaded.warmthK, PresetID.evening.warmthK)
+        XCTAssertEqual(reloaded.brightness, PresetID.evening.brightness)
+        XCTAssertEqual(reloaded.activePreset, .evening)
+        XCTAssertTrue(reloaded.pwmSafe)
+    }
+
+    // Covers the other direction: AppState -> PersistedState shape, without
+    // depending on the debounce timer either (calls persistence.save
+    // directly with the same literal AppState.persist() would build).
+    func test_persistedStateShape_matchesAppStateFields() {
         let suite = "test.\(UUID().uuidString)"
         let persistence = Persistence(suiteName: suite)
         let state = AppState(persistence: persistence)
-        state.apply(preset: .evening)
-        state.pwmSafe = true
+        state.apply(preset: .night)
+        state.isOn = true
 
-        // Persistence is debounced 250ms; save directly to test round-trip
-        // shape without sleeping the test suite.
         persistence.save(
             PersistedState(
                 isOn: state.isOn,
@@ -71,10 +101,10 @@ final class AppStateTests: XCTestCase {
             )
         )
 
-        let reloaded = AppState(persistence: Persistence(suiteName: suite))
-        XCTAssertEqual(reloaded.warmthK, PresetID.evening.warmthK)
-        XCTAssertEqual(reloaded.brightness, PresetID.evening.brightness)
-        XCTAssertEqual(reloaded.activePreset, .evening)
-        XCTAssertTrue(reloaded.pwmSafe)
+        let raw = Persistence(suiteName: suite).load()
+        XCTAssertEqual(raw.isOn, true)
+        XCTAssertEqual(raw.warmthK, PresetID.night.warmthK)
+        XCTAssertEqual(raw.brightness, PresetID.night.brightness)
+        XCTAssertEqual(raw.activePreset, PresetID.night.rawValue)
     }
 }

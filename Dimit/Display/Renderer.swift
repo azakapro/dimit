@@ -19,17 +19,26 @@ enum Renderer {
         }
 
         let multiplier = WarmthCurve.rgb(kelvin: state.warmthK)
+        // Defensive clamp to the math's own valid domain (0...1), matching
+        // WarmthCurve's clamp on its input — code review on C1 caught that
+        // this one was missing. Note this is 0...1, not
+        // Config.minBrightness...maxBrightness: that pair is a *UI* policy
+        // (the slider won't let a user drag below 10%), whereas brightness
+        // 0 is a real, supported point in this function's own math (fully
+        // opaque overlay) that a future caller — the schedule engine ramping
+        // down, say — may legitimately reach.
+        let brightness = state.brightness.clamped(to: 0...1)
         let floor = Config.gammaDimFloor
         let dim: Double
         let overlayAlpha: Double
-        if state.brightness >= floor {
-            dim = state.brightness
+        if brightness >= floor {
+            dim = brightness
             overlayAlpha = 0
         } else {
             dim = floor
             // At brightness 0 the overlay is fully opaque black; at the
             // floor it is fully transparent. Linear in between.
-            overlayAlpha = 1 - (state.brightness / floor)
+            overlayAlpha = 1 - (brightness / floor)
         }
 
         return DisplayCommand(

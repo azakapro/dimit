@@ -46,16 +46,33 @@ final class Persistence {
     }
 
     func load() -> PersistedState {
-        guard let data = defaults.data(forKey: key),
-              let decoded = try? JSONDecoder().decode(PersistedState.self, from: data)
-        else {
+        guard let data = defaults.data(forKey: key) else {
+            return .defaults // first launch — not an error, nothing to log
+        }
+        do {
+            return try JSONDecoder().decode(PersistedState.self, from: data)
+        } catch {
+            // Code review on C1 caught `try?` swallowing this with no trace:
+            // a returning user's whole saved state (isOn, warmthK,
+            // brightness, pwmSafe, activePreset) would silently reset to
+            // defaults with nothing in the log to explain "why my settings
+            // reset themselves." Never log `data` itself — no reason to
+            // believe it contains anything sensitive here, but the habit
+            // (CLAUDE.md §4.2: "log nothing but key-hash") is to log
+            // failures, not payloads.
+            Log.app.error("PersistedState decode failed, reverting to defaults: \(error, privacy: .public)")
             return .defaults
         }
-        return decoded
     }
 
     func save(_ state: PersistedState) {
-        guard let data = try? JSONEncoder().encode(state) else { return }
-        defaults.set(data, forKey: key)
+        do {
+            let data = try JSONEncoder().encode(state)
+            defaults.set(data, forKey: key)
+        } catch {
+            // See load()'s comment: silent failure here means every future
+            // change stops persisting with zero diagnostic trail.
+            Log.app.error("PersistedState encode failed, not saved: \(error, privacy: .public)")
+        }
     }
 }

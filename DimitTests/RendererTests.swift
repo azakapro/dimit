@@ -77,4 +77,35 @@ final class RendererTests: XCTestCase {
         let command = Renderer.render(state, displays: [display()]).first!
         XCTAssertEqual(command.gamma?.multiplier, WarmthCurve.rgb(kelvin: 2700))
     }
+
+    // CLAUDE.md §3.6: "While pinned: map the Brightness slider entirely to
+    // gamma dim (+ overlay below 30%)." Code review on C1 pointed out this
+    // combination — PWM-Safe on AND brightness below the dim floor — had no
+    // test, even though it's the one case where both branches of render()
+    // are active on the same display at once.
+    func test_pwmSafe_and_belowDimFloor_bothApply() {
+        let state = RenderState(isOn: true, warmthK: 6500, brightness: 0.15, pwmSafe: true)
+        let command = Renderer.render(state, displays: [display()]).first!
+        XCTAssertEqual(command.hardwareBrightness, 1.0, "PWM pin intent must not be affected by the overlay branch")
+        XCTAssertEqual(command.gamma?.dim, Config.gammaDimFloor, "gamma must clamp to the floor, not fall through to raw brightness")
+        XCTAssertEqual(command.overlayAlpha, 1 - (0.15 / Config.gammaDimFloor), accuracy: 0.0001)
+    }
+
+    // Code review caught that Renderer trusted state.brightness to already
+    // be in range, unlike WarmthCurve which defensively clamps its input —
+    // a real gap since RenderState is a plain struct any future caller
+    // (persistence migration, a scripted preset import) could hand
+    // out-of-range values to.
+    func test_outOfRangeBrightness_isClamped() {
+        let tooLow = RenderState(isOn: true, warmthK: 6500, brightness: -5, pwmSafe: false)
+        let tooHigh = RenderState(isOn: true, warmthK: 6500, brightness: 5, pwmSafe: false)
+        XCTAssertEqual(
+            Renderer.render(tooLow, displays: [display()]),
+            Renderer.render(RenderState(isOn: true, warmthK: 6500, brightness: 0, pwmSafe: false), displays: [display()])
+        )
+        XCTAssertEqual(
+            Renderer.render(tooHigh, displays: [display()]),
+            Renderer.render(RenderState(isOn: true, warmthK: 6500, brightness: 1, pwmSafe: false), displays: [display()])
+        )
+    }
 }

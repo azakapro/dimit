@@ -40,7 +40,7 @@ enum WarmthCurve {
     ///   slider's bottom stop both use 0 ("0K" — a name, not a physical
     ///   temperature; CLAUDE.md §5.1 `warmth.zero_k.tip`).
     static func rgb(kelvin: Double) -> RGB {
-        let k = min(max(kelvin, Config.minWarmthK), Config.maxWarmthK)
+        let k = kelvin.clamped(to: Config.minWarmthK...Config.maxWarmthK)
 
         guard k > 1000 else {
             // Linear ramp from the 1000K anchor down to pure red at 0K.
@@ -62,6 +62,15 @@ enum WarmthCurve {
                 )
             }
         }
-        return RGB(r: 1, g: 1, b: 1) // unreachable given the clamp above; safe default
+        // Unreachable given the clamp above and the anchor table's coverage
+        // of [1000, 6500]. Code review flagged the old silent
+        // `return RGB(1,1,1)` here: if a future edit to `anchors` ever
+        // opened a real gap, that fallback would make warmth *look* like it
+        // silently turned off (a plausible-looking wrong value) instead of
+        // failing loudly. assertionFailure crashes debug/test builds so a
+        // gap gets caught immediately; the fallback value only matters if
+        // it were ever hit in release, where assertions are compiled out.
+        assertionFailure("WarmthCurve.rgb: no anchor pair covers \(k)K — anchors table has a gap")
+        return RGB(r: 1, g: 1, b: 1)
     }
 }

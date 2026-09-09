@@ -51,20 +51,23 @@ final class AppState: ObservableObject {
     /// Moving a slider afterwards clears `activePreset` (see `warmthK`/
     /// `brightness` `didSet` below) so the preset picker stops highlighting
     /// a preset the user has since drifted away from.
+    ///
+    /// `activePreset = preset` runs last and unconditionally, *after*
+    /// `warmthK`/`brightness`'s own `didSet` has already had a chance to
+    /// clear it — so it always wins regardless of what came before. An
+    /// earlier version guarded this with an `isSettingPreset` flag; code
+    /// review pointed out the guard was provably redundant (verified: the
+    /// final explicit assignment overwrites the `didSet` chain's effect
+    /// either way) and, worse, a stuck-`true` footgun if a future edit ever
+    /// added an early return between setting and clearing the flag.
     func apply(preset: PresetID) {
-        isSettingPreset = true
         warmthK = preset.warmthK
         brightness = preset.brightness
         activePreset = preset
-        isSettingPreset = false
     }
 
-    /// Guards against `apply(preset:)`'s own writes to `warmthK`/`brightness`
-    /// clearing the very `activePreset` it just set.
-    private var isSettingPreset = false
-
     private func clearPresetIfDrifted() {
-        guard !isSettingPreset, activePreset != nil else { return }
+        guard activePreset != nil else { return }
         activePreset = nil
     }
 

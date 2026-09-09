@@ -47,14 +47,19 @@ struct PopoverView: View {
         Button {
             appState.isOn.toggle()
         } label: {
-            Text(appState.isOn ? "main.off" : "main.on")
+            // Label shows CURRENT state, matching the tint below (orange
+            // when on) — code review on C1 caught this inverted (label said
+            // "OFF" on an orange, active-looking button while isOn was
+            // true). The accessibility hint below correctly describes the
+            // opposite word: what activating the button will change it TO.
+            Text(appState.isOn ? "main.on" : "main.off")
                 .font(.title2.bold())
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
         }
         .buttonStyle(.borderedProminent)
         .tint(appState.isOn ? .orange : .secondary)
-        .accessibilityHint(Text("main.on")) // toggles the whole filter
+        .accessibilityHint(Text(appState.isOn ? "main.off" : "main.on"))
     }
 
     private var warmthRow: some View {

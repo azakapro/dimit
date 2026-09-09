@@ -1,6 +1,7 @@
-# Xcode — project.yml is the source of truth (XcodeGen); the generated
-# .xcodeproj is never committed, so there is never a merge conflict in a
-# generated pbxproj. Run `xcodegen generate` after cloning or editing project.yml.
+# Xcode — project.yml is the source of truth (XcodeGen, see scripts/bootstrap.sh);
+# the generated .xcodeproj is never committed, so there is never a merge
+# conflict in a generated pbxproj. Run scripts/bootstrap.sh after cloning or
+# after editing project.yml.
 /Dimit.xcodeproj/
 build/
 DerivedData/
@@ -11,7 +12,13 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 timeline.xctimeline
-playground.xcworkspace
+# Broader xcuserdata coverage kept as defense in depth (code review on C1):
+# the /Dimit.xcodeproj/ line above only protects that one generated
+# directory; this catches xcuserdata in any *other* .xcodeproj or
+# .xcworkspace that might exist someday (e.g. a workspace wrapping this
+# project plus something else) without needing another edit here.
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
 
 # Swift Package Manager
 .build/
