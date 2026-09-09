@@ -23,8 +23,13 @@ rm -rf "$OUT"; mkdir -p "$OUT"
 
 scripts/bootstrap.sh >/dev/null
 
+# CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO: without it Xcode adds
+# com.apple.security.get-task-allow (debugger attach) even to Release builds,
+# which CLAUDE.md §7 forbids and notarytool rejects outright. Found by this
+# script's own entitlement check on the first v0.4 build.
 COMMON=(-project Dimit.xcodeproj -scheme Dimit -configuration Release
-        ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO CURRENT_PROJECT_VERSION="$BUILD")
+        ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO CURRENT_PROJECT_VERSION="$BUILD"
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO)
 
 if [ -n "${DIMIT_SIGN_IDENTITY:-}" ]; then
     : "${DIMIT_TEAM_ID:?set DIMIT_TEAM_ID alongside DIMIT_SIGN_IDENTITY}"
@@ -56,8 +61,12 @@ fi
 codesign --verify --deep --strict --verbose=1 "$OUT/Dimit.app" 2>&1 | tail -1
 echo "architectures: $(lipo -archs "$OUT/Dimit.app/Contents/MacOS/Dimit")"
 echo "version: $(defaults read "$PWD/$OUT/Dimit.app/Contents/Info.plist" CFBundleShortVersionString) ($(defaults read "$PWD/$OUT/Dimit.app/Contents/Info.plist" CFBundleVersion))"
-if codesign -d --entitlements :- "$OUT/Dimit.app" 2>/dev/null | grep -q "<key>"; then
-    echo "WARNING: the app carries entitlements — CLAUDE.md §7 says none:"; codesign -d --entitlements :- "$OUT/Dimit.app" 2>/dev/null | grep "<key>"
+# `--entitlements -` prints a bracketed listing on current macOS and an XML
+# blob on older ones; match either so the check can't silently pass.
+if codesign -d --entitlements - "$OUT/Dimit.app" 2>/dev/null | grep -qE "\[Key\]|<key>"; then
+    echo "ERROR: the app carries entitlements — CLAUDE.md §7 says none, and notarization rejects get-task-allow:"
+    codesign -d --entitlements - "$OUT/Dimit.app" 2>/dev/null | grep -E "\[Key\]|<key>"
+    exit 1
 else
     echo "entitlements: none (as specified)"
 fi

@@ -267,7 +267,7 @@ No Developer ID certificate and no notarization credentials exist on this machin
 | Check | Result | Evidence |
 |---|---|---|
 | `scripts/build.sh` produces a universal Release app | pass | `lipo -archs` → `x86_64 arm64`; version `0.4 (2026091001)` (build number from the date, CLAUDE.md §7); `codesign --verify --deep --strict` satisfied. |
-| Hardened runtime on, no entitlements | pass | `codesign -dvv` flags `0x10002(adhoc,runtime)`; `--entitlements :-` prints an empty list. (The script's first version mis-read the older `codesign` output form and warned falsely; fixed to check for `<key>`.) |
+| Hardened runtime on, no entitlements | **pass after a real catch** | `codesign -dvv` flags `0x10002(adhoc,runtime)`. The script's entitlement check flagged the first v0.4 build, and a hurried re-check dismissed it as a false positive — wrongly: the Release build carried `com.apple.security.get-task-allow`, the debugger-attach entitlement Xcode injects unless `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO`, which notarytool rejects outright. Now passed on every build, the check fails the build instead of warning, and the rebuilt app lists no entitlements. |
 | `scripts/build_dmg.sh` produces a mountable image with the app + Applications link | pass | 1.3 MB UDZO; mounted read-only, listed `Applications Dimit.app`, signature verified *inside* the image, detached. Built with `hdiutil`, not create-dmg — deviation and reason in the script header. |
 | The Release build launches and quits cleanly | pass | `open build/release/Dimit.app` → process alive after 3 s → SIGTERM → gone. |
 | `scripts/notarize.sh` | written, **not run** | Refuses ad-hoc builds by design; needs the Developer ID build and a `notarytool` keychain profile (docs/RELEASE.md §0). |
