@@ -14,7 +14,16 @@ settings:
     ENABLE_HARDENED_RUNTIME: YES
     SWIFT_STRICT_CONCURRENCY: minimal
     GENERATE_INFOPLIST_FILE: NO
-    CODE_SIGN_IDENTITY: "-" # ad-hoc for local dev builds; real Developer ID lands in C6
+    CODE_SIGN_IDENTITY: "-" # ad-hoc for dev builds. Never put a Developer ID here: scripts/build.sh injects it from DIMIT_SIGN_IDENTITY (docs/RELEASE.md §0)
+  configs:
+    # Xcode injects com.apple.security.get-task-allow (debugger attach) into
+    # every build unless told not to. Debug keeps it — the debugger and the
+    # test host need it — but a Release build must carry no entitlement at
+    # all (CLAUDE.md §7), and notarytool rejects get-task-allow outright.
+    # Set here, not only on scripts/build.sh's command line, so an Xcode
+    # Product → Archive produces the same artifact (C6 review).
+    Release:
+      CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
 packages:
   # CLAUDE.md §2 pre-approves this exact dependency for global hotkeys
   # ("sindresorhus/KeyboardShortcuts") — docs/PLAN.md's C4 scope names it

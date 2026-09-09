@@ -1,34 +1,48 @@
 #!/bin/bash
-# Packages build/release/Dimit.app into build/release/Dimit-<version>.dmg with an
-# Applications symlink, using hdiutil.
+# Packages a Dimit.app (default: build/release/Dimit.app) into
+# <same directory>/Dimit-<version>.dmg with an Applications symlink, via hdiutil.
 #
-# docs/PLAN.md's C6 scope named create-dmg. It was not used, deliberately: it
-# arranges the window through Finder via AppleScript, which needs an Automation
-# permission the first time and hangs an unattended run without it, and it is
-# a Homebrew dependency for what is purely cosmetics (icon positions, a
-# background image). hdiutil is built in, prompts for nothing, and produces the
-# same installable image. If a designed background is wanted later, add it
-# here with a .DS_Store from a hand-arranged volume — not a new tool.
+# docs/PLAN.md's C6 scope named create-dmg. Not used, on purpose: it is a
+# Homebrew dependency whose only contribution over hdiutil is cosmetics — a
+# background image and icon positions — and CLAUDE.md §12 says every
+# dependency has to earn its place. (Its default path also drives Finder via
+# AppleScript, which needs an Automation permission; it has --skip-jenkins /
+# --sandbox-safe flags to avoid that, so that alone would not have ruled it
+# out.) If a designed window is wanted later, the honest route is a .DS_Store
+# captured from a hand-arranged volume, added here — still no new tool.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source scripts/lib.sh
 
-APP=${1:-build/release/Dimit.app}
-[ -d "$APP" ] || { echo "no app at $APP — run scripts/build.sh first" >&2; exit 1; }
-VERSION=$(defaults read "$PWD/$APP/Contents/Info.plist" CFBundleShortVersionString)
-OUT=build/release
-DMG="$OUT/Dimit-$VERSION.dmg"
-STAGE="$OUT/dmgroot"
+SRC_APP=${1:-$APP}
+require_app "$SRC_APP"
+VERSION=$(app_version "$SRC_APP")
+DIR=$(dirname "$SRC_APP")
+DMG="$DIR/Dimit-$VERSION.dmg"
+STAGE="$DIR/dmgroot"
 
 rm -rf "$STAGE" "$DMG"; mkdir -p "$STAGE"
-cp -R "$APP" "$STAGE/Dimit.app"
+cp -R "$SRC_APP" "$STAGE/Dimit.app"
 ln -s /Applications "$STAGE/Applications"
 
 hdiutil create -volname "Dimit $VERSION" -srcfolder "$STAGE" -ov -format UDZO -quiet "$DMG"
 rm -rf "$STAGE"
 
-# Verify the image mounts and carries exactly what we put in it.
-MOUNT=$(hdiutil attach -readonly -nobrowse -noautoopen "$DMG" | awk -F'\t' '/\/Volumes\//{print $NF}')
-ls "$MOUNT" | tr '\n' ' '; echo
-codesign --verify --deep --strict "$MOUNT/Dimit.app" && echo "signature intact inside the image"
-hdiutil detach "$MOUNT" -quiet
+# Mount and check the image carries exactly what went in, with its signature
+# intact. The trap guarantees the volume is detached even when a check
+# fails, so a failed run never leaves a ghost volume for the next one to
+# trip over (C6 review).
+# Attach first and arm the trap on the raw attach output before parsing it,
+# so a parse failure can never strand the volume.
+ATTACH=$(hdiutil attach -readonly -nobrowse -noautoopen -plist "$DMG")
+trap 'hdiutil detach "$(sed -n "s|.*<string>\(/Volumes/[^<]*\)</string>.*|\1|p" <<<"$ATTACH" | head -1)" -quiet 2>/dev/null || true' EXIT
+MOUNT=$(python3 -c 'import plistlib,sys; d=plistlib.loads(sys.stdin.buffer.read()); print(next(e["mount-point"] for e in d["system-entities"] if "mount-point" in e))' <<<"$ATTACH")
+[ -n "$MOUNT" ] || { echo "ERROR: could not mount $DMG" >&2; exit 1; }
+
+[ -d "$MOUNT/Dimit.app" ] || { echo "ERROR: Dimit.app missing from the image" >&2; exit 1; }
+[ -L "$MOUNT/Applications" ] || { echo "ERROR: Applications link missing from the image" >&2; exit 1; }
+if ! codesign --verify --deep --strict "$MOUNT/Dimit.app"; then
+    echo "ERROR: signature broken inside the image" >&2; exit 1
+fi
+echo "image contents: Dimit.app ($VERSION, $(app_build "$MOUNT/Dimit.app")) + Applications link, signature intact"
 echo "built: $DMG ($(du -h "$DMG" | cut -f1))"
