@@ -21,11 +21,25 @@ import Foundation
 /// don't exist yet (`ScheduleConfig` etc.).
 @MainActor
 final class AppState: ObservableObject {
-    @Published var isOn: Bool
+    @Published var isOn: Bool { didSet { handleIsOnChanged(wasOn: oldValue) } }
     @Published var warmthK: Double { didSet { clearPresetIfDrifted() } }
     @Published var brightness: Double { didSet { clearPresetIfDrifted() } }
     @Published var pwmSafe: Bool
+    /// CLAUDE.md §3.3/§3.5: the escape hatch for when gamma itself is
+    /// broken (macOS 26-class bugs) — tints via `OverlayDimmer` instead of
+    /// gamma tables, and gamma is left untouched while this is on.
+    @Published var fallbackMode: Bool
     @Published var activePreset: PresetID?
+
+    /// CLAUDE.md §3.3: "show a one-time banner ... on macOS ≥ 26 the first
+    /// time the filter is turned ON, dismissable forever." No reliable
+    /// detection key for auto-brightness was found on this macOS 27 beta
+    /// (checked directly: `defaults read com.apple.BezelServices dAuto`
+    /// returns no such key, and nothing else in `com.apple.CoreBrightness`
+    /// tracked it either) — CLAUDE.md's own §3.3 anticipates exactly this
+    /// outcome and specifies the unconditional fallback, which is what
+    /// this implements.
+    @Published private(set) var showAutoBrightnessBanner = false
 
     private let persistence: Persistence
     private var saveCancellable: AnyCancellable?
@@ -37,6 +51,7 @@ final class AppState: ObservableObject {
         self.warmthK = saved.warmthK
         self.brightness = saved.brightness
         self.pwmSafe = saved.pwmSafe
+        self.fallbackMode = saved.fallbackMode
         self.activePreset = saved.activePreset.flatMap(PresetID.init(rawValue:))
 
         // Debounced 250ms persistence — CLAUDE.md §3.7. `objectWillChange`
@@ -71,6 +86,21 @@ final class AppState: ObservableObject {
         activePreset = nil
     }
 
+    private func handleIsOnChanged(wasOn: Bool) {
+        guard isOn, !wasOn else { return } // only the OFF -> ON transition
+        guard !persistence.hasShownAutoBrightnessBanner else { return }
+        guard ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26 else { return }
+        showAutoBrightnessBanner = true
+    }
+
+    /// The banner's dismiss button. "Dismissable forever" per CLAUDE.md
+    /// §3.3 — persisted immediately (not debounced with the rest of state)
+    /// since this is a one-time UI event, not a value `Renderer` reads.
+    func dismissAutoBrightnessBanner() {
+        showAutoBrightnessBanner = false
+        persistence.hasShownAutoBrightnessBanner = true
+    }
+
     /// Writes current state immediately, bypassing the 250 ms debounce.
     ///
     /// Without this, any change made in the last 250 ms before quit was
@@ -90,12 +120,13 @@ final class AppState: ObservableObject {
                 warmthK: warmthK,
                 brightness: brightness,
                 pwmSafe: pwmSafe,
+                fallbackMode: fallbackMode,
                 activePreset: activePreset?.rawValue
             )
         )
     }
 
     var renderState: RenderState {
-        RenderState(isOn: isOn, warmthK: warmthK, brightness: brightness, pwmSafe: pwmSafe)
+        RenderState(isOn: isOn, warmthK: warmthK, brightness: brightness, pwmSafe: pwmSafe, fallbackMode: fallbackMode)
     }
 }

@@ -18,16 +18,39 @@ enum Renderer {
             return DisplayCommand(displayID: display.id, gamma: nil, overlayAlpha: 0, hardwareBrightness: nil)
         }
 
-        let multiplier = WarmthCurve.rgb(kelvin: state.warmthK)
-        // Defensive clamp to the math's own valid domain (0...1), matching
-        // WarmthCurve's clamp on its input — code review on C1 caught that
-        // this one was missing. Note this is 0...1, not
-        // Config.minBrightness...maxBrightness: that pair is a *UI* policy
-        // (the slider won't let a user drag below 10%), whereas brightness
-        // 0 is a real, supported point in this function's own math (fully
-        // opaque overlay) that a future caller — the schedule engine ramping
-        // down, say — may legitimately reach.
         let brightness = state.brightness.clamped(to: 0...1)
+
+        // Fallback mode: CLAUDE.md §3.3 / ARCHITECTURE.md §2.7 — gamma is
+        // deliberately left at baseline (this is the whole reason Fallback
+        // mode exists: it's the escape hatch for when gamma itself is
+        // broken, e.g. the macOS 26 Tahoe-class bugs). `gamma: nil` here
+        // reuses exactly the same "restore, then leave alone" semantics
+        // OFF uses — Applier's diff doesn't need to know *why* gamma
+        // should be left alone, only that it should be.
+        //
+        // The overlay approximates both warmth and dim as one alpha over
+        // a fixed red tint, rather than exactly reproducing what gamma
+        // would have done — an overlay can only composite a color on top,
+        // it can't multiply the framebuffer's existing colors the way a
+        // gamma table does, so an exact match isn't possible by
+        // construction. Fallback mode is a rarely-used safety net, not
+        // the primary experience, so a simple, clearly-visible
+        // approximation (redder and darker as warmth/brightness drop) is
+        // the right amount of engineering for what it's for.
+        if state.fallbackMode {
+            let warmthAlpha = 1 - (state.warmthK.clamped(to: 0...Config.maxWarmthK) / Config.maxWarmthK)
+            let brightnessAlpha = 1 - brightness
+            let alpha = max(warmthAlpha, brightnessAlpha).clamped(to: 0...1)
+            return DisplayCommand(
+                displayID: display.id,
+                gamma: nil,
+                overlayAlpha: alpha,
+                overlayTint: .red,
+                hardwareBrightness: state.pwmSafe ? 1.0 : nil
+            )
+        }
+
+        let multiplier = WarmthCurve.rgb(kelvin: state.warmthK)
         let floor = Config.gammaDimFloor
         let dim: Double
         let overlayAlpha: Double
@@ -45,6 +68,7 @@ enum Renderer {
             displayID: display.id,
             gamma: GammaSpec(multiplier: multiplier, dim: dim),
             overlayAlpha: overlayAlpha,
+            overlayTint: .black,
             hardwareBrightness: state.pwmSafe ? 1.0 : nil
         )
     }
@@ -59,4 +83,5 @@ struct RenderState: Equatable {
     var warmthK: Double
     var brightness: Double
     var pwmSafe: Bool
+    var fallbackMode: Bool = false
 }

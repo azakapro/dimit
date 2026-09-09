@@ -181,6 +181,7 @@ GET  /r/:handle              → affiliate redirect (sets 60-day cookie, forward
 | pwm.repinned | Brightness was re‑pinned to 100%. Use the slider in the app. | Yorqinlik yana 100% ga qaytarildi. Ilova ichidagi slayderdan foydalaning. | Яркость снова зафиксирована на 100%. Используйте ползунок в приложении. |
 | banner.autobrightness | Automatic brightness can block colour changes on macOS 26. Turn it off in System Settings → Displays. | Avtomatik yorqinlik macOS 26 da rang o'zgarishini bloklashi mumkin. Tizim sozlamalari → Displeylar bo'limida o'chiring. | Автояркость может блокировать изменение цвета в macOS 26. Отключите её в Системных настройках → Дисплеи. |
 | banner.open_settings | Open Displays settings | Displey sozlamalarini ochish | Открыть настройки дисплеев |
+| banner.dismiss *(added C3, uz/ru need human review)* | Dismiss | Dismiss — TODO(i18n) | Dismiss — TODO(i18n) |
 | fallback.title | Fallback mode | Zaxira rejim | Резервный режим |
 | fallback.help | Tints with an overlay instead of colour tables. Screenshots will look tinted in this mode. | Rang jadvallari o'rniga qatlam bilan bo'yaydi. Bu rejimda skrinshotlar ham rangli chiqadi. | Окрашивает экран слоем вместо цветовых таблиц. В этом режиме скриншоты тоже будут окрашены. |
 | schedule.title | Schedule | Jadval | Расписание |

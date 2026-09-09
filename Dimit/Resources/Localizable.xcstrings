@@ -45,6 +45,28 @@
         }
       }
     },
+    "banner.dismiss": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismiss"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dismiss"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dismiss"
+          }
+        }
+      }
+    },
     "banner.open_settings": {
       "localizations": {
         "en": {

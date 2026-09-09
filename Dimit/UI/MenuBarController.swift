@@ -10,21 +10,25 @@ final class MenuBarController: NSObject {
     private let statusItem: NSStatusItem
     private let popover: NSPopover
     private let appState: AppState
+    private let pwmSafeCoordinator: PWMSafeCoordinator
     private let restoreColours: () -> Void
     private var cancellables = Set<AnyCancellable>()
 
-    init(appState: AppState, restoreColours: @escaping () -> Void) {
+    init(appState: AppState, pwmSafeCoordinator: PWMSafeCoordinator, restoreColours: @escaping () -> Void) {
         self.appState = appState
+        self.pwmSafeCoordinator = pwmSafeCoordinator
         self.restoreColours = restoreColours
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         self.popover = NSPopover()
         super.init()
 
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(rootView: PopoverView(appState: appState))
+        popover.contentViewController = NSHostingController(
+            rootView: PopoverView(appState: appState, pwmSafeCoordinator: pwmSafeCoordinator)
+        )
 
         if let button = statusItem.button {
-            button.image = MenuBarIcon.image(isOn: appState.isOn)
+            button.image = MenuBarIcon.image(isOn: appState.isOn, pwmPinned: pwmSafeCoordinator.summaryState == .pinned)
             button.action = #selector(statusItemClicked)
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -32,10 +36,27 @@ final class MenuBarController: NSObject {
 
         appState.$isOn
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] isOn in
-                self?.statusItem.button?.image = MenuBarIcon.image(isOn: isOn)
+            .sink { [weak self] _ in self?.updateIcon() }
+            .store(in: &cancellables)
+
+        pwmSafeCoordinator.$states
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.updateIcon() }
+            .store(in: &cancellables)
+
+        // CLAUDE.md §3.6: "show 'PWM-Safe re-pinned brightness to 100%...'
+        // once per session" — PWMSafeCoordinator decides *when* (once,
+        // ever, per launch); this just decides *how* to show it.
+        pwmSafeCoordinator.repinnedToastSubject
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                ToastPresenter.show("pwm.repinned", near: self?.statusItem.button)
             }
             .store(in: &cancellables)
+    }
+
+    private func updateIcon() {
+        statusItem.button?.image = MenuBarIcon.image(isOn: appState.isOn, pwmPinned: pwmSafeCoordinator.summaryState == .pinned)
     }
 
     @objc private func statusItemClicked() {
@@ -100,10 +121,26 @@ final class MenuBarController: NSObject {
 
         menu.addItem(.separator())
 
+        // CLAUDE.md's C3 scope: "Fallback mode toggle ... in the right-click
+        // menu for now" (a real Settings toggle comes later). Independent of
+        // ON/OFF: it changes *how* the filter renders when it's on, not
+        // whether it's on.
+        let fallbackItem = NSMenuItem(
+            title: String(localized: "fallback.title"),
+            action: #selector(toggleFallbackMode),
+            keyEquivalent: ""
+        )
+        fallbackItem.target = self
+        fallbackItem.state = appState.fallbackMode ? .on : .off
+        fallbackItem.toolTip = String(localized: "fallback.help")
+        menu.addItem(fallbackItem)
+
+        menu.addItem(.separator())
+
         // CLAUDE.md §3.3 / onboarding: a manual "restore colours" safety
         // valve, independent of the ON/OFF state — useful if a gamma
         // read-back mismatch or any other display weirdness leaves the
-        // screen looking wrong. C2's new string; see Resources/Localizable.xcstrings.
+        // screen looking wrong.
         let restoreItem = NSMenuItem(
             title: String(localized: "menu.restore_colours"),
             action: #selector(restoreColoursClicked),
@@ -147,6 +184,10 @@ final class MenuBarController: NSObject {
 
     @objc private func toggleOnOff() {
         appState.isOn.toggle()
+    }
+
+    @objc private func toggleFallbackMode() {
+        appState.fallbackMode.toggle()
     }
 
     @objc private func restoreColoursClicked() {

@@ -69,6 +69,7 @@ final class AppStateTests: XCTestCase {
                 warmthK: PresetID.evening.warmthK,
                 brightness: PresetID.evening.brightness,
                 pwmSafe: true,
+                fallbackMode: false,
                 activePreset: PresetID.evening.rawValue
             )
         )
@@ -128,6 +129,7 @@ final class AppStateTests: XCTestCase {
                 warmthK: state.warmthK,
                 brightness: state.brightness,
                 pwmSafe: state.pwmSafe,
+                fallbackMode: state.fallbackMode,
                 activePreset: state.activePreset?.rawValue
             )
         )

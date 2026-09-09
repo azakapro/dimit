@@ -2,12 +2,13 @@ import SwiftUI
 
 /// CLAUDE.md §1: "Two sliders, three presets, one button. Anything else
 /// lives behind a Settings gear." ARCHITECTURE.md §10 has the fuller visual
-/// spec (gradients, segmented control, PWM row help text); this C1 pass
-/// gets the structure and every string wired to the catalog, plain
-/// system controls throughout. Custom styling is polish for a later cycle,
-/// not a blocker for a working skeleton.
+/// spec (gradients, segmented control, PWM row help text); this pass gets
+/// the structure and every string wired to the catalog, plain system
+/// controls throughout. Custom styling is polish for a later cycle, not a
+/// blocker for a working app.
 struct PopoverView: View {
     @ObservedObject var appState: AppState
+    @ObservedObject var pwmSafeCoordinator: PWMSafeCoordinator
     // @Environment, not Locale.current: Locale.current ignores a
     // .environment(\.locale, ...) override, which is both how SwiftUI
     // previews/tests switch locale and how C4's in-app language override
@@ -17,6 +18,9 @@ struct PopoverView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
+            if appState.showAutoBrightnessBanner {
+                autoBrightnessBanner
+            }
             onOffButton
             warmthRow
             brightnessRow
@@ -41,6 +45,40 @@ struct PopoverView: View {
             .disabled(true)
             .accessibilityLabel(Text("settings.title"))
         }
+    }
+
+    // CLAUDE.md §3.3: shown once, ever, the first time the filter turns ON
+    // on macOS ≥ 26 (no reliable detection key exists for auto-brightness
+    // itself — see AppState.swift's comment).
+    private var autoBrightnessBanner: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("banner.autobrightness")
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Button {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.Displays-Settings.extension") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    Text("banner.open_settings")
+                        .font(.caption.bold())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.blue)
+                Spacer()
+                Button {
+                    appState.dismissAutoBrightnessBanner()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("banner.dismiss"))
+            }
+        }
+        .padding(10)
+        .background(.yellow.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var onOffButton: some View {
@@ -123,14 +161,40 @@ struct PopoverView: View {
     }
 
     private var pwmSafeRow: some View {
-        Toggle(isOn: $appState.pwmSafe) {
-            Text("main.pwm_safe")
+        VStack(alignment: .leading, spacing: 4) {
+            Toggle(isOn: $appState.pwmSafe) {
+                Text("main.pwm_safe")
+            }
+            .help(Text("main.pwm_safe.help"))
+
+            if appState.pwmSafe, let status = pwmStatusText {
+                Text(status)
+                    .font(.caption)
+                    .foregroundStyle(pwmStatusIsWarning ? .orange : .secondary)
+            }
         }
-        // The real pin/verify/retry state machine is C3's PWMSafeCoordinator.
-        // Disabled here so the toggle can't lie about a mode that doesn't
-        // do anything yet.
-        .disabled(true)
-        .help(Text("main.pwm_safe.help"))
+    }
+
+    // Maps PWMSafeCoordinator.summaryState to the catalog strings CLAUDE.md
+    // §5.1 already defines for each state. `.pinned` shows the battery
+    // note (CLAUDE.md §3.6) rather than a redundant "it's on" message —
+    // the toggle itself and the (in this build, placeholder) menu-bar dot
+    // already say that.
+    private var pwmStatusText: LocalizedStringResource? {
+        switch pwmSafeCoordinator.summaryState {
+        case .pinning: return "pwm.waiting"
+        case .wontHold: return "pwm.wont_hold"
+        case .unsupported: return "pwm.unsupported"
+        case .pinned: return "main.pwm_safe.help" // doubles as the battery note
+        case .off, nil: return nil
+        }
+    }
+
+    private var pwmStatusIsWarning: Bool {
+        switch pwmSafeCoordinator.summaryState {
+        case .wontHold, .unsupported: return true
+        default: return false
+        }
     }
 
     // CLAUDE.md §5: "6500 K" with a space in UZ/RU, "6500K" in EN.
@@ -146,5 +210,5 @@ struct PopoverView: View {
 }
 
 #Preview {
-    PopoverView(appState: AppState())
+    PopoverView(appState: AppState(), pwmSafeCoordinator: PWMSafeCoordinator(backends: []))
 }
