@@ -257,7 +257,7 @@ The first time a second display has been connected to the dev machine. It closes
 |---|---|---|
 | Sunset→sunrise schedule (Tashkent) turns the filter on by itself at night | **pass** | Seeded `isOn: false`, mode `sunsetToSunrise`; 5 s after launch both displays read `(0.200, 0.000, 0.000)` — NIGHT's 0K at 40% dim exactly — and the persisted state showed `isOn: true, warmthK: 0, brightness: 0.4, activePreset: "night"`. The C5a review's "schedule controls ON/OFF" and "activePreset re-set when a ramp settles" fixes both hold on real hardware. |
 | Display sleep → wake with the schedule active | pass (display-sleep path) | `pmset displaysleepnow`, 10 s, `caffeinate -u` to wake. The external display leaves the active list during display sleep and returns already tinted `(0.200, 0, 0)` (no neutral sample at 100 ms resolution — either WindowServer doesn't reset on display-sleep wake, or the re-apply beat the sampler). Built-in identical. |
-| Full system sleep → wake with the schedule active | **pending — owner only** | Waking a sleeping Mac unattended needs a root-scheduled wake or a keypress; not attempted. The wake-notification path itself was reproduced in the C4 review's probe (docs/QA.md § Independent review). |
+| Full system sleep → wake with the schedule active | **pass — owner-run, 2026-09-10** | Owner slept and woke the Mac with the schedule on and both displays attached: "sleep wake working". Closes the row that C2 opened and the C4 review flagged as never actually closed. |
 | Quit restores both displays; owner's saved state restored afterwards | pass | Both `(0.500, 0.500, 0.500)` after SIGTERM; `state.v1` re-imported from the pre-test backup. |
 
 ## Performance
