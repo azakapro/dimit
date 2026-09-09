@@ -82,6 +82,27 @@ final class LayoutRenderTests: XCTestCase {
         }
     }
 
+    // The Displays tab gained C5b's Experimental DDC toggle plus two
+    // paragraphs of help text — the longest prose in Settings, and never
+    // render-tested before (the whole-window test only ever shows the
+    // first tab).
+    func test_displaysTab_fitsAndRenders_inEveryLanguage() {
+        for locale in locales {
+            let state = freshState(locale: locale)
+            state.ddcEnabled = true // the expanded state, with help text showing
+            let view = DisplaysSettingsTab(
+                appState: state,
+                displayManager: DisplayManager(),
+                pwmSafeCoordinator: PWMSafeCoordinator(backends: [])
+            )
+            .environment(\.locale, Locale(identifier: locale))
+            .frame(width: 520)
+            let size = render(view, name: "displays-\(locale)")
+            XCTAssertGreaterThan(size.height, 0, "\(locale): produced no content")
+            XCTAssertLessThan(size.height, 420, "\(locale): exceeds the real Settings window's content height")
+        }
+    }
+
     func test_onboarding_fitsItsFixedFrame_inEveryLanguage() {
         for locale in locales {
             let state = freshState(locale: locale)

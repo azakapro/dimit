@@ -43,7 +43,12 @@ enum DiagnosticsBundle {
             var tags: [String] = []
             if display.isBuiltin { tags.append("built-in") }
             if display.isAppleDisplay { tags.append("Apple display") }
-            if display.supportsDDC { tags.append("DDC") }
+            // Deliberately no "DDC" tag from `supportsDDC`: it is always
+            // false (see DisplayManager), so emitting it would have told
+            // every beta tester's support bundle that DDC is unsupported
+            // on a monitor DDC might actively be driving. The backend line
+            // below reports "DDC/CI" when it really is, which is the same
+            // fact, truthfully.
             let tagSuffix = tags.isEmpty ? "" : " [\(tags.joined(separator: ", "))]"
             let backend = display.brightnessBackend ?? "none"
             lines.append("  \(index + 1). \(display.name)\(tagSuffix) — brightness backend: \(backend)")

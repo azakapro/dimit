@@ -2,10 +2,9 @@ import SwiftUI
 
 /// ARCHITECTURE.md §10: "Displays (per-display list with backend name and
 /// DDC experimental toggle)." The DDC toggle itself is out of scope for
-/// C4 (docs/PLAN.md: "Out: DDC" — `DDCController` is still C3's permanent
-/// stub until C5 actually implements it), so this shows the per-display
-/// list and real backend names only; the toggle arrives with C5's real
-/// `DDCController`.
+/// C4, so that cycle shipped the per-display list and real backend names
+/// only. C5b added the Experimental DDC toggle below, completing the spec
+/// line.
 struct DisplaysSettingsTab: View {
     @ObservedObject var appState: AppState
     @ObservedObject var displayManager: DisplayManager

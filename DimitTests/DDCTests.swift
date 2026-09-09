@@ -9,33 +9,55 @@ import XCTest
 /// verified here is the part that would silently corrupt a message, and the
 /// property that matters most for everyone without an external monitor:
 /// that nothing DDC-related runs at all.
+@MainActor
 final class DDCTests: XCTestCase {
-    // MARK: - Checksum (DDC/CI: XOR of dest addr, source addr, and payload)
+    // MARK: - Checksum, against the VESA DDC/CI 1.1 spec's own worked examples
 
-    func test_checksum_matchesTheWorkedExampleForASetBrightnessMessage() {
-        // Set VCP 0x10 to 50 (0x0032): [0x84, 0x03, 0x10, 0x00, 0x32]
-        // seed = 0x6E ^ 0x51 = 0x3F
-        // 0x3F ^ 0x84 ^ 0x03 ^ 0x10 ^ 0x00 ^ 0x32
-        let expected: UInt8 = 0x3F ^ 0x84 ^ 0x03 ^ 0x10 ^ 0x00 ^ 0x32
-        XCTAssertEqual(DDCLink.checksum(of: [0x84, 0x03, 0x10, 0x00, 0x32]), expected)
+    // The spec (§6.2/§6.3) publishes these, and ddcutil carries them as
+    // its own regression vectors. Using them instead of restating the
+    // implementation's formula matters: an earlier version of this test
+    // computed `0x3F ^ 0x84 ^ ...` inline, which is the same XOR the code
+    // performs — it could never have caught a wrong seed, which turned out
+    // to be the single highest-risk unknown in this whole file.
+    func test_checksum_matchesTheSpecsPublishedVectors() {
+        // §6.2, a host->display request: 6E 51 82 F5 01 -> 0x49
+        XCTAssertEqual(DDCLink.checksum(of: [0x82, 0xF5, 0x01], seed: 0x6E ^ 0x51), 0x49)
+        // §6.3, a display->host reply, seeded with the 0x50 virtual host
+        // address: 6F 6E 82 A1 00 -> 0x1D
+        XCTAssertEqual(DDCLink.checksum(of: [0x6E, 0x82, 0xA1, 0x00], seed: 0x50), 0x1D)
+        // §6.4, the null reply: 6F 6E 80 -> 0xBE
+        XCTAssertEqual(DDCLink.checksum(of: [0x6E, 0x80], seed: 0x50), 0xBE)
     }
 
-    func test_checksum_changesWhenAnyByteChanges() {
-        let base = DDCLink.checksum(of: [0x84, 0x03, 0x10, 0x00, 0x32])
-        XCTAssertNotEqual(base, DDCLink.checksum(of: [0x84, 0x03, 0x10, 0x00, 0x33]))
-        XCTAssertNotEqual(base, DDCLink.checksum(of: [0x84, 0x03, 0x11, 0x00, 0x32]))
+    // Get VCP 0x10 (brightness): 6E 51 82 01 10 -> 0xAC per the spec.
+    // MonitorControl and m1ddc both send 0xFD here instead, omitting the
+    // 0x51 — which is why `readVCP` tries both seeds rather than betting
+    // on either. This pins that both values are what we think they are.
+    func test_getBrightnessRequest_bothSeedsProduceTheKnownValues() {
+        let payload: [UInt8] = [0x82, 0x01, 0x10]
+        XCTAssertEqual(DDCLink.checksum(of: payload, seed: DDCLink.getChecksumSeedSpec), 0xAC)
+        XCTAssertEqual(DDCLink.checksum(of: payload, seed: DDCLink.getChecksumSeedReference), 0xFD)
+    }
+
+    // Set VCP 0x10 to 100: 6E 51 84 03 10 00 64 -> 0xCC per the spec.
+    // This path matches both reference implementations exactly.
+    func test_setBrightnessRequest_matchesTheSpecVector() {
+        XCTAssertEqual(DDCLink.checksum(of: [0x84, 0x03, 0x10, 0x00, 0x64], seed: 0x6E ^ 0x51), 0xCC)
     }
 
     // MARK: - Reply parsing
 
-    /// A well-formed "current 50 of max 100" brightness reply.
+    /// A well-formed "current N of max M" brightness reply, carrying a
+    /// correct trailing checksum (seed 0x50, the spec's virtual host
+    /// address) so it survives the validation `parseVCPReply` now does.
     private func reply(current: UInt16, maximum: UInt16, code: UInt8 = 0x10, result: UInt8 = 0x00) -> [UInt8] {
-        [
+        var bytes: [UInt8] = [
             0x6E, 0x88, 0x02, result, code, 0x00,
             UInt8(maximum >> 8), UInt8(maximum & 0xFF),
             UInt8(current >> 8), UInt8(current & 0xFF),
-            0x00,
         ]
+        bytes.append(DDCLink.checksum(of: bytes, seed: DDCLink.replyChecksumSeed))
+        return bytes
     }
 
     func test_parseReply_readsCurrentAndMaximum() {
@@ -60,6 +82,27 @@ final class DDCTests: XCTestCase {
     // trusting it would apply a brightness read from, say, a contrast query.
     func test_parseReply_rejectsAReplyForADifferentVCPCode() {
         XCTAssertNil(DDCLink.parseVCPReply(reply(current: 50, maximum: 100, code: 0x12), expecting: 0x10))
+    }
+
+    // The hole this closes: a corrupted reply that happens to satisfy the
+    // structural checks would otherwise yield a garbage maximum, which
+    // `set` scales the user's brightness by — or a garbage current that
+    // reads as >= 0.99 and makes `verifyPin` report a successful pin while
+    // the backlight sits somewhere else entirely.
+    func test_parseReply_rejectsAReplyWhoseChecksumDoesNotMatch() {
+        var corrupted = reply(current: 50, maximum: 100)
+        corrupted[8] ^= 0xFF // flip the current-value high byte, leave the checksum stale
+        XCTAssertNil(DDCLink.parseVCPReply(corrupted, expecting: 0x10))
+    }
+
+    // The display's "I have nothing for you" reply (spec §6.4) must be
+    // rejected rather than parsed as a brightness value. It is the most
+    // common real-world response from a busy monitor.
+    func test_parseReply_rejectsTheNullMessage() {
+        var nullReply: [UInt8] = [0x6E, 0x80]
+        nullReply.append(DDCLink.checksum(of: nullReply, seed: DDCLink.replyChecksumSeed))
+        nullReply.append(contentsOf: [UInt8](repeating: 0, count: 8))
+        XCTAssertNil(DDCLink.parseVCPReply(nullReply, expecting: 0x10))
     }
 
     func test_parseReply_rejectsTruncatedOrGarbageReplies() {

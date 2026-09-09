@@ -65,7 +65,7 @@ Private-framework verification came first, before writing any of the rest of thi
 | PWM-Safe retry/wontHold/drift/toast/disable-restores state machine | pass (14 tests) | Against a fake backend (`DimitTests/PWMSafeCoordinatorTests.swift`), per docs/PLAN.md's explicit C3 requirement. Caught and fixed a real bug while writing these: the drift-polling timer only ever started from `sync()`, but a display doesn't reach `.pinned` until an async verify callback runs *after* `sync()` has already returned — so the poll never started unless `sync()` happened to be called again afterward. The drift test failed exactly this way before the fix. |
 | `menu.restore_colours` and Fallback mode toggle in the right-click menu | pass (logic; not clicked live) | Same C1-carried-forward limitation: this session's virtual display can't reliably drive real menu clicks. Verified by construction and by the underlying `restoreColours()`/`fallbackMode` toggle paths, which the integration probe exercises directly. |
 | PWM re-pin toast (once per session) | pass (unit test only) | `ToastPresenter` itself (the actual on-screen HUD window) wasn't visually confirmed for the same screenshot-compositing reason as the overlay above; the *trigger logic* (fires once, not on a second drift) is tested in `PWMSafeCoordinatorTests`. |
-| External monitor: DDC stub reports unsupported, real monitor's actual brightness backend | **pending** | No external monitor connected this session. `DDCBackend` is a stub (`.unsupported` always) until C5 regardless. |
+| External monitor: DDC stub reports unsupported, real monitor's actual brightness backend | **pending** | No external monitor connected this session. `DDCBackend` was a stub (`.unsupported` always) in C3; **C5b implements it for real** — see the C5b section below, and note it is still unverified against a monitor. |
 | Auto-brightness banner appears once, dismissable forever | pass (logic only) | `AppState.handleIsOnChanged`/`dismissAutoBrightnessBanner` unit-testable logic; the actual banner UI wasn't clicked live for the same reason as the menu. Confirmed no reliable detection key exists on this macOS 27 beta (`defaults read com.apple.BezelServices dAuto` — no such key), matching CLAUDE.md §3.3's anticipated fallback. |
 
 **Two real, verified findings about hardware/OS behavior, not assumptions**, both documented prominently in code comments so they aren't lost: `CoreDisplayBackend` doesn't actually control the built-in panel's brightness on this Apple Silicon machine (its `get()` is a constant), and the `IORegistry` brightness cross-check CLAUDE.md's own spec describes as "observed on the dev machine" does not track live changes on *this* dev machine as re-tested for this cycle. Both are implemented per spec regardless (harmless, and may behave correctly on hardware this session doesn't have), with the discrepancy flagged for whoever tests on a Studio Display, Pro Display XDR, or Intel Mac.
@@ -181,6 +181,42 @@ The first pass (before review) shipped with `target()` deliberately **not** touc
 | Three tests asserted the wrong thing after the above fixes (one inverted comparison, one that needed to account for the newly-correct `.receive(on:)` deferral) | Caught by the test suite itself, immediately after each fix. | Fixed in place; both are now correct regression tests for the fixes, not for the bugs. |
 
 One thing the review flagged and this cycle did **not** change: `ScheduleCoordinator`'s manual-override guard (`isApplyingScheduleTick`) is a synchronous flag, not a per-write source tag on `AppState`. The altitude angle noted this is less robust than tagging every write with who made it — correct, but it would mean routing every existing write path (sliders, hotkeys, presets) through a new setter for a currently-hypothetical risk (the guard's one real constraint — the Combine subscription it protects must stay synchronous — is now called out explicitly in both the code comment and `docs/ARCHITECTURE.md`). Revisit if a future change ever needs to debounce that subscription.
+
+## C5b — DDC/CI for external monitors, experimental (2026-09-09, same machine)
+
+**The headline: no external monitor was connected, so the I2C traffic this cycle exists to send has never reached real hardware.** That is not a footnote — it is the defining fact about this cycle, and the reason the feature ships behind a persisted default-OFF flag *and* an "Experimental" label whose own help text says so.
+
+### Verified here
+
+| Check | Result | Notes |
+|---|---|---|
+| All four `IOAVService` private symbols resolve | pass | `IOAVServiceCreate`, `CreateWithService`, `ReadI2C`, `WriteI2C`, inside the public IOKit framework on macOS 27.0 beta. Probed before writing any code, same discipline as C3. |
+| Which IORegistry class actually carries DDC on macOS 27 | pass — **and it isn't the documented one** | `IOMobileFramebufferShim` matches **zero** services here. `DCPAVServiceProxy` is the live path; its `Location` property reads `Embedded` for the built-in panel. The matching code is built on that probe, not on a reference implementation's assumptions. |
+| Message framing and checksums against the **VESA DDC/CI 1.1 spec's own worked examples** | pass | Three published vectors reproduce exactly (§6.2 `6E 51 82 F5 01`→`0x49`, §6.3 reply→`0x1D`, §6.4 null→`0xBE`), plus Get-brightness→`0xAC` and Set-brightness-100→`0xCC`. The earlier version of this test recomputed the implementation's own XOR expression, so it could not have caught a wrong seed — which turned out to be the single highest-risk unknown in the file. |
+| Inert when the toggle is off | pass | 0.07 ms, no IORegistry walk, no I2C. |
+| Never touches the built-in panel, even with the toggle on | pass | `canControl` false in 0.00 ms; resolution order still picks DisplayServices; PWM-Safe still pins the built-in normally with DDC enabled. |
+| Cached resolution stays cheap on the pipeline hot path | pass | 200 `canControl` calls in 0.29 ms total. |
+
+### Not verified — and one of these is a stated "Done when"
+
+| Item | Status |
+|---|---|
+| **Does any of it actually work on a monitor?** Pin, verify, restore, the whole point. | **Unverified.** Needs the owner's home monitor. This is the single thing that would close the cycle. |
+| PLAN's C5 "Done when: … **never hangs the UI**" | **Not met, and known.** `readVCP` blocks the main thread for a 50 ms spec-mandated wait per attempt. `set` no longer reads first (the maximum is cached per connection), but a pin still costs one read, and the 5-second drift poll costs one read *forever* while an external monitor is pinned. Bounded deliberately at 2 attempts × 2 checksum seeds rather than MonitorControl's 5 retries, so the worst case is ~200 ms rather than ~500 ms — but on the main actor either way. **Moving DDC transactions off the main actor is a prerequisite for promoting DDC out of Experimental**, which CLAUDE.md §3.4 already schedules for 1.1. |
+| Which checksum seed real monitors accept for a *get* request | **Unresolved, and handled by not choosing.** The spec includes the 0x51 source address (giving `0xAC` for brightness); m1ddc and MonitorControl both omit it (`0xFD`) and ship successfully to a lot of hardware. `readVCP` tries the reference seed first, then the spec seed. A request whose checksum a monitor rejects gets no reply at all, so the fallback costs one extra round trip only when the first attempt was already doomed. |
+| Multi-monitor DDC | **Deliberately unsupported.** DDC engages only with exactly one external display and one `External` proxy. m1ddc *does* achieve per-display pairing (via `IOObjectConformsTo(…, "IOMobileFramebuffer")`, which still matches 3 nodes here), so this is conservatism rather than a hard limit — but implementing that pairing with no second monitor to test against would mean shipping an untestable guess about *which monitor receives a write*. |
+| Real-world DDC quirks | **Known, unhandled, documented.** ddcutil and the Linux kernel driver both auto-detect a "doubled first byte" reply and displays that omit the protocol flag in the length byte. Neither is handled here. Watch for them during hardware testing. |
+
+### Bugs found by review before any hardware saw them
+
+Two independent review passes plus a spec-research pass caught four things that would each have mattered:
+
+- **The I2C read offset was wrong** — passing `0x51` where MonitorControl passes `0`. Verified against its source directly. This alone would have made every read talk to the wrong place.
+- **Turning the Experimental toggle off stranded a pinned monitor at 100% permanently**, through quit, recoverable only from the monitor's own OSD. `restoreAndDisable()` re-resolved the backend through `canControl`, which the toggle had just switched off. PWM-Safe now remembers *which backend pinned each panel* and restores through that — undo must never depend on a gate that can close. Same bug class as C3's "backlight left pinned on quit", re-entering through a new door.
+- **`get`/`set` didn't enforce what `canControl` promised.** With one external monitor attached, `set(builtInDisplay, …)` would have resolved the *external* monitor's service and written brightness to the wrong panel. Only call ordering prevented it.
+- **A read failure was reported to the user as drift.** `checkForDrift` coerced "couldn't read" to 0, which reads as "drifted to zero" — firing the re-pin toast at a user whose brightness hadn't moved and writing to the panel every 5 seconds. Latent for the Apple backends; DDC's flaky reads are what made it reachable.
+
+Also fixed: reply checksums are now validated (seed `0x50`, per spec §6.3 — a corrupted reply could otherwise report a pin as successful while the backlight sat elsewhere); enabling the toggle mid-session used to appear to do nothing, because displays already written off as `.unsupported` were never re-probed; and `DiagnosticsBundle` no longer reports `supportsDDC: false` for a monitor DDC may be actively driving.
 
 ## Performance
 
