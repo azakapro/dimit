@@ -1523,6 +1523,50 @@
         }
       }
     },
+    "schedule.manual_coordinates_help": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only needed if your city isn't in the list above and you'd rather not share your location. Find your latitude and longitude in any maps app."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Нужно только если вашего города нет в списке выше и вы не хотите делиться геопозицией. Широту и долготу можно посмотреть в любом приложении с картами."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Faqat shahringiz yuqoridagi ro'yxatda bo'lmasa va joylashuvingizni ulashishni istamasangiz kerak bo'ladi. Kenglik va uzunlikni istalgan xarita ilovasidan toping."
+          }
+        }
+      }
+    },
+    "schedule.manual_help": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dimit changes only when you change it. Choose Sunset to sunrise to follow the sun where you are, or Fixed times to use your own hours."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dimit меняется только когда вы сами его меняете. Выберите «От заката до рассвета», чтобы следовать за солнцем, или «Заданное время» для своего расписания."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dimit faqat siz o'zgartirganda o'zgaradi. Quyosh bo'yicha ishlashi uchun \"Quyosh botishidan chiqishigacha\", o'z vaqtingiz bo'yicha ishlashi uchun \"Belgilangan vaqt\" ni tanlang."
+          }
+        }
+      }
+    },
     "schedule.mode_title": {
       "localizations": {
         "en": {
@@ -1616,19 +1660,41 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Transition"
+            "value": "Fade over"
           }
         },
         "ru": {
           "stringUnit": {
-            "state": "translated",
-            "value": "Плавный переход"
+            "state": "needs_review",
+            "value": "Плавный переход за"
           }
         },
         "uz": {
           "stringUnit": {
+            "state": "needs_review",
+            "value": "O'tish vaqti"
+          }
+        }
+      }
+    },
+    "schedule.transition_help": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
             "state": "translated",
-            "value": "O'tish davomiyligi"
+            "value": "How gradually Dimit moves between DAY, EVENING and NIGHT. A longer fade is less noticeable while you are working; set it to 0 to switch instantly."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Насколько плавно Dimit переходит между режимами ДЕНЬ, ВЕЧЕР и НОЧЬ. Долгий переход меньше отвлекает во время работы; поставьте 0, чтобы переключалось сразу."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dimit KUN, KECH va TUN o'rtasida qanchalik asta o'zgarishi. Uzunroq o'tish ishlayotganda unchalik sezilmaydi; darhol o'zgarishi uchun 0 qiling."
           }
         }
       }
@@ -2026,6 +2092,28 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "Kirishda ishga tushirishni o'zgartirib bo'lmadi: %@"
+          }
+        }
+      }
+    },
+    "settings.launch_at_login_move_hint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If Dimit is running from the disk image or your Downloads folder, move it to your Applications folder and try again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Если Dimit запущен из образа диска или папки «Загрузки», переместите его в папку «Программы» и попробуйте снова."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agar Dimit disk tasviridan yoki Yuklamalar papkasidan ishlayotgan bo'lsa, uni Dasturlar papkasiga ko'chiring va qayta urinib ko'ring."
           }
         }
       }

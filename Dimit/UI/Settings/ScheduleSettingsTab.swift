@@ -39,7 +39,20 @@ struct ScheduleSettingsTab: View {
 
             switch appState.scheduleConfig.mode {
             case .manual:
-                EmptyView()
+                // Manual has nothing to configure, but an `EmptyView` here
+                // left the whole tab blank below the picker — reported as
+                // "why this is empty do we really need it?". Manual is the
+                // default, so that blank pane is what most people see the
+                // first time they open this tab, and it reads as broken
+                // rather than as "no schedule". One line saying what the
+                // mode means, and what the other two would do, costs
+                // nothing and answers the question in place.
+                Section {
+                    Text("schedule.manual_help")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             case .sunsetToSunrise:
                 locationSection
                 timeSection(title: "schedule.bedtime", binding: $appState.scheduleConfig.bedtime)
@@ -83,6 +96,16 @@ struct ScheduleSettingsTab: View {
             }
 
             DisclosureGroup {
+                // "Manual coordinates" is meaningless until you know the
+                // city list is only 14 entries — the owner asked "why we
+                // need manual coordinates?" and the UI never said. This is
+                // the escape hatch for someone in an unlisted city who also
+                // doesn't want to grant location access; without it that
+                // person simply cannot use Sunset to sunrise.
+                Text("schedule.manual_coordinates_help")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 HStack {
                     TextField("schedule.latitude", text: $manualLatitudeText)
                         .accessibilityLabel(Text("schedule.latitude"))
@@ -202,9 +225,18 @@ struct ScheduleSettingsTab: View {
 
     private var rampSection: some View {
         Section {
+            // Was labelled just "Transition · 20 min", which the owner read
+            // and asked "what is transition? it is not understandable".
+            // It is the fade between presets; the label now says so and the
+            // caption explains why you would want it long or short.
             Stepper(
                 value: $appState.scheduleConfig.rampMinutes,
-                in: 1...120,
+                // From 0, not 1: the caption offers "set it to 0 to switch
+                // instantly", and `ScheduleEngine` already treats a
+                // zero-length ramp as jumping straight to the target
+                // (`duration > 0 ? … : 1.0`). A promise the stepper could
+                // not actually reach would be worse than not offering it.
+                in: 0...120,
                 step: 5
             ) {
                 HStack {
@@ -214,6 +246,10 @@ struct ScheduleSettingsTab: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            Text("schedule.transition_help")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

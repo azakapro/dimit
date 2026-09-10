@@ -82,9 +82,14 @@ struct GeneralSettingsTab: View {
                     // while SMAppService silently refused — a wrong-but-
                     // confident UI is worse than a visible error here.
                     launchAtLoginEnabled = LaunchAtLogin.isEnabled
+                    // Add the one piece of advice that actually helps when
+                    // this fails, instead of only relaying macOS's "Invalid
+                    // argument". Only when it applies: telling someone whose
+                    // app *is* in Applications to move it there would be
+                    // worse than saying nothing.
                     launchAtLoginError = appState.localized(
                         "settings.launch_at_login_error", error.localizedDescription
-                    )
+                    ) + (LaunchAtLogin.isInApplicationsFolder ? "" : "\n" + appState.localized("settings.launch_at_login_move_hint"))
                 }
             }
         )
