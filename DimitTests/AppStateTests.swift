@@ -80,6 +80,29 @@ final class AppStateTests: XCTestCase {
         XCTAssertFalse(state.showAutoBrightnessBanner)
     }
 
+    // The banner's primary action, added after the first stable-macOS
+    // tester (26.6.2, XDR) saw no colour change and reported the app as
+    // broken: one tap must switch to the overlay tint, dismiss the banner,
+    // and stay dismissed across relaunch — otherwise the next launch nags
+    // someone who already chose.
+    func test_useFallbackModeFromBanner_switchesModeAndDismissesForever() {
+        let suite = "test.\(UUID().uuidString)"
+        let state = AppState(persistence: Persistence(suiteName: suite))
+        XCTAssertFalse(state.fallbackMode)
+        state.isOn = true
+
+        state.useFallbackModeFromBanner()
+
+        XCTAssertTrue(state.fallbackMode)
+        XCTAssertFalse(state.showAutoBrightnessBanner)
+        state.flush()
+        let relaunched = AppState(persistence: Persistence(suiteName: suite))
+        XCTAssertTrue(relaunched.fallbackMode, "the choice must survive relaunch")
+        relaunched.isOn = false
+        relaunched.isOn = true
+        XCTAssertFalse(relaunched.showAutoBrightnessBanner, "and so must the dismissal")
+    }
+
     func test_renderState_reflectsCurrentFields() {
         let state = freshState()
         state.isOn = true

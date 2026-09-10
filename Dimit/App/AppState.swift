@@ -78,6 +78,16 @@ final class AppState: ObservableObject {
     /// tracked it either) — CLAUDE.md's own §3.3 anticipates exactly this
     /// outcome and specifies the unconditional fallback, which is what
     /// this implements.
+    ///
+    /// The name is historical. The banner began as auto-brightness advice;
+    /// the first report from a stable macOS (26.6.2, MacBook Pro XDR,
+    /// 2026-09-10) showed that advice is not enough — Apple's Tahoe bug
+    /// (FB22273730, DTS-confirmed) ignores the colour table with
+    /// auto-brightness already off, and read-back can't tell us, so the
+    /// banner's real job is to put Fallback mode one click away. The
+    /// property and its persisted flag keep their names because renaming
+    /// a persisted key would re-show the banner to everyone who dismissed
+    /// it.
     @Published private(set) var showAutoBrightnessBanner = false
 
     private let persistence: Persistence
@@ -220,6 +230,18 @@ final class AppState: ObservableObject {
     func dismissAutoBrightnessBanner() {
         showAutoBrightnessBanner = false
         persistence.hasShownAutoBrightnessBanner = true
+    }
+
+    /// The banner's primary action: switch to the overlay tint and stop
+    /// asking. This is the whole point of showing the banner on macOS 26 —
+    /// a user whose screen didn't change colour must not have to discover
+    /// Settings → Advanced on their own (the first stable-macOS tester
+    /// didn't; he reported the app as broken). One tap here is the
+    /// difference between "Dimit doesn't work on my Mac" and a working
+    /// filter with tinted screenshots.
+    func useFallbackModeFromBanner() {
+        fallbackMode = true
+        dismissAutoBrightnessBanner()
     }
 
     /// Writes current state immediately, bypassing the 250 ms debounce.
