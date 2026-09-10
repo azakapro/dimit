@@ -207,6 +207,16 @@ One thing the review flagged and this cycle did **not** change: `ScheduleCoordin
 | Multi-monitor DDC | **Deliberately unsupported.** DDC engages only with exactly one external display and one `External` proxy. m1ddc *does* achieve per-display pairing (via `IOObjectConformsTo(…, "IOMobileFramebuffer")`, which still matches 3 nodes here), so this is conservatism rather than a hard limit — but implementing that pairing with no second monitor to test against would mean shipping an untestable guess about *which monitor receives a write*. |
 | Real-world DDC quirks | **Known, unhandled, documented.** ddcutil and the Linux kernel driver both auto-detect a "doubled first byte" reply and displays that omit the protocol flag in the length byte. Neither is handled here. Watch for them during hardware testing. |
 
+### Closing the DDC question for this monitor (2026-09-10, morning — owner away, monitor left connected)
+
+| Check | Result | Evidence |
+|---|---|---|
+| **EDID over the same I2C service** (address 0x50, offset 0) | **pass** | `00 ff ff ff ff ff ff 00`, manufacturer **XMI**, product **0x2701**, made week 32 of 2021, name descriptor "Mi Monitor". The bus, `IOAVServiceReadI2C` and Dimit's service resolution are all fully functional — this rules out a driver or wiring problem. |
+| Get VCP 0x10 with the spec seed and 200 ms / 500 ms waits | null message both times | The monitor isn't slow; it has nothing to say. |
+| Capabilities request (0xF3) with a 300 ms wait | null message | A DDC/CI-enabled panel answers this with a capabilities-string fragment (opcode 0xE3) even when individual VCP codes are unsupported. |
+
+**Conclusion:** the panel's DDC/CI *command* channel is switched off or absent — the classic OSD "DDC/CI: Off" signature (EDID works, every 0x37 command gets a null or error frame). Dimit's `unsupported` verdict is correct for this monitor as configured; there is no code change that would make it answer. **What would change it:** the owner opening the monitor's menu, finding DDC/CI, setting it to On, and re-running `scratchpad/ddcprobe/probe` (or simply toggling PWM-Safe with DDC enabled in Settings → Displays). Until someone does that, this monitor stays an `unsupported` data point, not a failure.
+
 ### Bugs found by review before any hardware saw them
 
 Two independent review passes plus a spec-research pass caught four things that would each have mattered:
@@ -316,6 +326,55 @@ The two overlay columns rely on `sharingType = .none`, which Apple describes as 
 
 **`/code-review high`, 8 angles, 10 findings, all fixed before merge.** The three that mattered: the "Check for Updates…" enable state was dead code (NSMenu auto-enables items and re-derives the state on pop-up; fixed with `autoenablesItems = false`); `make_appcast.sh` would have committed and deployed every old zip and delta forever (archives now gitignored and deployed from the local build, deltas off, `old_updates/` removed); and the uz/ru site copy named Settings paths the app still showed in English (fixed by translating the app, flagged for review). Also: the `SPUStandardUpdaterController` is now retained rather than dropped after `init`; the tools lookup prefers the DerivedData `build.sh` uses; a missing checkout URL now trips the deploy gate; the legal pages render text nodes instead of `set:html`; the tests assert that opting in never starts a check by itself; the download page no longer claims a notarized build while advertising 0.4; the Mi Monitor line says "unconfirmed", not "not supported".
 
+
+## Owner-reported UI bug: the OFF button's label was unreadable (2026-09-10)
+
+The owner ran the C7 build, looked at the popover and said: *"when it is off i can't see the letters."* The screenshot showed a solid black ON/OFF button with "OFF" barely visible on it. Nothing in 183 tests had caught it, because every render test in `LayoutRenderTests` measured **geometry** and none had ever looked at a **colour**.
+
+**Cause.** `.buttonStyle(.borderedProminent)` derives its label colour from the tint's computed luminance, and the button passed it `.tint(.secondary)` for the OFF state. `.secondary` is not a fill colour — it resolved to a near-black fill, and the automatic contrast then chose a dark label to sit on it. This is also a deviation from ARCHITECTURE.md §10, which says OFF is **outlined**, not filled.
+
+**Fix.** A `ZapButtonStyle` with explicit colours: the specified warm gradient (#FF6A00 → #FF2D2D) with a white label when ON, a 1.5pt outline with `.primary` text when OFF. Nothing is left for a style to guess.
+
+**Measured**, by rasterizing the real `ZapButton` and computing WCAG contrast between the extremes in a box around the centred glyphs (`LayoutRenderTests.onOffButtonContrast`):
+
+| State | Appearance | Before | After |
+|---|---|---|---|
+| OFF | Light | **3.48:1** — the reported bug | **12.49:1** |
+| OFF | Dark | 13.11:1 | 12.93:1 |
+| ON | Light | 2.32:1 | **3.44:1** |
+| ON | Dark | 2.23:1 | **3.44:1** |
+
+Two things worth keeping from this:
+
+- **The bug existed in one appearance only.** Light mode failed; dark mode was fine either way. A test that checked one appearance would have passed the broken build, so the test checks both.
+- **The first version of the test was wrong and passed on the broken code.** It took min/max across the whole rendered image, where the lightest pixel was the backdrop beyond the button's edge and the darkest was the button's own fill — a large ratio that says nothing about the label. Caught by deliberately reverting the fix and watching the test pass anyway; fixed by cropping to the label's own area. Both tests were then re-verified to fail on the original code (3.48:1 and 2.32:1) and pass on the new one.
+
+The ON state's 3.44:1 clears WCAG's 3:1 bar for large text (17pt bold) but not the 4.5:1 normal-text bar. That ceiling belongs to the specified brand colours, so the test's floor is the large-text bar and raising it is a palette decision for the owner, not a silent edit.
+
+**Two things this fix could not verify here, both needing the owner's hands:**
+
+| Item | Status |
+|---|---|
+| **Is the whole OFF button clickable?** It no longer has an opaque fill, and a SwiftUI control's hit region depends on how a `.clear`-filled shape is treated. | **Handled, not measured.** Three attempts to observe the real hit region failed: `NSHostingView.hitTest` returns nil for every point when the view isn't in a window, and returns the host view itself for every point when it is — giving the *same* answer for the opaque ON state, so it cannot discriminate. Closed instead by declaring `.contentShape(shape)` in the style, which defines the hit area explicitly. Owner: click the OFF button near its left edge, not the centre, and confirm it toggles. |
+| **Does the button still show a keyboard focus ring?** It moved from a system `.borderedProminent` style to a custom `ButtonStyle`, and custom styles do not necessarily inherit the system focus effect. CLAUDE.md §8 requires "full keyboard operation". | **Open.** Not verifiable off-screen. Owner: System Settings → Keyboard → turn on "Keyboard navigation", open the popover, press Tab until the ON/OFF button is focused, and confirm a visible ring appears. If it doesn't, the fix is a `@FocusState`-driven ring in `ZapButtonStyle` — real work, so it is recorded here rather than guessed at now. |
+
+## Owner-reported UI bug: the menu-bar icon grew when PWM-Safe pinned (2026-09-10)
+
+Reported alongside the OFF-button one, from the same build: *"when it is off i see circle which is good, and when it is on i see circle white, but in bottom something appears, why we need it?"*
+
+The thing appearing at the bottom is the **PWM-pinned badge** (CLAUDE.md §3.9: "small dot when PWM pinned" — it means Dimit is actively holding the backlight at 100%). It is meant to be there. It looked wrong for three separate reasons, all confirmed by rendering `MenuBarIcon.image(...)` at 14× and looking at it:
+
+| Defect | Detail |
+|---|---|
+| **The icon changed size when pinned** | The badge was composited onto a hard-coded 18×18 canvas, but `circle`/`circle.fill` come back at **15×15** — so pinning scaled the glyph up 20% and the menu-bar icon visibly grew next to its neighbours. |
+| **The badge was over twice its spec** | 6pt on an 18pt canvas (33%); ARCHITECTURE.md §10 says a 3pt dot on a 16pt icon (~19%). |
+| **It merged into the circle** | Drawn straight over `circle.fill` with no separation, so the two fused into one lopsided blob rather than reading as a badge. |
+
+**Fixed:** the canvas is now the base symbol's own size (no resize), the dot is the §10 ratio (`width * 3 / 16`, so it stays proportional if the symbol size changes), and a 1pt knockout is punched before the dot is filled so it separates cleanly from the circle.
+
+**Pinned by two tests** (183 → 187 with the button's two): that the pinned and unpinned icons are the same size and both stay template images, and that the pinned one is actually different from the unpinned one — without the second, a version that ignored `pwmPinned` entirely would pass the first. The size test was verified to fail against the old code (15×15 vs 18×18) before being trusted.
+
+**Open, not changed here:** the auto-brightness banner's text names **macOS 26** specifically (`banner.autobrightness`), but it is shown on macOS ≥ 26 — so every macOS 27 user reads a warning about a version they are not on. Fixing the wording means re-translating the string into uz and ru, which CLAUDE.md §5 says not to do silently, so it is recorded here for the translation pass rather than machine-translated now.
 
 ## Performance
 

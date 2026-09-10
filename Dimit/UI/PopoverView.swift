@@ -83,28 +83,7 @@ struct PopoverView: View {
     }
 
     private var onOffButton: some View {
-        Button {
-            appState.isOn.toggle()
-        } label: {
-            // Label shows CURRENT state, matching the tint below (orange
-            // when on) — code review on C1 caught this inverted (label said
-            // "OFF" on an orange, active-looking button while isOn was
-            // true). The accessibility hint below correctly describes the
-            // opposite word: what activating the button will change it TO.
-            Text(appState.isOn ? "main.on" : "main.off")
-                .font(.title2.bold())
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-        }
-        .buttonStyle(.borderedProminent)
-        .tint(appState.isOn ? .orange : .secondary)
-        // Reads as "Dimit, ON, button" rather than the bare "OFF, button, ON"
-        // an earlier hint produced (label, trait, then a lone contradictory
-        // word). Uses only strings already in the catalog; proper
-        // action-phrase hints ("Turns the filter off") need new UZ/RU
-        // translations and belong with C4's full VoiceOver pass.
-        .accessibilityLabel(Text("app.name"))
-        .accessibilityValue(Text(appState.isOn ? "main.on" : "main.off"))
+        ZapButton(isOn: appState.isOn) { appState.isOn.toggle() }
     }
 
     private var warmthRow: some View {
@@ -209,4 +188,92 @@ struct PopoverView: View {
 
 #Preview {
     PopoverView(appState: AppState(), pwmSafeCoordinator: PWMSafeCoordinator(backends: []), openSettings: {})
+}
+
+/// CLAUDE.md §1.1's "one button" — the ON/OFF hero.
+///
+/// A view of its own rather than a `private var` inside `PopoverView` for
+/// one reason: `DimitTests/LayoutRenderTests` renders *this exact view* and
+/// measures the contrast between its label and its own background. The bug
+/// below was reported from a real screen, and the only way this environment
+/// can prove it stays fixed is to rasterize the thing itself and look at
+/// the pixels — not a reconstruction of it that could drift.
+struct ZapButton: View {
+    let isOn: Bool
+    let toggle: () -> Void
+
+    var body: some View {
+        Button(action: toggle) {
+            // Label shows CURRENT state, matching the fill below (a warm
+            // gradient when on) — code review on C1 caught this inverted
+            // (label said "OFF" on an orange, active-looking button while
+            // isOn was true). The accessibility value below correctly
+            // describes the opposite word: what activating it changes it TO.
+            Text(isOn ? "main.on" : "main.off")
+                .font(.title2.bold())
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+        }
+        .buttonStyle(ZapButtonStyle(isOn: isOn))
+        // Reads as "Dimit, ON, button" rather than the bare "OFF, button, ON"
+        // an earlier hint produced (label, trait, then a lone contradictory
+        // word). Uses only strings already in the catalog; proper
+        // action-phrase hints ("Turns the filter off") need new UZ/RU
+        // translations and belong with C4's full VoiceOver pass.
+        .accessibilityLabel(Text("app.name"))
+        .accessibilityValue(Text(isOn ? "main.on" : "main.off"))
+    }
+}
+
+/// ARCHITECTURE.md §10's ON/OFF button, exactly: a warm gradient fill when
+/// on, an outline when off.
+///
+/// Deliberately **not** `.borderedProminent`. That style derives the
+/// label's colour from the tint's computed luminance, and the first version
+/// of this button passed it `.tint(.secondary)` for the OFF state.
+/// `.secondary` is not a fill colour: in **light** mode it produced a
+/// near-black fill, and the automatic contrast then put a dark label on it.
+/// "OFF" was drawn — just unreadable. Reported from the owner's screen, and
+/// measured afterwards at **3.48:1 in light mode** against 12.49:1 for the
+/// outline below. (Dark mode was never affected — 13.11:1 either way — which
+/// is exactly why a style that picks colours for you is the wrong thing to
+/// trust: it failed in one appearance and looked fine in the other.)
+///
+/// The ON state improved too, incidentally: white on this gradient measures
+/// 3.44:1, clearing WCAG's 3:1 large-text bar, where the previous system
+/// `.orange` sat at 2.2–2.3:1 and cleared nothing.
+///
+/// `LayoutRenderTests` measures all of it, and was itself checked by
+/// reverting this fix and confirming it fails.
+struct ZapButtonStyle: ButtonStyle {
+    let isOn: Bool
+
+    private static let gradient = LinearGradient(
+        colors: [Color(red: 1, green: 0x6A / 255, blue: 0), Color(red: 1, green: 0x2D / 255, blue: 0x2D / 255)],
+        startPoint: .leading, endPoint: .trailing
+    )
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        configuration.label
+            .foregroundStyle(isOn ? Color.white : Color.primary)
+            .background(isOn ? AnyShapeStyle(Self.gradient) : AnyShapeStyle(.clear), in: shape)
+            .overlay {
+                if !isOn {
+                    shape.strokeBorder(Color.primary.opacity(0.25), lineWidth: 1.5)
+                }
+            }
+            // The OFF state has no opaque fill, and this is the app's
+            // primary control: state plainly what is clickable rather than
+            // depending on how SwiftUI hit-tests a shape filled with
+            // `.clear`. (Probing the real hit region from a test turned out
+            // to be impossible here — `NSHostingView.hitTest` answers for
+            // the whole host, identically for the opaque ON state, so it
+            // can't tell the two apart. One line beats an open question on
+            // the button everything else in the popover hangs off.) It also
+            // correctly excludes the rounded corners, which a default
+            // rectangular hit area would not.
+            .contentShape(shape)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+    }
 }
