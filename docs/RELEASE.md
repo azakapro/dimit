@@ -8,7 +8,9 @@ Everything here runs on the maintainer's Mac. There is no CI and no build server
 2. Store notarization credentials once: `xcrun notarytool store-credentials Dimit --apple-id <email> --team-id <TEAMID> --password <app-specific password>` (create the app-specific password at appleid.apple.com). Nothing from this step is ever written into the repo.
 3. Export, for the shell that runs releases: `export DIMIT_SIGN_IDENTITY="Developer ID Application: <name> (<TEAMID>)"` and `export DIMIT_TEAM_ID=<TEAMID>`. The Developer ID never goes into `project.yml`.
 
-**Team ID is forever.** Sparkle verifies that an update was signed by the same Team ID as the running app; changing it later strands every installed copy on the old feed. Betas (v0.x) may ship under any account; **v1.0 must ship under the account that will sign every later release** — the LLC's (docs/PLAN.md §4).
+**Changing the Team ID later is possible, but only while you still control the old certificate.** Sparkle requires a chain of trust: it verifies an update against the running app's code-signing identity *and* its EdDSA key, and it lets you rotate **one of the two at a time** — so moving to a new Developer ID means shipping a transition update **signed with the old certificate** that announces the new one. If you can no longer sign with the old certificate (the account lapsed, or it belonged to someone who is no longer helping), there is no chain of trust and installed copies stop updating; every user has to find and re-download the app by hand.
+
+An earlier version of this file said "Team ID is forever", which overstated it. The practical rule is unchanged in effect: **ship v1.0 under the account you intend to keep**, because anything else makes your future update path depend on continued access to someone else's certificate. Betas (v0.x) are exempt — they are hand-distributed and never in the appcast (§3). Sources: Sparkle [discussion #2596](https://github.com/sparkle-project/Sparkle/discussions/2596), [#2394](https://github.com/sparkle-project/Sparkle/discussions/2394).
 
 ## 1. Every release
 
