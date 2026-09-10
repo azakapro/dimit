@@ -298,12 +298,6 @@ No Developer ID certificate and no notarization credentials exist on this machin
 
 The two overlay columns rely on `sharingType = .none`, which Apple describes as legacy with no guarantee against ScreenCaptureKit (docs/QA.md § Independent review). Until they have rows, the download page says "screenshots and screen shares stay normal at brightness 30% and above; below that, and in Fallback mode, they may show the effect" — not the unqualified claim.
 
-### Tester reports (one row per Mac)
-
-| Date | Tester | Mac | macOS | Display(s) | Result | Notes |
-|---|---|---|---|---|---|---|
-| | | | | | | |
-
 ## C7 — Sparkle opt-in updates, the site, cleanup (2026-09-10, same machine)
 
 | Check | Result | Evidence |
@@ -425,6 +419,32 @@ The failure was only ever reproduced against a Debug build running from DerivedD
 | The embedded `DimitTests.xctest` plugin | The probe registered fine with the same plugin copied into it |
 
 Recorded because the lesson generalises: **four confident hypotheses, all wrong, none cheap.** What actually resolved it was the crash report, and what will resolve the next one is that `LaunchAtLogin.setEnabled` now logs the error domain, code, bundle path and service status before rethrowing — so a user hitting this produces a diagnosable line in "Copy diagnostics" instead of "Invalid argument".
+
+## First stable-macOS report: Tahoe 26.6.2 — the colour table is ignored (2026-09-10)
+
+The first tester on a **shipping** macOS. MacBook Pro with the built-in XDR panel ("Apple XDR Display (P3-1600 nits)" preset visible in his Displays pane), macOS **26.6.2**. Evidence is a phone video of the physical screen — which, unlike a screen recording, *does* show a gamma tint — frames extracted at 1.1 s intervals.
+
+| Time | App state (visible in the popover) | What the panel showed |
+|---|---|---|
+| 0.0 s | off | Normal. System Settings → Displays open: **auto-brightness OFF, True Tone OFF** — he had already followed the banner's advice. |
+| 3.3 s | **ON, 0K, 40%, NIGHT, PWM-Safe on** | **Not red.** Mountains still pink and blue. No tint of any kind. |
+| 6.7 s | off | Normal. |
+| 10.0 s | ON, 2700K, 80%, EVENING | Whole image lighter, lower contrast — the owner's word was *"whitish"*. Not warm. |
+| 12.2 s | ON, 4000K, 100%, DAY | Same: brighter and washed, not warm. |
+
+**Reading.** `CGSetDisplayTransferByTable` is being ignored on this machine — exactly CLAUDE.md §3.3's Tahoe scenario, now seen for real. The "whitish" is the second-order effect: PWM-Safe pinned the backlight to 100% (that call goes through DisplayServices and works), the software dim that should have compensated lives in the ignored gamma table, so the net result of turning Dimit on was a *brighter* screen with no colour change. On a phone camera that reads as washed out.
+
+**Confirmed against Apple's own threads** (developer.apple.com/forums/thread/795074 and /819331, fetched 2026-09-10): DTS reproduced the API being silently ignored on 26.3.1 with read-back returning the stored values — so no software check can detect it, as §3.3 predicted; f.lux users report the same on 26.5.1 and are "swapping display profiles back and forth every night" as a workaround; and on XDR built-ins, toggling auto-brightness off can leave the colour table "in an inconsistent state … looks permanently bad until the user changes presets". That last point means the banner's old advice — turn off auto-brightness — was not merely insufficient for him; on his panel class it is a documented way to make things worse. macOS 27 (the dev machine) does not have the bug; both threads describe it as fixed-then-regressed across 26.x builds.
+
+**What changed.** No detection is possible, so the fix is to make the working path one tap away instead of a Settings excursion: the macOS-26 banner now reads *"On macOS 26 an Apple bug can stop Dimit from changing your screen's colours on some Macs. If the screen didn't turn warm, use Fallback mode."* with a **Use Fallback mode** button (`AppState.useFallbackModeFromBanner()`: sets `fallbackMode`, dismisses forever, persisted), and the Displays-settings link demoted to second. Fallback mode writes no gamma table at all — `Renderer` emits `gamma: nil` and `DisplayCoordinator` restores — so it cannot trip the bug, and its dim veil replaces the software dim that PWM-Safe depends on. The site FAQ/help and README say the same. `banner.autobrightness` is gone from the catalog.
+
+**Still to verify on his machine:** that Fallback mode actually tints on 26.6.2 (overlay windows are ordinary AppKit and it is verified on 27, but that is an inference until he flips it), and whether the 26.6.2 "whitish" state is the 819331 "inconsistent table" — i.e. whether it persists after Dimit quits and restores. He was asked to check both.
+
+### Tester reports (one row per Mac)
+
+| Date | Tester | Mac | macOS | Display(s) | Result | Notes |
+|---|---|---|---|---|---|---|
+| 2026-09-10 | friend of the owner | MacBook Pro (built-in XDR, ProMotion; exact model not yet reported) | **26.6.2** | built-in | **Colour table ignored** (Apple FB22273730); PWM-Safe pin + no software dim → brighter, "whitish" | Auto-brightness and True Tone were off. Install, quarantine command, launch, menu-bar icon, popover, presets, PWM-Safe toggle all worked. Fallback mode not yet tried. |
 
 ## Performance
 

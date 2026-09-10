@@ -51,19 +51,40 @@ struct PopoverView: View {
     // CLAUDE.md §3.3: shown once, ever, the first time the filter turns ON
     // on macOS ≥ 26 (no reliable detection key exists for auto-brightness
     // itself — see AppState.swift's comment).
+    //
+    // What it says changed on 2026-09-10, after the first report from a
+    // stable macOS (26.6.2, MacBook Pro XDR, auto-brightness and True Tone
+    // already off): 0K left the screen its normal colours, and with
+    // PWM-Safe pinning the backlight and the software dim never landing,
+    // it got *brighter*. Apple's Tahoe bug (FB22273730, DTS-confirmed on
+    // 26.3.1–26.5.1) silently ignores the colour table, and read-back
+    // can't detect it. The old text only suggested toggling auto-brightness,
+    // which thread 819331 reports can leave an XDR panel "looking
+    // permanently bad". So the banner now leads with the thing that works
+    // everywhere — Fallback mode — as a one-tap button, and keeps the
+    // Displays link as the secondary route for Macs where auto-brightness
+    // really is the cause.
     private var autoBrightnessBanner: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("banner.autobrightness")
+            Text("banner.gamma_blocked")
                 .font(.caption)
                 .fixedSize(horizontal: false, vertical: true)
-            HStack {
+            HStack(spacing: 12) {
+                Button {
+                    appState.useFallbackModeFromBanner()
+                } label: {
+                    Text("banner.use_fallback")
+                        .font(.caption.bold())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.blue)
                 Button {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.Displays-Settings.extension") {
                         NSWorkspace.shared.open(url)
                     }
                 } label: {
                     Text("banner.open_settings")
-                        .font(.caption.bold())
+                        .font(.caption)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.blue)

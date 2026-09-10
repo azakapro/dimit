@@ -15,6 +15,8 @@ Warm your Mac's screen down to a pure-red "0K", dim it below the keyboard's floo
 
 Requires macOS 13 or later, Apple silicon or Intel. Never asks for Accessibility, Screen Recording or admin. Not on the Mac App Store, because the sandbox forbids the display access it needs.
 
+**macOS 26 (Tahoe):** on some Macs, Apple's own display bug (FB22273730, confirmed by Apple DTS on 26.3.1–26.5.1 and by our first tester on 26.6.2) silently ignores colour-table changes, so the screen doesn't turn warm. Dimit can't detect this — macOS reports success — so the first time you turn it on there, it offers **Fallback mode** in one click: the same warmth and dimming through an overlay instead, at the cost of screenshots showing the tint. macOS 27 works normally.
+
 ## Privacy, in one paragraph
 
 The app makes no network request of any kind unless you turn on update checks (off by default), in which case Sparkle fetches one signed appcast from dimit.uz. There is no analytics, no crash reporter, no identifier, no server of ours. See docs/ARCHITECTURE.md §4 and the Privacy page on the site.

@@ -48,28 +48,6 @@
         }
       }
     },
-    "banner.autobrightness": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatic brightness can block colour changes on macOS 26. Turn it off in System Settings → Displays."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Автояркость может блокировать изменение цвета в macOS 26. Отключите её в Системных настройках → Дисплеи."
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Avtomatik yorqinlik macOS 26 da rang o'zgarishini bloklashi mumkin. Tizim sozlamalari → Displeylar bo'limida o'chiring."
-          }
-        }
-      }
-    },
     "banner.dismiss": {
       "localizations": {
         "en": {
@@ -92,6 +70,28 @@
         }
       }
     },
+    "banner.gamma_blocked": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On macOS 26 an Apple bug can stop Dimit from changing your screen's colours on some Macs. If the screen didn't turn warm, use Fallback mode."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "В macOS 26 из-за ошибки Apple Dimit на некоторых Mac не может менять цвета экрана. Если экран не стал теплее, включите Резервный режим."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "macOS 26 da Apple xatosi tufayli Dimit ba'zi Mac'larda ekran ranglarini o'zgartira olmasligi mumkin. Ekran iliq tus olmagan bo'lsa, Zaxira rejimdan foydalaning."
+          }
+        }
+      }
+    },
     "banner.open_settings": {
       "localizations": {
         "en": {
@@ -110,6 +110,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Displey sozlamalarini ochish"
+          }
+        }
+      }
+    },
+    "banner.use_fallback": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use Fallback mode"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Включить Резервный режим"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Zaxira rejimni yoqish"
           }
         }
       }
