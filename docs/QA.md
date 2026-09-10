@@ -207,6 +207,16 @@ One thing the review flagged and this cycle did **not** change: `ScheduleCoordin
 | Multi-monitor DDC | **Deliberately unsupported.** DDC engages only with exactly one external display and one `External` proxy. m1ddc *does* achieve per-display pairing (via `IOObjectConformsTo(…, "IOMobileFramebuffer")`, which still matches 3 nodes here), so this is conservatism rather than a hard limit — but implementing that pairing with no second monitor to test against would mean shipping an untestable guess about *which monitor receives a write*. |
 | Real-world DDC quirks | **Known, unhandled, documented.** ddcutil and the Linux kernel driver both auto-detect a "doubled first byte" reply and displays that omit the protocol flag in the length byte. Neither is handled here. Watch for them during hardware testing. |
 
+### Closing the DDC question for this monitor (2026-09-10, morning — owner away, monitor left connected)
+
+| Check | Result | Evidence |
+|---|---|---|
+| **EDID over the same I2C service** (address 0x50, offset 0) | **pass** | `00 ff ff ff ff ff ff 00`, manufacturer **XMI**, product **0x2701**, made week 32 of 2021, name descriptor "Mi Monitor". The bus, `IOAVServiceReadI2C` and Dimit's service resolution are all fully functional — this rules out a driver or wiring problem. |
+| Get VCP 0x10 with the spec seed and 200 ms / 500 ms waits | null message both times | The monitor isn't slow; it has nothing to say. |
+| Capabilities request (0xF3) with a 300 ms wait | null message | A DDC/CI-enabled panel answers this with a capabilities-string fragment (opcode 0xE3) even when individual VCP codes are unsupported. |
+
+**Conclusion:** the panel's DDC/CI *command* channel is switched off or absent — the classic OSD "DDC/CI: Off" signature (EDID works, every 0x37 command gets a null or error frame). Dimit's `unsupported` verdict is correct for this monitor as configured; there is no code change that would make it answer. **What would change it:** the owner opening the monitor's menu, finding DDC/CI, setting it to On, and re-running `scratchpad/ddcprobe/probe` (or simply toggling PWM-Safe with DDC enabled in Settings → Displays). Until someone does that, this monitor stays an `unsupported` data point, not a failure.
+
 ### Bugs found by review before any hardware saw them
 
 Two independent review passes plus a spec-research pass caught four things that would each have mattered:
@@ -316,6 +326,30 @@ The two overlay columns rely on `sharingType = .none`, which Apple describes as 
 
 **`/code-review high`, 8 angles, 10 findings, all fixed before merge.** The three that mattered: the "Check for Updates…" enable state was dead code (NSMenu auto-enables items and re-derives the state on pop-up; fixed with `autoenablesItems = false`); `make_appcast.sh` would have committed and deployed every old zip and delta forever (archives now gitignored and deployed from the local build, deltas off, `old_updates/` removed); and the uz/ru site copy named Settings paths the app still showed in English (fixed by translating the app, flagged for review). Also: the `SPUStandardUpdaterController` is now retained rather than dropped after `init`; the tools lookup prefers the DerivedData `build.sh` uses; a missing checkout URL now trips the deploy gate; the legal pages render text nodes instead of `set:html`; the tests assert that opting in never starts a check by itself; the download page no longer claims a notarized build while advertising 0.4; the Mi Monitor line says "unconfirmed", not "not supported".
 
+
+## Owner-reported UI bug: the OFF button's label was unreadable (2026-09-10)
+
+The owner ran the C7 build, looked at the popover and said: *"when it is off i can't see the letters."* The screenshot showed a solid black ON/OFF button with "OFF" barely visible on it. Nothing in 183 tests had caught it, because every render test in `LayoutRenderTests` measured **geometry** and none had ever looked at a **colour**.
+
+**Cause.** `.buttonStyle(.borderedProminent)` derives its label colour from the tint's computed luminance, and the button passed it `.tint(.secondary)` for the OFF state. `.secondary` is not a fill colour — it resolved to a near-black fill, and the automatic contrast then chose a dark label to sit on it. This is also a deviation from ARCHITECTURE.md §10, which says OFF is **outlined**, not filled.
+
+**Fix.** A `ZapButtonStyle` with explicit colours: the specified warm gradient (#FF6A00 → #FF2D2D) with a white label when ON, a 1.5pt outline with `.primary` text when OFF. Nothing is left for a style to guess.
+
+**Measured**, by rasterizing the real `ZapButton` and computing WCAG contrast between the extremes in a box around the centred glyphs (`LayoutRenderTests.onOffButtonContrast`):
+
+| State | Appearance | Before | After |
+|---|---|---|---|
+| OFF | Light | **3.48:1** — the reported bug | **12.49:1** |
+| OFF | Dark | 13.11:1 | 12.93:1 |
+| ON | Light | 2.32:1 | **3.44:1** |
+| ON | Dark | 2.23:1 | **3.44:1** |
+
+Two things worth keeping from this:
+
+- **The bug existed in one appearance only.** Light mode failed; dark mode was fine either way. A test that checked one appearance would have passed the broken build, so the test checks both.
+- **The first version of the test was wrong and passed on the broken code.** It took min/max across the whole rendered image, where the lightest pixel was the backdrop beyond the button's edge and the darkest was the button's own fill — a large ratio that says nothing about the label. Caught by deliberately reverting the fix and watching the test pass anyway; fixed by cropping to the label's own area. Both tests were then re-verified to fail on the original code (3.48:1 and 2.32:1) and pass on the new one.
+
+The ON state's 3.44:1 clears WCAG's 3:1 bar for large text (17pt bold) but not the 4.5:1 normal-text bar. That ceiling belongs to the specified brand colours, so the test's floor is the large-text bar and raising it is a palette decision for the owner, not a silent edit.
 
 ## Performance
 
