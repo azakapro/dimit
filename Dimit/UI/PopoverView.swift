@@ -27,9 +27,6 @@ struct PopoverView: View {
             brightnessRow
             presetPicker
             pwmSafeRow
-            if appState.fallbackMode {
-                fallbackActiveRow
-            }
         }
         .padding(16)
         .frame(width: 320)
@@ -55,18 +52,13 @@ struct PopoverView: View {
     // on macOS ≥ 26 (no reliable detection key exists for auto-brightness
     // itself — see AppState.swift's comment).
     //
-    // What it says changed on 2026-09-10, after the first report from a
-    // stable macOS (26.6.2, MacBook Pro XDR, auto-brightness and True Tone
-    // already off): 0K left the screen its normal colours, and with
-    // PWM-Safe pinning the backlight and the software dim never landing,
-    // it got *brighter*. Apple's Tahoe bug (FB22273730, DTS-confirmed on
-    // 26.3.1–26.5.1) silently ignores the colour table, and read-back
-    // can't detect it. The old text only suggested toggling auto-brightness,
-    // which thread 819331 reports can leave an XDR panel "looking
-    // permanently bad". So the banner now leads with the thing that works
-    // everywhere — Fallback mode — as a one-tap button, and keeps the
-    // Displays link as the secondary route for Macs where auto-brightness
-    // really is the cause.
+    // History that explains the wording: the first stable-macOS tester
+    // (26.6.2, MacBook Pro XDR, auto-brightness already off) got no colour
+    // change at all — Apple's Tahoe bug, FB22273730, undetectable from
+    // here. For one day this banner offered a one-tap Fallback mode
+    // (overlay tint); the owner then removed Fallback mode as too
+    // confusing. So the banner states the bug and the one thing that helps
+    // on many machines, and the site's macOS 26 section says the rest.
     private var autoBrightnessBanner: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("banner.gamma_blocked")
@@ -74,20 +66,12 @@ struct PopoverView: View {
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 12) {
                 Button {
-                    appState.useFallbackModeFromBanner()
-                } label: {
-                    Text("banner.use_fallback")
-                        .font(.caption.bold())
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.blue)
-                Button {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.Displays-Settings.extension") {
                         NSWorkspace.shared.open(url)
                     }
                 } label: {
                     Text("banner.open_settings")
-                        .font(.caption)
+                        .font(.caption.bold())
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.blue)
@@ -108,40 +92,6 @@ struct PopoverView: View {
 
     private var onOffButton: some View {
         ZapButton(isOn: appState.isOn) { appState.isOn.toggle() }
-    }
-
-    /// Fallback mode is sticky, and until now nothing outside Settings →
-    /// Advanced ever said it was on. That was survivable while the only way
-    /// to enable it was to go looking for it; it stopped being survivable
-    /// when the macOS-26 banner gained a one-tap button, and the owner hit
-    /// exactly the confusion that predicts — reinstalling the app, finding
-    /// it still on, and not knowing whether that was a default.
-    ///
-    /// (It wasn't: `PersistedState.defaults.fallbackMode` is false and a
-    /// genuine first launch persists nothing. Preferences simply outlive
-    /// the `.app`, which no amount of reinstalling changes.)
-    ///
-    /// So it is now impossible for the mode to be silently on: the main
-    /// popover says so whenever it is, with the way out next to it.
-    private var fallbackActiveRow: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "square.on.square.dashed")
-                .foregroundStyle(.orange)
-            Text("fallback.active")
-                .font(.caption)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 4)
-            Button {
-                appState.fallbackMode = false
-            } label: {
-                Text("fallback.turn_off")
-                    .font(.caption.bold())
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.blue)
-        }
-        .padding(8)
-        .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var warmthRow: some View {

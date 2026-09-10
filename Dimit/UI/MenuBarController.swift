@@ -157,24 +157,6 @@ final class MenuBarController: NSObject {
         toggleItem.state = appState.isOn ? .on : .off
         menu.addItem(toggleItem)
 
-        menu.addItem(.separator())
-
-        // CLAUDE.md's C3 scope: "Fallback mode toggle ... in the right-click
-        // menu for now" (a real Settings toggle comes later). Independent of
-        // ON/OFF: it changes *how* the filter renders when it's on, not
-        // whether it's on.
-        let fallbackItem = NSMenuItem(
-            title: appState.localized("fallback.title"),
-            action: #selector(toggleFallbackMode),
-            keyEquivalent: ""
-        )
-        fallbackItem.target = self
-        fallbackItem.state = appState.fallbackMode ? .on : .off
-        fallbackItem.toolTip = appState.localized("fallback.help")
-        menu.addItem(fallbackItem)
-
-        menu.addItem(.separator())
-
         // CLAUDE.md §3.3 / onboarding: a manual "restore colours" safety
         // valve, independent of the ON/OFF state — useful if a gamma
         // read-back mismatch or any other display weirdness leaves the
@@ -233,10 +215,6 @@ final class MenuBarController: NSObject {
 
     @objc private func toggleOnOff() {
         appState.isOn.toggle()
-    }
-
-    @objc private func toggleFallbackMode() {
-        appState.fallbackMode.toggle()
     }
 
     @objc private func restoreColoursClicked() {

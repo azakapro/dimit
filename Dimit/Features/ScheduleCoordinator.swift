@@ -55,7 +55,7 @@ final class ScheduleCoordinator {
 
         // isOn/warmthK/brightness are exactly the fields this coordinator
         // itself writes (see evaluateNow()) — anything else changing on
-        // AppState (pwmSafe, fallbackMode, locale, ...) has nothing to do
+        // AppState (pwmSafe, ddcEnabled, locale, ...) has nothing to do
         // with the schedule and must not pause it. Deliberately NOT
         // `appState.objectWillChange`, which fires for all of those too.
         Publishers.Merge3(

@@ -80,29 +80,6 @@ final class AppStateTests: XCTestCase {
         XCTAssertFalse(state.showAutoBrightnessBanner)
     }
 
-    // The banner's primary action, added after the first stable-macOS
-    // tester (26.6.2, XDR) saw no colour change and reported the app as
-    // broken: one tap must switch to the overlay tint, dismiss the banner,
-    // and stay dismissed across relaunch — otherwise the next launch nags
-    // someone who already chose.
-    func test_useFallbackModeFromBanner_switchesModeAndDismissesForever() {
-        let suite = "test.\(UUID().uuidString)"
-        let state = AppState(persistence: Persistence(suiteName: suite))
-        XCTAssertFalse(state.fallbackMode)
-        state.isOn = true
-
-        state.useFallbackModeFromBanner()
-
-        XCTAssertTrue(state.fallbackMode)
-        XCTAssertFalse(state.showAutoBrightnessBanner)
-        state.flush()
-        let relaunched = AppState(persistence: Persistence(suiteName: suite))
-        XCTAssertTrue(relaunched.fallbackMode, "the choice must survive relaunch")
-        relaunched.isOn = false
-        relaunched.isOn = true
-        XCTAssertFalse(relaunched.showAutoBrightnessBanner, "and so must the dismissal")
-    }
-
     func test_renderState_reflectsCurrentFields() {
         let state = freshState()
         state.isOn = true
@@ -130,7 +107,6 @@ final class AppStateTests: XCTestCase {
                 warmthK: PresetID.evening.warmthK,
                 brightness: PresetID.evening.brightness,
                 pwmSafe: true,
-                fallbackMode: false,
                 activePreset: PresetID.evening.rawValue
             )
         )
@@ -190,7 +166,6 @@ final class AppStateTests: XCTestCase {
                 warmthK: state.warmthK,
                 brightness: state.brightness,
                 pwmSafe: state.pwmSafe,
-                fallbackMode: state.fallbackMode,
                 activePreset: state.activePreset?.rawValue
             )
         )
@@ -365,15 +340,5 @@ final class AppStateTests: XCTestCase {
         let reloaded = AppState(persistence: Persistence(suiteName: suite))
         XCTAssertEqual(reloaded.locale, "uz")
         XCTAssertTrue(reloaded.updateChecksEnabled)
-    }
-
-    // A genuine first launch must never start in Fallback mode. The owner
-    // reinstalled the app, found it on, and reasonably asked whether that
-    // was the default — it is not, and preferences outliving the .app is
-    // the whole explanation. Pinned so a future default can't drift.
-    func test_freshInstall_startsWithFallbackModeOff() {
-        let state = AppState(persistence: Persistence(suiteName: "test.\(UUID().uuidString)"))
-        XCTAssertFalse(state.fallbackMode, "a first launch must use the colour-table path, not the overlay")
-        XCTAssertFalse(PersistedState.defaults.fallbackMode)
     }
 }

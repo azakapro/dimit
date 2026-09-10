@@ -9,26 +9,19 @@ protocol OverlayDimming {
     func removeAll()
 }
 
-/// One borderless `NSWindow` per screen for brightness below the gamma
-/// dim floor, or the entire visual effect in Fallback mode — CLAUDE.md
-/// §3.5 / ARCHITECTURE.md §2.7. Keyed by display UUID, matching
-/// `GammaController`'s baseline cache.
+/// One borderless black `NSWindow` per screen for brightness below the
+/// gamma dim floor — CLAUDE.md §3.5 / ARCHITECTURE.md §2.7. Keyed by
+/// display UUID, matching `GammaController`'s baseline cache.
 @MainActor
 final class OverlayDimmer: OverlayDimming {
-    private struct Applied: Equatable {
-        var tint: OverlayTint
-        var alpha: Double
-    }
-
     private var windows: [String: NSWindow] = [:]
-    /// What each window is currently showing. Code review caught `sync()`
-    /// writing `backgroundColor`/`alphaValue` unconditionally on every
-    /// call — and `sync()` runs on every `reapply()`, i.e. every slider
-    /// tick. With Fallback mode on (where the overlay is always active),
-    /// that pushed a real window-server round trip per tick for an
-    /// unchanged value, exactly the per-tick I/O the gamma path uses
-    /// `Applier`'s diff to avoid. This is the same idea, one layer down.
-    private var appliedByUUID: [String: Applied] = [:]
+    /// The alpha each window is currently showing. Code review caught
+    /// `sync()` writing `alphaValue` unconditionally on every call — and
+    /// `sync()` runs on every `reapply()`, i.e. every slider tick — which
+    /// pushed a real window-server round trip per tick for an unchanged
+    /// value, exactly the per-tick I/O the gamma path uses `Applier`'s
+    /// diff to avoid. This is the same idea, one layer down.
+    private var appliedAlphaByUUID: [String: Double] = [:]
 
     /// Called on every `DisplayCoordinator.reapply()`, same cadence as
     /// `GammaController`. Creates/updates/removes windows to match
@@ -48,11 +41,10 @@ final class OverlayDimmer: OverlayDimming {
             neededUUIDs.insert(uuid)
 
             let window = windowForDisplay(uuid: uuid, screen: screen)
-            let wanted = Applied(tint: command.overlayTint, alpha: command.overlayAlpha.clamped(to: 0...1))
-            if appliedByUUID[uuid] != wanted {
-                window.backgroundColor = color(for: wanted.tint)
-                window.alphaValue = wanted.alpha
-                appliedByUUID[uuid] = wanted
+            let wanted = command.overlayAlpha.clamped(to: 0...1)
+            if appliedAlphaByUUID[uuid] != wanted {
+                window.alphaValue = wanted
+                appliedAlphaByUUID[uuid] = wanted
             }
             if window.frame != screen.frame {
                 window.setFrame(screen.frame, display: true)
@@ -65,7 +57,7 @@ final class OverlayDimmer: OverlayDimming {
         for uuid in Set(windows.keys).subtracting(neededUUIDs) {
             windows[uuid]?.orderOut(nil)
             windows.removeValue(forKey: uuid)
-            appliedByUUID.removeValue(forKey: uuid)
+            appliedAlphaByUUID.removeValue(forKey: uuid)
         }
     }
 
@@ -82,7 +74,7 @@ final class OverlayDimmer: OverlayDimming {
     func removeAll() {
         for window in windows.values { window.orderOut(nil) }
         windows.removeAll()
-        appliedByUUID.removeAll()
+        appliedAlphaByUUID.removeAll()
     }
 
     private func windowForDisplay(uuid: String, screen: NSScreen) -> NSWindow {
@@ -99,16 +91,9 @@ final class OverlayDimmer: OverlayDimming {
         // §3.5: "setting it afterwards is unreliable on some versions."
         window.sharingType = .none
         window.hasShadow = false
+        // Always black; opacity comes from `alphaValue` (CLAUDE.md §3.5).
+        window.backgroundColor = .black
         windows[uuid] = window
         return window
-    }
-
-    private func color(for tint: OverlayTint) -> NSColor {
-        switch tint {
-        case .black: return .black
-        // Opacity comes from the window's alphaValue, not from here — this
-        // colour is fully opaque and only carries "how red."
-        case .red(let intensity): return NSColor(red: intensity, green: 0, blue: 0, alpha: 1)
-        }
     }
 }

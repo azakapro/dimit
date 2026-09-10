@@ -9,13 +9,13 @@ Warm your Mac's screen down to a pure-red "0K", dim it below the keyboard's floo
 - **Warmth to 0K.** Night Shift stops near 2500K, f.lux near 1900K; Dimit rewrites the display's gamma tables all the way to pure red. "0K" is a name, not a physical temperature.
 - **Software dimming to 10%**, on every connected display, below what the brightness keys allow.
 - **PWM-Safe mode** pins the hardware backlight at 100% and dims in software instead, so LED backlights that dim by pulsing (PWM) stop pulsing. Apple displays today; third-party monitors over DDC/CI are experimental and off by default.
-- **Screenshots, recordings and screen shares keep their real colours** at brightness 30% and above, because the tint lives in the display's colour tables, not in a window. Verified with QuickTime and Zoom on macOS 27 (docs/QA.md). Below 30% and in Fallback mode an overlay window is used, and some recorders may capture it.
+- **Screenshots, recordings and screen shares keep their real colours** at brightness 30% and above, because the tint lives in the display's colour tables, not in a window. Verified with QuickTime and Zoom on macOS 27 (docs/QA.md). Below 30% an overlay window is used for dimming, and some recorders may capture it.
 - **Sunset→sunrise or fixed-time schedules**, computed locally from a bundled city list or a one-time location read. Nothing is sent anywhere.
 - **Fail-safe.** OFF, quit, sleep/wake and unplugging a monitor all leave the display normal; after a crash or `kill -9` the next launch restores it before doing anything else (on macOS 27 WindowServer even does it immediately); a "Restore Colours" button exists for anything else.
 
 Requires macOS 13 or later, Apple silicon or Intel. Never asks for Accessibility, Screen Recording or admin. Not on the Mac App Store, because the sandbox forbids the display access it needs.
 
-**macOS 26 (Tahoe):** on some Macs, Apple's own display bug (FB22273730, confirmed by Apple DTS on 26.3.1–26.5.1 and by our first tester on 26.6.2) silently ignores colour-table changes, so the screen doesn't turn warm. Dimit can't detect this — macOS reports success — so the first time you turn it on there, it offers **Fallback mode** in one click: the same warmth and dimming through an overlay instead, at the cost of screenshots showing the tint. macOS 27 works normally.
+**macOS 26 (Tahoe):** on some Macs, Apple's own display bug (FB22273730, confirmed by Apple DTS on 26.3.1–26.5.1 and by our first tester on 26.6.2) silently ignores colour-table changes, so the screen doesn't turn warm. Dimit can't detect this — macOS reports success. Turning off automatic brightness in System Settings → Displays fixes it on many machines; on the rest, Dimit's colour changes do nothing until Apple fixes the bug (dimming below 30% and PWM-Safe still work). macOS 27 works normally.
 
 ## Privacy, in one paragraph
 

@@ -75,19 +75,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "On macOS 26 an Apple bug can stop Dimit from changing your screen's colours on some Macs. If the screen didn't turn warm, use Fallback mode."
+            "value": "On macOS 26 an Apple bug can stop Dimit from changing your screen's colours on some Macs. Turning off automatic brightness in System Settings → Displays fixes it on many of them."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "В macOS 26 из-за ошибки Apple Dimit на некоторых Mac не может менять цвета экрана. Если экран не стал теплее, включите Резервный режим."
+            "value": "В macOS 26 из-за ошибки Apple Dimit на некоторых Mac не может менять цвета экрана. Отключение автояркости в Системных настройках → Дисплеи помогает на многих из них."
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "macOS 26 da Apple xatosi tufayli Dimit ba'zi Mac'larda ekran ranglarini o'zgartira olmasligi mumkin. Ekran iliq tus olmagan bo'lsa, Zaxira rejimdan foydalaning."
+            "value": "macOS 26 da Apple xatosi tufayli Dimit ba'zi Mac'larda ekran ranglarini o'zgartira olmasligi mumkin. Tizim sozlamalari → Displeylar bo'limida avtomatik yorqinlikni o'chirish ko'pchiligida yordam beradi."
           }
         }
       }
@@ -110,161 +110,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Displey sozlamalarini ochish"
-          }
-        }
-      }
-    },
-    "banner.use_fallback": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use Fallback mode"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Включить Резервный режим"
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Zaxira rejimni yoqish"
-          }
-        }
-      }
-    },
-    "error.gamma_failed": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't change display colours. Try Fallback mode in Settings."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не удалось изменить цвета дисплея. Попробуйте Резервный режим в Настройках."
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Displey ranglarini o'zgartirib bo'lmadi. Sozlamalarda Zaxira rejimni sinab ko'ring."
-          }
-        }
-      }
-    },
-    "fallback.active": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fallback mode is on."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Резервный режим включён."
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Zaxira rejim yoqilgan."
-          }
-        }
-      }
-    },
-    "fallback.help": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tints with an overlay instead of colour tables. Screenshots will look tinted in this mode."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Окрашивает экран слоем вместо цветовых таблиц. В этом режиме скриншоты тоже будут окрашены."
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rang jadvallari o'rniga qatlam bilan bo'yaydi. Bu rejimda skrinshotlar ham rangli chiqadi."
-          }
-        }
-      }
-    },
-    "fallback.needs_on": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Turn Dimit ON to see this — Fallback mode changes how the screen is tinted, not whether it is."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Включите Dimit, чтобы это увидеть — Резервный режим меняет способ окрашивания экрана, а не сам факт."
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Buni ko'rish uchun Dimit'ni YOQING — Zaxira rejim ekran qanday bo'yalishini o'zgartiradi, bo'yaladimi yoki yo'qmi emas."
-          }
-        }
-      }
-    },
-    "fallback.title": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fallback mode"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Резервный режим"
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zaxira rejim"
-          }
-        }
-      }
-    },
-    "fallback.turn_off": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Turn off"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Выключить"
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "O'chirish"
           }
         }
       }

@@ -5,7 +5,7 @@ import Foundation
 ///
 /// C1's original comment here claimed "adding a new field with a default
 /// later is not a breaking change to already-saved JSON" — checked that
-/// claim empirically while adding `fallbackMode` for C3 and it was
+/// claim empirically while adding a field for C3 and it was
 /// **wrong**: Swift's synthesized `Decodable` throws `keyNotFound` for a
 /// missing key regardless of the property's declared default, so loading
 /// a C1/C2 user's saved state with this struct's synthesized decoder would
@@ -21,7 +21,6 @@ struct PersistedState: Codable, Equatable {
     var warmthK: Double
     var brightness: Double
     var pwmSafe: Bool
-    var fallbackMode: Bool
     var activePreset: String? // PresetID.rawValue
     /// C4: user-edited preset values, keyed by `PresetID.rawValue`. Only
     /// presets that differ from `PresetID.defaultValues` need an entry —
@@ -54,7 +53,6 @@ struct PersistedState: Codable, Equatable {
         warmthK: Config.maxWarmthK,
         brightness: Config.maxBrightness,
         pwmSafe: false,
-        fallbackMode: false,
         activePreset: nil,
         presetOverrides: [:],
         locale: nil,
@@ -68,7 +66,6 @@ struct PersistedState: Codable, Equatable {
         warmthK: Double,
         brightness: Double,
         pwmSafe: Bool,
-        fallbackMode: Bool,
         activePreset: String?,
         presetOverrides: [String: PresetValues] = [:],
         locale: String? = nil,
@@ -80,7 +77,6 @@ struct PersistedState: Codable, Equatable {
         self.warmthK = warmthK
         self.brightness = brightness
         self.pwmSafe = pwmSafe
-        self.fallbackMode = fallbackMode
         self.activePreset = activePreset
         self.presetOverrides = presetOverrides
         self.locale = locale
@@ -96,7 +92,6 @@ struct PersistedState: Codable, Equatable {
         warmthK = try container.decodeIfPresent(Double.self, forKey: .warmthK) ?? fallback.warmthK
         brightness = try container.decodeIfPresent(Double.self, forKey: .brightness) ?? fallback.brightness
         pwmSafe = try container.decodeIfPresent(Bool.self, forKey: .pwmSafe) ?? fallback.pwmSafe
-        fallbackMode = try container.decodeIfPresent(Bool.self, forKey: .fallbackMode) ?? fallback.fallbackMode
         activePreset = try container.decodeIfPresent(String.self, forKey: .activePreset)
         presetOverrides = try container.decodeIfPresent([String: PresetValues].self, forKey: .presetOverrides) ?? fallback.presetOverrides
         locale = try container.decodeIfPresent(String.self, forKey: .locale)
