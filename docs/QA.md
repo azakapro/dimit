@@ -411,6 +411,21 @@ The owner used the app and asked four questions. Three had the same shape: the f
 
 Five tests cover `CityList.nearest`, including the owner's exact coordinates, the Fergana-valley case where three cities sit within ~80 km of each other, a mid-Pacific point that must name nothing rather than guess, and an antimeridian point that must not wrap onto London or Tokyo. 187 → 192.
 
+### Launch at login — resolved, and what it cost to find out (2026-09-10)
+
+**Owner-confirmed working** from `/Applications/Dimit.app`, on the build with the hardened-runtime fix. No crash reports since.
+
+The failure was only ever reproduced against a Debug build running from DerivedData under Xcode's debugger, and `SMAppService` reports EINVAL with no detail, so the precise reason that instance was refused is **still unconfirmed**. What is confirmed: the shipping path works, and four plausible explanations do **not** account for it —
+
+| Hypothesis | Disproved by |
+|---|---|
+| The app must live in `/Applications` | A minimal probe app registered a login item successfully from `/tmp` |
+| The bundle's signature was broken | `codesign --verify --deep --strict` passed on the exact bundle that failed |
+| Four copies of `app.dimit.mac` on disk confused LaunchServices | Registering with a deliberate duplicate present still succeeded |
+| The embedded `DimitTests.xctest` plugin | The probe registered fine with the same plugin copied into it |
+
+Recorded because the lesson generalises: **four confident hypotheses, all wrong, none cheap.** What actually resolved it was the crash report, and what will resolve the next one is that `LaunchAtLogin.setEnabled` now logs the error domain, code, bundle path and service status before rethrowing — so a user hitting this produces a diagnosable line in "Copy diagnostics" instead of "Invalid argument".
+
 ## Performance
 
 | Date | Version | Machine | Idle CPU (5 min avg) | Popover open (ms) | Slider latency |
