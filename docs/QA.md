@@ -444,6 +444,7 @@ The first tester on a **shipping** macOS. MacBook Pro with the built-in XDR pane
 
 | Date | Tester | Mac | macOS | Display(s) | Result | Notes |
 |---|---|---|---|---|---|---|
+| 2026-09-10 | owner, second Mac | (model not yet recorded) | **15.6** (Sequoia, stable) | built-in | **Works** — owner: "working good"; warmth and dimming apply | First stable-macOS machine where the colour-table path works, closing the RELEASE.md §2 gate "at least one Mac on a stable macOS release". Not yet reported from this machine: the below-30% screenshot, quit/restore, and the Mac model — ask when convenient. |
 | 2026-09-10 | friend of the owner | MacBook Pro (built-in XDR, ProMotion; exact model not yet reported) | **26.6.2** | built-in | **Colour table ignored** (Apple FB22273730); PWM-Safe pin + no software dim → brighter, "whitish" | Auto-brightness and True Tone were off. Install, quarantine command, launch, menu-bar icon, popover, presets, PWM-Safe toggle all worked. Fallback mode not yet tried. |
 
 ### Fallback mode was silently sticky (2026-09-10)
