@@ -41,7 +41,7 @@
 	<string>Dimit uses your location only to compute today's sunrise and sunset time for the Sunset→Sunrise schedule. Nothing is sent anywhere.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Dimit uses your location only to compute today's sunrise and sunset time for the Sunset→Sunrise schedule. Nothing is sent anywhere.</string>
-	<!-- Sparkle (C7, ARCHITECTURE.md §8). SUEnableAutomaticChecks is NO so
+	<!-- Sparkle (C7, ARCHITECTURE.md §4). SUEnableAutomaticChecks is NO so
 	     Sparkle never shows its own "check automatically?" prompt and never
 	     schedules a check on its own: UpdateController.swift sets
 	     automaticallyChecksForUpdates from the user's opt-in
@@ -49,7 +49,7 @@
 	     public EdDSA key's private half lives in the maintainer's login
 	     Keychain and is never committed (scripts/make_appcast.sh). -->
 	<key>SUFeedURL</key>
-	<string>https://dimit.uz/updates/appcast.xml</string>
+	<string>https://azakapro.github.io/dimit/appcast.xml</string>
 	<key>SUEnableAutomaticChecks</key>
 	<false/>
 	<key>SUPublicEDKey</key>

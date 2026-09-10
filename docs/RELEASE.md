@@ -1,78 +1,98 @@
 # Releasing Dimit
 
-Everything here runs on the maintainer's Mac. There is no CI and no build server on purpose (docs/ARCHITECTURE.md §7.1): notarization needs the Developer ID certificate, and uploading that to a hosted runner is a risk taken for nothing at this scale.
+Dimit is free and open source under the MIT licence. The README is the product page, [GitHub Releases](https://github.com/azakapro/dimit/releases) hosts downloads, and GitHub Pages serves only the update feed and repository documentation. Builds and signing run on the maintainer's Mac; signing credentials stay in the login Keychain.
 
-## 0. One-time setup (account holder only)
+## 0. One-time setup
+
+### Signing
 
 1. Install the **Developer ID Application** certificate in the login Keychain (Xcode → Settings → Accounts → Manage Certificates). Check with `security find-identity -v -p codesigning`.
-2. Store notarization credentials once: `xcrun notarytool store-credentials Dimit --apple-id <email> --team-id <TEAMID> --password <app-specific password>` (create the app-specific password at appleid.apple.com). Nothing from this step is ever written into the repo.
-3. Export, for the shell that runs releases: `export DIMIT_SIGN_IDENTITY="Developer ID Application: <name> (<TEAMID>)"` and `export DIMIT_TEAM_ID=<TEAMID>`. The Developer ID never goes into `project.yml`.
+2. Store notarization credentials once: `xcrun notarytool store-credentials Dimit --apple-id <email> --team-id <TEAMID> --password <app-specific-password>`. Keep these credentials out of the repository.
+3. Set `DIMIT_SIGN_IDENTITY="Developer ID Application: <name> (<TEAMID>)"` and `DIMIT_TEAM_ID=<TEAMID>` in the release shell. The Developer ID does not go into `project.yml`.
+4. Keep the existing Sparkle EdDSA private key in the login Keychain. Its public half must match `SUPublicEDKey` in `Dimit/Info.plist`. Sparkle's `generate_keys` and `sign_update` tools are included in the resolved SPM artifact after building. Preserve secure backups of signing keys; do not regenerate the Sparkle key for each release or commit its private half.
 
-**Changing the Team ID later is possible, but only while you still control the old certificate.** Sparkle requires a chain of trust: it verifies an update against the running app's code-signing identity *and* its EdDSA key, and it lets you rotate **one of the two at a time** — so moving to a new Developer ID means shipping a transition update **signed with the old certificate** that announces the new one. If you can no longer sign with the old certificate (the account lapsed, or it belonged to someone who is no longer helping), there is no chain of trust and installed copies stop updating; every user has to find and re-download the app by hand.
+Developer ID signing and Sparkle archive signing are separate checks. Keep the established signing identities across releases; investigate Sparkle's supported key-rotation process before changing either one.
 
-An earlier version of this file said "Team ID is forever", which overstated it. The practical rule is unchanged in effect: **ship v1.0 under the account you intend to keep**, because anything else makes your future update path depend on continued access to someone else's certificate. Betas (v0.x) are exempt — they are hand-distributed and never in the appcast (§3). Sources: Sparkle [discussion #2596](https://github.com/sparkle-project/Sparkle/discussions/2596), [#2394](https://github.com/sparkle-project/Sparkle/discussions/2394).
+### GitHub Pages
 
-## 1. Every release
+Use **the `docs/` directory on `main`**, with `docs/.nojekyll` to serve files directly. This keeps feed changes in the same reviewable history as the app, avoids a separate branch or deployment tool, and requires no dependency. Repository documentation in `docs/` is public too. No DMG or zip belongs in that directory.
 
-`scripts/build.sh` regenerates `Dimit.xcodeproj` from `project.yml` first — close the project in Xcode before running it.
+After reviewing the open-source conversion, the repository maintainer must make the repository public and configure **Settings → Pages → Build and deployment → Deploy from a branch → `main` → `/docs`**. This task does not change repository visibility or Pages settings. The configured appcast URL is:
+
+`https://azakapro.github.io/dimit/appcast.xml`
+
+The checked-in feed initially has an empty channel: there is no signed update to advertise yet. It becomes reachable only after Pages is configured and deployed. Confirm the URL serves the expected XML before announcing update availability. Until then, users who opt in can receive a feed error; automatic checks remain off by default, and no update request occurs without opt-in.
+
+## 1. Every signed release
+
+`scripts/build.sh` regenerates `Dimit.xcodeproj` from `project.yml` first; close the project in Xcode before running it. Complete the build and hardware gates in §2 before uploading, then the download and update checks before announcing the release.
 
 ```bash
-# 1. Version: edit MARKETING_VERSION in project.yml (MAJOR.MINOR). Do NOT bump it again
-#    until every step below is done — the scripts read the version from the built app.
-#    The build number (CFBundleVersion) is generated by build.sh: UTC date to the
-#    minute, YYYYMMDDHHMM, so it is unique per build and always increasing.
-# 2. Build (universal, Release; Developer ID when the two variables are set):
+# 1. Edit MARKETING_VERSION in project.yml (normally MAJOR.MINOR).
+#    Use a new version for every new release asset. Do not reuse a tag.
+#    CFBundleVersion is UTC to the minute, YYYYMMDDHHMM. Each build must
+#    increase; if rebuilding within a minute, wait or set DIMIT_BUILD_NUMBER.
+# 2. Build a universal Release app using the signing variables from §0.
 scripts/build.sh
-# 3. Notarize. This ONE script does the rest in the right order: notarizes and
-#    staples the app, refreshes the Sparkle zip from the stapled app, builds the DMG
-#    from the stapled app, notarizes and staples the DMG.
+# 3. Notarize and staple the app, refresh the Sparkle zip, build the DMG
+#    from the stapled app, then notarize and staple the DMG.
 scripts/notarize.sh
-# 4. Tag and record:
-git tag -a vX.Y -m "vX.Y — <one line>" && git push origin vX.Y
-gh release create vX.Y build/release/Dimit-X.Y.dmg --title "vX.Y — <one line>" --notes-file <notes>
+# 4. Record the reviewed release commit, then upload BOTH assets.
+#    Replace X.Y and the notes-file path with the actual version and file.
+git tag -a vX.Y -m "vX.Y"
+git push origin vX.Y
+gh release create vX.Y \
+  build/release/Dimit-X.Y.dmg build/release/Dimit-X.Y.zip \
+  --verify-tag --title "vX.Y" --notes-file /path/to/release-notes.md
+# 5. Confirm both uploaded assets are publicly downloadable and match the
+#    local files. Only then generate the feed from this exact build.
+scripts/make_appcast.sh
+git diff -- docs/appcast.xml
+# 6. Commit the reviewed docs/appcast.xml and merge it to main using the
+#    usual PR workflow. Pages then publishes the feed from main:/docs.
 ```
 
-Why the app is stapled before the DMG is built: a buyer who drags Dimit.app out of the image and first-launches it offline needs the ticket *on the app*; a ticket on the DMG wrapper alone doesn't help them.
+The app is stapled before packaging so a copy dragged out of the DMG can first-launch offline with the ticket on the app itself. The Sparkle zip contains that same stapled app.
 
-Then the two distribution steps, both C7 (docs/ARCHITECTURE.md §5, §8):
+Both assets use version-specific release URLs, for example `https://github.com/azakapro/dimit/releases/download/vX.Y/Dimit-X.Y.zip`. Treat published tags and assets as immutable: do not use a `latest/download` URL in the feed, replace an asset under an existing tag, or remove an asset still referenced by the feed. To correct a release, build a new version with a larger build number.
 
-5. **Lemon Squeezy:** upload `Dimit-X.Y.dmg` to the product as a **new or replacement** file. Every past buyer sees it in My Orders. **Never delete an older file** — deleting removes it from everyone who already bought it.
-6. **Sparkle:** `scripts/make_appcast.sh` copies `build/release/Dimit-X.Y.zip` into `site/public/updates/` and regenerates the signed `appcast.xml` there. The zips are gitignored — only `appcast.xml` is committed — so the site must be deployed **from the local build**, never from the git tree alone:
-   ```bash
-   cd site && npm run build:release && npx wrangler pages deploy dist --project-name dimit
-   ```
-   (`wrangler` runs via npx; one-time `npx wrangler login`.) Before tagging, `curl -sI https://dimit.uz/updates/appcast.xml` must return 200 — until the feed exists, a manual "Check for Updates…" shows Sparkle's own error dialog (English for Uzbek users: Sparkle ships no `uz` localization).
+`make_appcast.sh` stages only the current zip and a copy of the feed. It refuses ad-hoc builds, verifies both app signatures, compares the archived app's files with the current build, checks the generated archive URL, version, build number, length and EdDSA signature, and verifies that signature with Sparkle's tool. Sparkle retains up to five entries per compatibility branch without needing old local archives. Existing enclosures must keep their version-specific URLs and signing metadata. Generation or validation failure leaves `docs/appcast.xml` intact; temporary archives are cleaned up. The script runs locally and cannot confirm that GitHub assets or Pages are reachable: the upload checks above remain release gates.
 
-## 2. Before tagging — the release gates
+After Pages deploys, confirm the feed URL serves the new item and its enclosure downloads the exact uploaded zip. On a separate Mac, opt in on an older signed build and verify an update installs and launches. Do not describe this as tested until that end-to-end check has a `docs/QA.md` row.
 
-From docs/LAUNCH_STRATEGY.md §7 and docs/PLAN.md §2 C6/C7, checked against the **built artifact**, not an Xcode run:
+## 2. Release gates
 
-- [ ] `scripts/build.sh` printed `architectures: x86_64 arm64`, the intended version, `entitlements: none` and `hardened runtime: on`.
-- [ ] The DMG from a **fresh browser download** opens on a Mac that is not the build machine, using the instructions on the download page.
-- [ ] OFF, quit, `kill -9` + relaunch, sleep/wake and unplug/replug all leave the display normal (docs/QA.md rows for this version).
-- [ ] At least one Mac on a **stable** macOS release tested, not only the development beta.
-- [ ] No open report of a display left unusable. Experimental DDC stays default-off.
-- [ ] Every claim on the download page has a docs/QA.md row behind it (docs/ARCHITECTURE.md §7).
-- [ ] `xcodebuild test` green, count in the release notes.
+Check the **built artifact**, not only an Xcode run:
 
-## 3. Ad-hoc beta builds (v0.x)
+- [ ] `scripts/build.sh` reports both `x86_64` and `arm64`, the intended version/build, `entitlements: none`, `hardened runtime: on`, and a successful launch check.
+- [ ] The notarized DMG from a fresh GitHub Release download opens on another Mac using the README's install instructions. Both DMG and Sparkle zip match the local files; record their SHA-256 checksums with `shasum -a 256 build/release/Dimit-X.Y.dmg build/release/Dimit-X.Y.zip`.
+- [ ] OFF, quit, `kill -9` + relaunch, sleep/wake and unplug/replug leave the display normal, with rows for this version in `docs/QA.md`.
+- [ ] At least one Mac on a stable macOS release tested, in addition to the development beta.
+- [ ] No open report of a display left unusable. Experimental DDC stays off by default.
+- [ ] Every compatibility and capture claim in the README has supporting evidence in `docs/QA.md`.
+- [ ] `xcodebuild test -project Dimit.xcodeproj -scheme Dimit -destination 'platform=macOS'` passes; include the test count in release notes.
+- [ ] Both assets are uploaded before the appcast is merged, and the deployed feed and opt-in update path are verified before announcing update availability.
 
-Without `DIMIT_SIGN_IDENTITY`, `build.sh` produces an ad-hoc signed app; skip `notarize.sh` (it refuses ad-hoc builds) and run `scripts/build_dmg.sh` instead.
+## 3. Ad-hoc beta builds
 
-**Ad-hoc builds have the hardened runtime off, on purpose.** With it on, macOS's library validation only lets a process load libraries signed by its own Team ID; an ad-hoc signature has none, so the embedded `Sparkle.framework` is refused and the app dies before `main()` (`Library not loaded … different Team IDs`). This shipped once: a build that passed every static check and crashed on launch. `build.sh` now also *runs* every artifact for three seconds and fails the build if it dies — do not remove that step to save time. The Developer ID path keeps the hardened runtime on, as CLAUDE.md §7 requires; there Xcode re-signs the framework with the same Team ID and validation passes. Gatekeeper refuses an un-notarized app, and since macOS 15 the old right-click → Open trick no longer bypasses it. The message that carries the link must say:
+Without `DIMIT_SIGN_IDENTITY`, `build.sh` produces an ad-hoc signed app. Skip `notarize.sh` (it refuses ad-hoc builds) and run `scripts/build_dmg.sh` instead. Publish the DMG only as a clearly labelled **GitHub prerelease**, with the current limitations and un-notarized status in its release notes. Never add an ad-hoc build to the appcast; the empty bootstrap feed stays empty until a signed release is ready.
+
+**Ad-hoc builds have the hardened runtime off, on purpose.** With it on, library validation only lets a process load libraries signed by its own Team ID. An ad-hoc signature has none, so the embedded `Sparkle.framework` is refused and the app dies before `main()` (`Library not loaded … different Team IDs`). A beta once passed the static checks and failed this way. `build.sh` now runs every artifact for three seconds and fails if it dies; retain that check. The Developer ID path keeps the hardened runtime on and re-signs the embedded framework with the app's Team ID.
+
+For an un-notarized beta, include these instructions in its release notes and keep the README in sync:
 
 > After dragging Dimit to Applications, open Terminal and run:
 > `xattr -dr com.apple.quarantine /Applications/Dimit.app`
-> then open Dimit normally. (This beta isn't notarized yet; the release will be. The other route — System Settings → Privacy & Security → *Open Anyway* — asks for your password, which the command doesn't.)
-
-Never put an ad-hoc build on Lemon Squeezy or in the appcast.
+> Then open Dimit normally. This beta is not notarized. Remove quarantine only from the Dimit copy you downloaded from this repository and trust.
 
 ## 4. What lands where
 
-| Artifact | Made by | Goes to |
+| Artifact | Made by | Destination |
 |---|---|---|
-| `build/release/Dimit.app` | build.sh (stapled in place by notarize.sh) | nowhere directly — the source of the two below |
-| `build/release/Dimit-X.Y.dmg` | notarize.sh (via build_dmg.sh); build_dmg.sh alone for ad-hoc betas | Lemon Squeezy product file; GitHub release asset |
-| `build/release/Dimit-X.Y.zip` | build.sh, replaced by notarize.sh with the stapled app | `site/public/updates/` for Sparkle (C7) |
+| `build/release/Dimit.app` | `build.sh`, stapled in place by `notarize.sh` | Source for the two archives below |
+| `build/release/Dimit-X.Y.dmg` | `notarize.sh` via `build_dmg.sh`; `build_dmg.sh` alone for ad-hoc betas | GitHub Release asset; prerelease for ad-hoc betas |
+| `build/release/Dimit-X.Y.zip` | `build.sh`, replaced by `notarize.sh` with the stapled app | GitHub Release asset for Sparkle |
+| `docs/appcast.xml` | `make_appcast.sh` after both assets are uploaded | Tracked on `main`, served by GitHub Pages |
+| `docs/.nojekyll` | Checked in once | Keeps Pages serving the documentation directory directly |
 
-`build/` is gitignored; nothing under it is ever committed.
+`build/` is gitignored. Binary artifacts and private signing keys are never committed.

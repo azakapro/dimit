@@ -10,8 +10,8 @@
 #   (neither set)
 #       -> ad-hoc signed Release build. Runs on testers' machines after the
 #          quarantine flag is removed (docs/RELEASE.md §3). Beta use only;
-#          never upload an ad-hoc build to Lemon Squeezy. Continue with
-#          scripts/build_dmg.sh.
+#          publish it only as a clearly labelled GitHub prerelease, never
+#          through Sparkle. Continue with scripts/build_dmg.sh.
 #
 # Output: build/release/Dimit.app and build/release/Dimit-<version>.zip.
 #

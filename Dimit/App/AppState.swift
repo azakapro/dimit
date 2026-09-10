@@ -7,8 +7,7 @@ import Foundation
 ///
 /// Deviation from CLAUDE.md §3.7, disclosed: the spec says `@Observable`
 /// (Swift's Observation framework), but that macro requires macOS 14+ and
-/// CLAUDE.md §2 fixes the deployment target at macOS 13 (deliberately, to
-/// match Tap Zap minus its documented macOS-12 slider bugs). `ObservableObject`
+/// CLAUDE.md §2 fixes the deployment target at macOS 13. `ObservableObject`
 /// + `@Published` gives the same "UI observes state" shape and has worked
 /// since macOS 10.15, so it is used here instead. If the minimum target
 /// ever moves to 14, this is a mechanical swap.

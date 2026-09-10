@@ -1,50 +1,130 @@
 # Dimit
 
-Warm your Mac's screen down to a pure-red "0K", dim it below the keyboard's floor, and keep the backlight from flickering. A native macOS menu-bar app: two sliders, three presets, one button. Uzbek, Russian and English. No account, no tracking, no subscription.
+**Free and open source under the MIT licence.** Dimit is a native macOS menu-bar
+app that warms your screen down to pure red, dims it in software, and offers a
+PWM-Safe mode that holds supported backlights at 100%. Two sliders, three
+presets, one ON/OFF button. English, Uzbek (Latin), and Russian.
 
-**Get it:** pay what you want from $5 at [dimit.uz/download](https://dimit.uz/download) (Lemon Squeezy checkout, cards and PayPal). Every copy is identical and unconditional — no key, no trial, no activation.
+[Download from GitHub Releases](https://github.com/azakapro/dimit/releases),
+or [build it yourself](#how-to-build). Every feature is free: no accounts,
+licence keys, activation, or telemetry.
 
-## What it does
+- **Warmth from 6500K to “0K”.** The display's gamma tables produce the tint;
+  “0K” is a name for pure red, not a physical temperature.
+- **Software brightness down to 10%**, with settings applied across connected displays.
+- **PWM-Safe mode** pins a supported hardware backlight at 100% and uses software
+  dimming. Whether that eliminates pulsing depends on the panel; Dimit does not
+  measure flicker. Third-party DDC/CI control is experimental and off by default.
+- **Sunset/sunrise or fixed-time schedules**, calculated locally from a bundled
+  city list or an optional device location, plus presets and global shortcuts.
+- **Restore Colours** is available from the menu. OFF, quit, signal handlers,
+  and launch restore the gamma tables; restoration on relaunch also handles a
+  force-killed process.
 
-- **Warmth to 0K.** Night Shift stops near 2500K, f.lux near 1900K; Dimit rewrites the display's gamma tables all the way to pure red. "0K" is a name, not a physical temperature.
-- **Software dimming to 10%**, on every connected display, below what the brightness keys allow.
-- **PWM-Safe mode** pins the hardware backlight at 100% and dims in software instead, so LED backlights that dim by pulsing (PWM) stop pulsing. Apple displays today; third-party monitors over DDC/CI are experimental and off by default.
-- **Screenshots, recordings and screen shares keep their real colours** at brightness 30% and above, because the tint lives in the display's colour tables, not in a window. Verified with QuickTime and Zoom on macOS 27 (docs/QA.md). Below 30% an overlay window is used for dimming, and some recorders may capture it.
-- **Sunset→sunrise or fixed-time schedules**, computed locally from a bundled city list or a one-time location read. Nothing is sent anywhere.
-- **Fail-safe.** OFF, quit, sleep/wake and unplugging a monitor all leave the display normal; after a crash or `kill -9` the next launch restores it before doing anything else (on macOS 27 WindowServer even does it immediately); a "Restore Colours" button exists for anything else.
+The app makes no network requests unless you enable automatic updates or
+explicitly choose **Check for Updates…**. Sparkle uses the
+[GitHub Pages appcast](https://azakapro.github.io/dimit/appcast.xml) and release
+assets for updates. Automatic checks are off by default. No Accessibility,
+Screen Recording, or administrator permission is required; Location is requested
+only when you press **Use my location**.
 
-Requires macOS 13 or later, Apple silicon or Intel. Never asks for Accessibility, Screen Recording or admin. Not on the Mac App Store, because the sandbox forbids the display access it needs.
+## How to install
 
-**macOS 26 (Tahoe):** on some Macs, Apple's own display bug (FB22273730, confirmed by Apple DTS on 26.3.1–26.5.1 and by our first tester on 26.6.2) silently ignores colour-table changes, so the screen doesn't turn warm. Dimit can't detect this — macOS reports success. Turning off automatic brightness in System Settings → Displays fixes it on many machines; on the rest, Dimit's colour changes do nothing until Apple fixes the bug (dimming below 30% and PWM-Safe still work). macOS 27 works normally.
+Requires **macOS 13 or later**, on Apple silicon or Intel; the release build is
+universal. This is the deployment target, not a claim that every version has
+been tested. See the systems and limitations below.
 
-## Privacy, in one paragraph
+1. Download the DMG attached to a [GitHub Release](https://github.com/azakapro/dimit/releases).
+2. Open it and drag **Dimit.app** into **Applications**.
+3. The current v0.4 beta is ad-hoc signed and **not notarized**. After downloading
+   it from this repository, remove its quarantine flag in Terminal:
 
-The app makes no network request of any kind unless you turn on update checks (off by default), in which case Sparkle fetches one signed appcast from dimit.uz. There is no analytics, no crash reporter, no identifier, no server of ours. See docs/ARCHITECTURE.md §4 and the Privacy page on the site.
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Dimit.app
+   ```
 
-## Building it
+4. Open Dimit from Applications. Its icon appears in the menu bar, with no Dock icon.
+
+Follow the signing status in each release's notes; a future notarized release
+will not need the quarantine step. Quit an older running copy before installing
+an update. Full packaging instructions are in [docs/RELEASE.md](docs/RELEASE.md).
+
+## Tested systems
+
+These are the reports we have, including failures. See [hardware QA](docs/QA.md)
+for the checks, measurements, and remaining gaps.
+
+| Mac / display | macOS | Observed result |
+|---|---|---|
+| MacBook Pro 16-inch M1 Pro (`MacBookPro18,1`), built-in XDR | 27.0 beta (`26A5416b`) | Warmth, dimming, PWM pin/restore, scheduling, and sleep/wake exercised; gamma capture checked with QuickTime and Zoom. |
+| Same Mac with Xiaomi Mi Monitor, 2560×1440 at 144 Hz | 27.0 beta | Gamma applies to both displays and re-applies on reconnect. DDC reads return an error; hardware brightness control remains unconfirmed. |
+| Mac with built-in display; model not yet reported | 15.6 | A tester reports warmth and dimming working; the broader matrix is pending. |
+| Beta tester's MacBook Pro, built-in XDR / ProMotion; exact model not yet reported | 26.6.2 | **Colour changes fail** despite automatic brightness and True Tone being off. Install and UI work. |
+
+macOS 13 and 14, Intel hardware, and other display combinations still need reports.
+
+## Known limitations
+
+- **macOS 26 colour bug.** Some Macs ignore gamma changes while returning success.
+  Tracked Apple reports are **FB18559786, FB19136488, and FB22273730**; the technical
+  evidence and Apple forum threads are preserved in [CLAUDE.md §3.3](CLAUDE.md#33-gamma-tables-gammacontrollerswift)
+  and [QA](docs/QA.md). Turning off automatic brightness helps some machines,
+  but did not help the 26.6.2 XDR tester. Dimit has no tint fallback for affected
+  Macs. The black overlay below 30% can still dim, and hardware PWM pinning can
+  still run; **pinning without working gamma dimming can make the screen brighter**.
+- **Capture below 30% brightness.** Gamma tint does not enter the captured
+  framebuffer; QuickTime and Zoom were checked on the macOS 27 test machine.
+  Below 30%, dimming uses a black overlay. Some recorders may capture it despite
+  `sharingType = .none`; the capture matrix is incomplete, so exclusion is not guaranteed.
+- **Experimental DDC.** Off by default, limited to one external monitor, and no
+  successful third-party backlight pin has been confirmed. A DDC transaction can
+  briefly block the UI; the Mi Monitor returned error frames in hardware testing.
+- **Coverage and polish.** Other hardware and macOS versions, full capture coverage,
+  keyboard focus, VoiceOver, and fluent Uzbek/Russian review still need testing.
+  Pending checks remain visible in [QA](docs/QA.md).
+
+## How to build
+
+Install Xcode 26 or newer and select it with `xcode-select`. The project uses a
+Swift 6 toolchain in **Swift 5 language mode**. Bootstrap installs XcodeGen via
+Homebrew if it is missing, then generates the project:
 
 ```bash
-scripts/bootstrap.sh      # installs XcodeGen if needed, generates Dimit.xcodeproj from project.yml
+git clone https://github.com/azakapro/dimit.git
+cd dimit
+scripts/bootstrap.sh
 xcodebuild test -project Dimit.xcodeproj -scheme Dimit -destination 'platform=macOS'
+scripts/build.sh
 ```
 
-`Dimit.xcodeproj` is generated and gitignored; edit `project.yml`, never the project. Xcode 26 or newer, Swift 5 language mode on the Swift 6 toolchain, macOS 13 deployment target, universal binary. Two Swift packages: [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) and [Sparkle](https://github.com/sparkle-project/Sparkle), both pinned.
+Quit any running Dimit before the last command: it builds a universal release
+app and verifies that the artifact launches and exits cleanly. The result is
+`build/release/Dimit.app`; `scripts/build_dmg.sh` packages an ad-hoc beta DMG.
+For local debugging, open `Dimit.xcodeproj` and run the Dimit scheme.
 
-Run `swift scripts/gamma_spike.swift` on any new macOS build before trusting the gamma path — the display engine's known Apple bugs are documented in CLAUDE.md §3.3.
+`Dimit.xcodeproj` is generated and gitignored: edit `project.yml`, then re-run
+bootstrap. The two existing Swift packages are pinned:
+[KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) and
+[Sparkle](https://github.com/sparkle-project/Sparkle).
 
-Releases: `scripts/build.sh` → `scripts/notarize.sh` (which also builds the DMG) → `scripts/make_appcast.sh`; the procedure and gates are in docs/RELEASE.md. The site lives in `site/` (Astro, static; `npm run build`, `npm run build:release` refuses to ship placeholders).
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [the engineering spec](CLAUDE.md), and
+[the architecture](docs/ARCHITECTURE.md) before changing display code. On a new
+macOS build, run `swift scripts/gamma_spike.swift` before trusting gamma results.
+[The plan](docs/PLAN.md) records cycles C0–C7 and PR requirements.
 
-## Where things are
+## How to report a bug
 
-| | |
-|---|---|
-| Product and engineering spec, non-negotiable rules | [CLAUDE.md](CLAUDE.md) |
-| Cycles, decisions, PR rules, business track | [docs/PLAN.md](docs/PLAN.md) |
-| Architecture, display engine, distribution, site, updates | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Hardware evidence behind every claim above | [docs/QA.md](docs/QA.md) |
-| Releasing | [docs/RELEASE.md](docs/RELEASE.md) |
-| Beta tester checklist | [docs/TESTING_CHECKLIST.md](docs/TESTING_CHECKLIST.md) |
+[Open a bug report](https://github.com/azakapro/dimit/issues/new?template=bug_report.md)
+with the app version, Mac model, macOS version, display and connection, steps,
+and expected versus actual behaviour. **Do not paste serial numbers** or precise
+personal coordinates. Review copied diagnostics and screenshots before sharing.
+For colour issues, describe the physical screen; screenshots cannot prove a gamma tint.
+[The tester checklist](docs/TESTING_CHECKLIST.md) lists useful hardware checks.
 
-## Status
+## Support
 
-2026-09-10: **C0–C7 built** — display engine, PWM-Safe, settings, scheduling, experimental DDC, release scripts, opt-in Sparkle updates, and the site. Tagged through `v0.4`; 183 tests. What stands between this and **v1.0**: a Developer ID certificate under the LLC (the friend's account is beta-only, because Sparkle ties updates to the Team ID), the Lemon Squeezy store with a verified payout method and the checkout URL in `site/src/config.ts`, the site's Uzbek/Russian copy read by a fluent person (`site/TRANSLATIONS.md`), and tester reports on a stable macOS release. All four are in docs/PLAN.md §2 C7 "Done when".
+[Buy Me a Coffee](https://buymeacoffee.com/TODO_HANDLE) is optional support and buys no features.
+
+## Licence
+
+[MIT](LICENSE) · Copyright © 2026 Azizullo Temirov.

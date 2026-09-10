@@ -13,7 +13,7 @@ final class MenuBarController: NSObject {
     private let pwmSafeCoordinator: PWMSafeCoordinator
     private let restoreColours: () -> Void
     private let openSettings: () -> Void
-    /// C7/ARCHITECTURE.md §8. `canCheckForUpdates` false greys the "Check
+    /// C7/ARCHITECTURE.md §4. `canCheckForUpdates` false greys the "Check
     /// for Updates…" item (Sparkle refuses a second concurrent check).
     /// Evaluated when the menu is built, which is every right-click.
     /// Required, like `restoreColours`/`openSettings`: a caller that forgets

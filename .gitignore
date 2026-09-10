@@ -33,13 +33,11 @@ Pods/
 *.p12
 .env
 .env.*
-server/.dev.vars
-server/.wrangler/
 
-# Site
-site/node_modules/
-site/dist/
-site/.astro/
+# Sparkle release archives never enter the repo — scripts/make_appcast.sh
+# stages them under docs/ and removes them via a trap, and the DMG and zip
+# are GitHub Release assets. This is belt and braces for an interrupted run.
+docs/.appcast.*
 
 # macOS
 .DS_Store
@@ -49,9 +47,3 @@ site/.astro/
 
 # Claude Code session tooling (launch configs, locks) — per machine, not project
 .claude/
-
-# Sparkle archives are deployed from the local build, never committed
-# (scripts/make_appcast.sh, docs/RELEASE.md). appcast.xml stays tracked.
-site/public/updates/*.zip
-site/public/updates/*.delta
-site/public/updates/old_updates/

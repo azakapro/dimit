@@ -5,7 +5,7 @@
 # docs/RELEASE.md §1:
 #
 #   1. zip the app  → notarytool submit --wait  → stapler staple the .app
-#   2. re-zip the stapled app                    → build/release/Dimit-<v>.zip  (Sparkle, C7)
+#   2. re-zip the stapled app                    → build/release/Dimit-<v>.zip  (Sparkle release asset)
 #   3. scripts/build_dmg.sh from the stapled app → notarytool submit --wait → stapler staple the .dmg
 #
 # One-time setup, by the account holder (never commit these values):

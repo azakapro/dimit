@@ -3,7 +3,7 @@ import Foundation
 import Sparkle
 
 /// The one piece of network code in the app — CLAUDE.md §1.2, §4.3 and
-/// ARCHITECTURE.md §8: Sparkle's update check, **off until the user opts
+/// ARCHITECTURE.md §4: Sparkle's update check, **off until the user opts
 /// in**, and then only a signed appcast fetched from `SUFeedURL`.
 ///
 /// `AppState.updateChecksEnabled` (persisted since C4, default `false`) is
