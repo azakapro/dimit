@@ -121,10 +121,6 @@ personal coordinates. Review copied diagnostics and screenshots before sharing.
 For colour issues, describe the physical screen; screenshots cannot prove a gamma tint.
 [The tester checklist](docs/TESTING_CHECKLIST.md) lists useful hardware checks.
 
-## Support
-
-[Buy Me a Coffee](https://buymeacoffee.com/TODO_HANDLE) is optional support and buys no features.
-
 ## Licence
 
 [MIT](LICENSE) · Copyright © 2026 Azizullo Temirov.
