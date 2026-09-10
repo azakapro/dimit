@@ -358,6 +358,24 @@ The ON state's 3.44:1 clears WCAG's 3:1 bar for large text (17pt bold) but not t
 | **Is the whole OFF button clickable?** It no longer has an opaque fill, and a SwiftUI control's hit region depends on how a `.clear`-filled shape is treated. | **Handled, not measured.** Three attempts to observe the real hit region failed: `NSHostingView.hitTest` returns nil for every point when the view isn't in a window, and returns the host view itself for every point when it is — giving the *same* answer for the opaque ON state, so it cannot discriminate. Closed instead by declaring `.contentShape(shape)` in the style, which defines the hit area explicitly. Owner: click the OFF button near its left edge, not the centre, and confirm it toggles. |
 | **Does the button still show a keyboard focus ring?** It moved from a system `.borderedProminent` style to a custom `ButtonStyle`, and custom styles do not necessarily inherit the system focus effect. CLAUDE.md §8 requires "full keyboard operation". | **Open.** Not verifiable off-screen. Owner: System Settings → Keyboard → turn on "Keyboard navigation", open the popover, press Tab until the ON/OFF button is focused, and confirm a visible ring appears. If it doesn't, the fix is a `@FocusState`-driven ring in `ZapButtonStyle` — real work, so it is recorded here rather than guessed at now. |
 
+## Owner-reported UI bug: the menu-bar icon grew when PWM-Safe pinned (2026-09-10)
+
+Reported alongside the OFF-button one, from the same build: *"when it is off i see circle which is good, and when it is on i see circle white, but in bottom something appears, why we need it?"*
+
+The thing appearing at the bottom is the **PWM-pinned badge** (CLAUDE.md §3.9: "small dot when PWM pinned" — it means Dimit is actively holding the backlight at 100%). It is meant to be there. It looked wrong for three separate reasons, all confirmed by rendering `MenuBarIcon.image(...)` at 14× and looking at it:
+
+| Defect | Detail |
+|---|---|
+| **The icon changed size when pinned** | The badge was composited onto a hard-coded 18×18 canvas, but `circle`/`circle.fill` come back at **15×15** — so pinning scaled the glyph up 20% and the menu-bar icon visibly grew next to its neighbours. |
+| **The badge was over twice its spec** | 6pt on an 18pt canvas (33%); ARCHITECTURE.md §10 says a 3pt dot on a 16pt icon (~19%). |
+| **It merged into the circle** | Drawn straight over `circle.fill` with no separation, so the two fused into one lopsided blob rather than reading as a badge. |
+
+**Fixed:** the canvas is now the base symbol's own size (no resize), the dot is the §10 ratio (`width * 3 / 16`, so it stays proportional if the symbol size changes), and a 1pt knockout is punched before the dot is filled so it separates cleanly from the circle.
+
+**Pinned by two tests** (183 → 187 with the button's two): that the pinned and unpinned icons are the same size and both stay template images, and that the pinned one is actually different from the unpinned one — without the second, a version that ignored `pwmPinned` entirely would pass the first. The size test was verified to fail against the old code (15×15 vs 18×18) before being trusted.
+
+**Open, not changed here:** the auto-brightness banner's text names **macOS 26** specifically (`banner.autobrightness`), but it is shown on macOS ≥ 26 — so every macOS 27 user reads a warning about a version they are not on. Fixing the wording means re-translating the string into uz and ru, which CLAUDE.md §5 says not to do silently, so it is recorded here for the translation pass rather than machine-translated now.
+
 ## Performance
 
 | Date | Version | Machine | Idle CPU (5 min avg) | Popover open (ms) | Slider latency |

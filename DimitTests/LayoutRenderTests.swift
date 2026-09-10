@@ -163,7 +163,52 @@ final class LayoutRenderTests: XCTestCase {
         }
     }
 
+    // The menu-bar icon is the only part of this app that is on screen all
+    // the time, and it had never been tested at all. The owner reported the
+    // pinned state as "when it is on ... in bottom something appears":
+    // `MenuBarIcon` composed the PWM badge onto a hard-coded 18×18 canvas
+    // while `circle`/`circle.fill` come back at 15×15, so pinning silently
+    // scaled the glyph up by 20% — the icon grew. The badge was also over
+    // twice ARCHITECTURE.md §10's "3 pt dot" and merged into `circle.fill`
+    // with no gap, reading as one lopsided blob rather than a badge.
+    func test_menuBarIcon_pinnedBadgeDoesNotResizeTheIcon() {
+        for isOn in [true, false] {
+            let plain = MenuBarIcon.image(isOn: isOn, pwmPinned: false, accessibilityDescription: "x")
+            let pinned = MenuBarIcon.image(isOn: isOn, pwmPinned: true, accessibilityDescription: "x")
+            XCTAssertEqual(
+                plain?.size, pinned?.size,
+                "isOn=\(isOn): the icon must not change size when PWM-Safe pins — it sits in the menu bar next to everything else"
+            )
+            XCTAssertEqual(pinned?.isTemplate, true, "isOn=\(isOn): must stay a template image so it follows the menu-bar tint")
+        }
+    }
+
+    // ...and the badge must actually be drawn, or the test above would pass
+    // just as well on a version that ignored `pwmPinned` entirely.
+    func test_menuBarIcon_pinnedBadgeIsVisiblyDifferentFromUnpinned() {
+        let plain = rasterize(MenuBarIcon.image(isOn: true, pwmPinned: false, accessibilityDescription: "x"))
+        let pinned = rasterize(MenuBarIcon.image(isOn: true, pwmPinned: true, accessibilityDescription: "x"))
+        XCTAssertNotNil(plain)
+        XCTAssertNotNil(pinned)
+        XCTAssertNotEqual(plain, pinned, "the pinned icon must actually carry a badge")
+    }
+
     // MARK: - Helpers
+
+    /// Flattens an icon onto white at a fixed size so two of them can be
+    /// compared byte for byte.
+    private func rasterize(_ image: NSImage?) -> Data? {
+        guard let image else { return nil }
+        let size = NSSize(width: 64, height: 64)
+        let canvas = NSImage(size: size)
+        canvas.lockFocus()
+        NSColor.white.setFill()
+        NSRect(origin: .zero, size: size).fill()
+        image.draw(in: NSRect(origin: .zero, size: size))
+        canvas.unlockFocus()
+        guard let tiff = canvas.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff) else { return nil }
+        return rep.representation(using: .png, properties: [:])
+    }
 
     /// Renders the real `ZapButton` under one appearance and returns the
     /// WCAG contrast ratio between the lightest and darkest pixels **in the
