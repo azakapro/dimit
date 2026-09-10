@@ -159,6 +159,28 @@
         }
       }
     },
+    "fallback.active": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fallback mode is on."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Резервный режим включён."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Zaxira rejim yoqilgan."
+          }
+        }
+      }
+    },
     "fallback.help": {
       "localizations": {
         "en": {
@@ -221,6 +243,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zaxira rejim"
+          }
+        }
+      }
+    },
+    "fallback.turn_off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn off"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Выключить"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "O'chirish"
           }
         }
       }

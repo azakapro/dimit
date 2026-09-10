@@ -366,4 +366,14 @@ final class AppStateTests: XCTestCase {
         XCTAssertEqual(reloaded.locale, "uz")
         XCTAssertTrue(reloaded.updateChecksEnabled)
     }
+
+    // A genuine first launch must never start in Fallback mode. The owner
+    // reinstalled the app, found it on, and reasonably asked whether that
+    // was the default — it is not, and preferences outliving the .app is
+    // the whole explanation. Pinned so a future default can't drift.
+    func test_freshInstall_startsWithFallbackModeOff() {
+        let state = AppState(persistence: Persistence(suiteName: "test.\(UUID().uuidString)"))
+        XCTAssertFalse(state.fallbackMode, "a first launch must use the colour-table path, not the overlay")
+        XCTAssertFalse(PersistedState.defaults.fallbackMode)
+    }
 }

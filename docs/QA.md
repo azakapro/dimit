@@ -446,6 +446,20 @@ The first tester on a **shipping** macOS. MacBook Pro with the built-in XDR pane
 |---|---|---|---|---|---|---|
 | 2026-09-10 | friend of the owner | MacBook Pro (built-in XDR, ProMotion; exact model not yet reported) | **26.6.2** | built-in | **Colour table ignored** (Apple FB22273730); PWM-Safe pin + no software dim → brighter, "whitish" | Auto-brightness and True Tone were off. Install, quarantine command, launch, menu-bar icon, popover, presets, PWM-Safe toggle all worked. Fallback mode not yet tried. |
 
+### Fallback mode was silently sticky (2026-09-10)
+
+The owner deleted the app, installed the new build, and found Fallback mode still on — reasonably asking whether a first launch defaults to it, and offering to have the feature removed if not fixable.
+
+**It does not default to it, and that was verified rather than asserted:** `PersistedState.defaults.fallbackMode` is `false`, and wiping `app.dimit.mac` and launching the real app persisted no `state.v1` at all (so it reads the defaults). What he saw is that **preferences outlive the `.app`** — deleting a bundle never removes its `UserDefaults` — so his own earlier experiment was still in effect. Pinned by `test_freshInstall_startsWithFallbackModeOff`.
+
+The underlying complaint was still right, and became more right in the previous commit. Fallback mode is sticky, and nothing outside Settings → Advanced ever indicated it was on. That was tolerable while enabling it required going to look for it; the macOS-26 banner's new one-tap button made accidental, unexplained activation easy. **The popover now shows a row whenever the mode is active, with a "Turn off" button in it** — so it cannot be silently on. Rendered in en/ru; the popover stays at its fixed 320 pt.
+
+Removing the feature instead was declined, and the reason is on record: the first stable-macOS tester's Mac cannot tint at all without it (see the 26.6.2 section above). Deleting it would make Dimit non-functional on an entire macOS version.
+
+**Deliberately not claimed in the new string:** that screenshots will show the tint. `OverlayDimmer` sets `sharingType = .none` on the overlay (line 100), which is supposed to exclude it from capture, while `fallback.help` tells users "Screenshots will look tinted in this mode." Those contradict, neither has ever been tested, and the beta tester has been asked to settle it. The new row says only what is certain.
+
+**Also confirmed while checking (a side finding, not a bug):** on a true first launch Sparkle writes `SUEnableAutomaticChecks = 0` and the process holds no network sockets — the opt-in rule in CLAUDE.md §1.2/§4.3 holds on a clean install.
+
 ## Performance
 
 | Date | Version | Machine | Idle CPU (5 min avg) | Popover open (ms) | Slider latency |

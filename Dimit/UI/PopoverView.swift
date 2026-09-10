@@ -27,6 +27,9 @@ struct PopoverView: View {
             brightnessRow
             presetPicker
             pwmSafeRow
+            if appState.fallbackMode {
+                fallbackActiveRow
+            }
         }
         .padding(16)
         .frame(width: 320)
@@ -105,6 +108,40 @@ struct PopoverView: View {
 
     private var onOffButton: some View {
         ZapButton(isOn: appState.isOn) { appState.isOn.toggle() }
+    }
+
+    /// Fallback mode is sticky, and until now nothing outside Settings →
+    /// Advanced ever said it was on. That was survivable while the only way
+    /// to enable it was to go looking for it; it stopped being survivable
+    /// when the macOS-26 banner gained a one-tap button, and the owner hit
+    /// exactly the confusion that predicts — reinstalling the app, finding
+    /// it still on, and not knowing whether that was a default.
+    ///
+    /// (It wasn't: `PersistedState.defaults.fallbackMode` is false and a
+    /// genuine first launch persists nothing. Preferences simply outlive
+    /// the `.app`, which no amount of reinstalling changes.)
+    ///
+    /// So it is now impossible for the mode to be silently on: the main
+    /// popover says so whenever it is, with the way out next to it.
+    private var fallbackActiveRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "square.on.square.dashed")
+                .foregroundStyle(.orange)
+            Text("fallback.active")
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 4)
+            Button {
+                appState.fallbackMode = false
+            } label: {
+                Text("fallback.turn_off")
+                    .font(.caption.bold())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.blue)
+        }
+        .padding(8)
+        .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var warmthRow: some View {
