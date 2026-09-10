@@ -159,6 +159,28 @@
         }
       }
     },
+    "fallback.needs_on": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn Dimit ON to see this — Fallback mode changes how the screen is tinted, not whether it is."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Включите Dimit, чтобы это увидеть — Резервный режим меняет способ окрашивания экрана, а не сам факт."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Buni ko'rish uchun Dimit'ni YOQING — Zaxira rejim ekran qanday bo'yalishini o'zgartiradi, bo'yaladimi yoki yo'qmi emas."
+          }
+        }
+      }
+    },
     "fallback.title": {
       "localizations": {
         "en": {
@@ -885,28 +907,6 @@
         }
       }
     },
-    "schedule.apply_coordinates": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use These Coordinates"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Использовать эти координаты"
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Shu koordinatalardan foydalanish"
-          }
-        }
-      }
-    },
     "schedule.bedtime": {
       "localizations": {
         "en": {
@@ -995,6 +995,116 @@
         }
       }
     },
+    "schedule.city.ankara": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ankara"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Анкара"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anqara"
+          }
+        }
+      }
+    },
+    "schedule.city.ashgabat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ashgabat"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ашхабад"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ashxobod"
+          }
+        }
+      }
+    },
+    "schedule.city.astana": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Astana"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Астана"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ostona"
+          }
+        }
+      }
+    },
+    "schedule.city.baku": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Baku"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Баку"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boku"
+          }
+        }
+      }
+    },
+    "schedule.city.berlin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Berlin"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Берлин"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Berlin"
+          }
+        }
+      }
+    },
     "schedule.city.bishkek": {
       "localizations": {
         "en": {
@@ -1035,6 +1145,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Buxoro"
+          }
+        }
+      }
+    },
+    "schedule.city.delhi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delhi"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дели"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dehli"
+          }
+        }
+      }
+    },
+    "schedule.city.dubai": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dubai"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дубай"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dubay"
           }
         }
       }
@@ -1083,6 +1237,28 @@
         }
       }
     },
+    "schedule.city.gulistan": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gulistan"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Гулистан"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guliston"
+          }
+        }
+      }
+    },
     "schedule.city.istanbul": {
       "localizations": {
         "en": {
@@ -1105,6 +1281,50 @@
         }
       }
     },
+    "schedule.city.jizzakh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jizzakh"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Джизак"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jizzax"
+          }
+        }
+      }
+    },
+    "schedule.city.kyiv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kyiv"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Киев"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kiyev"
+          }
+        }
+      }
+    },
     "schedule.city.london": {
       "localizations": {
         "en": {
@@ -1123,6 +1343,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "London"
+          }
+        }
+      }
+    },
+    "schedule.city.los_angeles": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los Angeles"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Лос-Анджелес"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los-Anjeles"
           }
         }
       }
@@ -1171,6 +1413,28 @@
         }
       }
     },
+    "schedule.city.navoiy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Navoiy"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Навои"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Navoiy"
+          }
+        }
+      }
+    },
     "schedule.city.new_york": {
       "localizations": {
         "en": {
@@ -1215,6 +1479,72 @@
         }
       }
     },
+    "schedule.city.paris": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paris"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Париж"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parij"
+          }
+        }
+      }
+    },
+    "schedule.city.qarshi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qarshi"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Карши"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qarshi"
+          }
+        }
+      }
+    },
+    "schedule.city.saint_petersburg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saint Petersburg"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Санкт-Петербург"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sankt-Peterburg"
+          }
+        }
+      }
+    },
     "schedule.city.samarkand": {
       "localizations": {
         "en": {
@@ -1237,6 +1567,28 @@
         }
       }
     },
+    "schedule.city.seoul": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seoul"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сеул"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seul"
+          }
+        }
+      }
+    },
     "schedule.city.tashkent": {
       "localizations": {
         "en": {
@@ -1255,6 +1607,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "Toshkent"
+          }
+        }
+      }
+    },
+    "schedule.city.termez": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termez"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Термез"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termiz"
+          }
+        }
+      }
+    },
+    "schedule.city.tokyo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tokyo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Токио"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tokio"
+          }
+        }
+      }
+    },
+    "schedule.city.urgench": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Urgench"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ургенч"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Urganch"
+          }
+        }
+      }
+    },
+    "schedule.city_choose": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a city"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Выберите город"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Shahar tanlang"
           }
         }
       }
@@ -1321,28 +1761,6 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "Kech boshlanishi"
-          }
-        }
-      }
-    },
-    "schedule.latitude": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Latitude"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Широта"
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Kenglik"
           }
         }
       }
@@ -1435,46 +1853,24 @@
         }
       }
     },
-    "schedule.location_using_coordinates": {
+    "schedule.location_using_device": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Using manual coordinates"
+            "value": "Using your location · %@"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Координаты введены вручную"
+            "value": "Ваше местоположение · %@"
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Qo'lda kiritilgan koordinatalar"
-          }
-        }
-      }
-    },
-    "schedule.longitude": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Longitude"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Долгота"
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Uzunlik"
+            "value": "Joylashuvingiz · %@"
           }
         }
       }
@@ -1501,24 +1897,24 @@
         }
       }
     },
-    "schedule.manual_coordinates": {
+    "schedule.manual_help": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Manual coordinates"
+            "value": "Dimit changes only when you change it. Choose Sunset to sunrise to follow the sun where you are, or Fixed times to use your own hours."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Координаты вручную"
+            "value": "Dimit меняется только когда вы сами его меняете. Выберите «От заката до рассвета», чтобы следовать за солнцем, или «Заданное время» для своего расписания."
           }
         },
         "uz": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Qo'lda koordinatalar"
+            "value": "Dimit faqat siz o'zgartirganda o'zgaradi. Quyosh bo'yicha ishlashi uchun \"Quyosh botishidan chiqishigacha\", o'z vaqtingiz bo'yicha ishlashi uchun \"Belgilangan vaqt\" ni tanlang."
           }
         }
       }
@@ -1616,19 +2012,41 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Transition"
+            "value": "Fade over"
           }
         },
         "ru": {
           "stringUnit": {
-            "state": "translated",
-            "value": "Плавный переход"
+            "state": "needs_review",
+            "value": "Плавный переход за"
           }
         },
         "uz": {
           "stringUnit": {
+            "state": "needs_review",
+            "value": "O'tish vaqti"
+          }
+        }
+      }
+    },
+    "schedule.transition_help": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
             "state": "translated",
-            "value": "O'tish davomiyligi"
+            "value": "How gradually Dimit moves between DAY, EVENING and NIGHT. A longer fade is less noticeable while you are working; set it to 0 to switch instantly."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Насколько плавно Dimit переходит между режимами ДЕНЬ, ВЕЧЕР и НОЧЬ. Долгий переход меньше отвлекает во время работы; поставьте 0, чтобы переключалось сразу."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Dimit KUN, KECH va TUN o'rtasida qanchalik asta o'zgarishi. Uzunroq o'tish ishlayotganda unchalik sezilmaydi; darhol o'zgarishi uchun 0 qiling."
           }
         }
       }
@@ -2026,6 +2444,28 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "Kirishda ishga tushirishni o'zgartirib bo'lmadi: %@"
+          }
+        }
+      }
+    },
+    "settings.launch_at_login_move_hint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If Dimit is running from the disk image or your Downloads folder, move it to your Applications folder and try again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Если Dimit запущен из образа диска или папки «Загрузки», переместите его в папку «Программы» и попробуйте снова."
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agar Dimit disk tasviridan yoki Yuklamalar papkasidan ishlayotgan bo'lsa, uni Dasturlar papkasiga ko'chiring va qayta urinib ko'ring."
           }
         }
       }

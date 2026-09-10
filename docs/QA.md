@@ -376,6 +376,56 @@ The thing appearing at the bottom is the **PWM-pinned badge** (CLAUDE.md §3.9: 
 
 **Open, not changed here:** the auto-brightness banner's text names **macOS 26** specifically (`banner.autobrightness`), but it is shown on macOS ≥ 26 — so every macOS 27 user reads a warning about a version they are not on. Fixing the wording means re-translating the string into uz and ru, which CLAUDE.md §5 says not to do silently, so it is recorded here for the translation pass rather than machine-translated now.
 
+## Every ad-hoc build since C7 was dead on arrival (found 2026-09-10, by the owner double-clicking it)
+
+`scripts/build.sh` produced an app that passed every check the script made — valid signature, universal, no entitlements, hardened runtime on — and **died before `main()`** when the owner opened the copy installed in `/Applications`. Three crash reports, all the same:
+
+```
+Library not loaded: @rpath/Sparkle.framework/Versions/B/Sparkle
+Reason: … code signature … not valid for use in process:
+        mapping process and mapped file (non-platform) have different Team IDs
+```
+
+| Fact | Evidence |
+|---|---|
+| The cause is the **hardened runtime on an ad-hoc build** | Release build: `flags=0x10002(adhoc,runtime)`, no entitlements. Library validation then only allows libraries signed by the app's own Team ID; an ad-hoc signature has none, so the separately-signed `Sparkle.framework` is refused. |
+| Why the Debug build never showed it | Debug: `flags=0x2(adhoc)` — hardened runtime **off**, plus `get-task-allow`, which relaxes library validation. It ran fine under Xcode for the whole of C7. |
+| Why no earlier release showed it | No build before C7 embedded a framework. `v0.4` predates Sparkle and is unaffected; every build after it was broken. |
+| Fix | `build.sh` passes `ENABLE_HARDENED_RUNTIME=NO` on the ad-hoc path only (an ad-hoc build can't be notarized and Gatekeeper rejects it regardless, so the runtime protected nothing there). The Developer ID path keeps it on per CLAUDE.md §7, where Xcode re-signs the framework with the same Team ID. `assert_release_signature` now takes the signing mode and demands the opposite runtime state in each. |
+| The check that was missing | `build.sh` now **runs the artifact**: alive after 3 s, clean exit on SIGTERM, or the build fails. Verified both ways — the old `/Applications` copy dies under it within 3 s; the fixed build passes (`202609100730`), launches from `/Applications` under `launchd` with `Sparkle.framework` mapped. |
+
+**Read this as a lesson, not just a fix:** the release script had five static assertions and shipped a binary that could not start. No amount of inspecting an artifact substitutes for starting it. The Developer ID path has the same launch check and has never been exercised at all; its first real run is the first thing to watch when the certificate arrives.
+
+The **Launch at login** failure that started this investigation is still open and now testable: it was only ever tried from a Debug build running under Xcode's debugger. Four hypotheses about it were tested and disproven on the way here (not the DerivedData location — a probe registered from `/tmp`; not a broken signature; not the four duplicate `app.dimit.mac` copies on disk; not the embedded test plugin). The app now logs the failing call's domain, code, bundle path and service status, so the next attempt is a measurement rather than a guess.
+
+## Owner walkthrough of Settings (2026-09-10) — four reports, one real bug
+
+The owner used the app and asked four questions. Three had the same shape: the feature worked, and the interface said something false or nothing at all. Recorded because "it doesn't work" and "it doesn't say what it's doing" arrive from users identically.
+
+| Reported | What was actually true | Change |
+|---|---|---|
+| *"it asked my location but didn't show it after"* | **Real bug.** CoreLocation returned `41.2977, 69.2866` and it was stored correctly, but `currentLocationDescription` had only two branches — city, or "Using manual coordinates" — so a device fix displayed as *manual coordinates* and named nowhere. The City row simultaneously read "No location set", contradicting the line under it. | Shows the nearest city by name, resolved **offline** against the bundled list (`CityList.nearest`, 75 km cap, haversine). Reverse geocoding would name it exactly but is a network call, and CLAUDE.md §4.3 allows the app one, for Sparkle, on opt-in. Verified by rendering the tab with the owner's own coordinates: **"Using your location · Tashkent"**. The picker's empty row now reads "Choose a city" so the two lines agree. |
+| *"i don't think fallback mode is working"* | **Not broken.** `isOn` was `false`. Fallback mode changes *how* the screen is tinted, not *whether* — with the filter off it correctly does nothing. Verified with the filter on: overlay at window level **1001**, alpha **0.700**, full-screen, gamma left neutral at `(0.500, 0.500, 0.500)`. | The toggle now says so, but only when it applies (`fallbackMode && !isOn`). Kept: it is the only recourse when gamma is silently ignored (CLAUDE.md §3.3), which is the failure it exists for. |
+| *"why we need manual coordinates?"* | Fair. It existed because the city list had 14 entries; almost nobody types a latitude. | **Removed** — UI, both text fields, `applyManualCoordinates`, the validation ranges and six strings. The city list went 14 → **33** (all Uzbek regional centres, plus Ankara, Dubai, Astana, Ashgabat, Baku, St Petersburg, Kyiv, Seoul, Tokyo, Delhi, Berlin, Paris, Los Angeles), and "Use my location" covers the rest. |
+| *"what is transition? it is not understandable"* | Fair. Labelled `Transition · 20 min`, explained nowhere. | Relabelled **Fade over** with a caption; range `1...120` → `0...120` so the caption's "set it to 0 to switch instantly" is reachable (`ScheduleEngine` already treats a zero ramp that way). |
+
+Five tests cover `CityList.nearest`, including the owner's exact coordinates, the Fergana-valley case where three cities sit within ~80 km of each other, a mid-Pacific point that must name nothing rather than guess, and an antimeridian point that must not wrap onto London or Tokyo. 187 → 192.
+
+### Launch at login — resolved, and what it cost to find out (2026-09-10)
+
+**Owner-confirmed working** from `/Applications/Dimit.app`, on the build with the hardened-runtime fix. No crash reports since.
+
+The failure was only ever reproduced against a Debug build running from DerivedData under Xcode's debugger, and `SMAppService` reports EINVAL with no detail, so the precise reason that instance was refused is **still unconfirmed**. What is confirmed: the shipping path works, and four plausible explanations do **not** account for it —
+
+| Hypothesis | Disproved by |
+|---|---|
+| The app must live in `/Applications` | A minimal probe app registered a login item successfully from `/tmp` |
+| The bundle's signature was broken | `codesign --verify --deep --strict` passed on the exact bundle that failed |
+| Four copies of `app.dimit.mac` on disk confused LaunchServices | Registering with a deliberate duplicate present still succeeded |
+| The embedded `DimitTests.xctest` plugin | The probe registered fine with the same plugin copied into it |
+
+Recorded because the lesson generalises: **four confident hypotheses, all wrong, none cheap.** What actually resolved it was the crash report, and what will resolve the next one is that `LaunchAtLogin.setEnabled` now logs the error domain, code, bundle path and service status before rethrowing — so a user hitting this produces a diagnosable line in "Copy diagnostics" instead of "Invalid argument".
+
 ## Performance
 
 | Date | Version | Machine | Idle CPU (5 min avg) | Popover open (ms) | Slider latency |
