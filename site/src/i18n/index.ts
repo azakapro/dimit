@@ -70,7 +70,7 @@ const en: Dict = {
     honesty: [
       "It is not a medical device and makes no health claims. Some studies on light and sleep are listed on the Science page; read them and decide for yourself.",
       "PWM-Safe holds the backlight at 100% on Apple displays. Third-party monitors need DDC/CI, which is experimental, off by default, and not yet confirmed on any monitor.",
-      "Below 30% brightness and in Fallback mode, dimming uses an overlay window that screen recorders may capture. The app tells you when you're in those modes.",
+      "Below 30% brightness, dimming uses an overlay window that screen recorders may capture.",
       "It needs macOS 13 or later and does not run from the Mac App Store, because the App Store forbids the display access it uses.",
     ],
   },
@@ -100,7 +100,7 @@ const en: Dict = {
     after: [
       "Right-click the menu-bar icon → Restore Colours puts the screen back to normal instantly.",
       "Quitting Dimit always restores normal colours and brightness.",
-      "On macOS 26, an Apple bug can make the system ignore colour changes on some Macs even with automatic brightness off. If the screen didn't turn warm, use the Fallback mode button Dimit shows, or Settings → Advanced.",
+      "On macOS 26, an Apple bug can make the system ignore colour changes on some Macs. Turning off automatic brightness in System Settings → Displays fixes it on many; on the rest, Dimit cannot change colours until Apple fixes it.",
     ],
   },
   faq: {
@@ -108,7 +108,7 @@ const en: Dict = {
     items: [
       { q: "Is it really $5?", a: "The minimum is $5; you choose the amount. Everyone gets the same app and the same free updates regardless of what they paid." },
       { q: "Do I need an account or a licence key?", a: "No. The payment is on the website; the app has no key, no activation and no trial. It never connects to the internet unless you turn on update checks." },
-      { q: "Will my screenshots be red?", a: "No, at brightness 30% and above: the tint is applied by the display's colour tables, which screen capture doesn't see. Verified with QuickTime and Zoom. Below 30% and in Fallback mode an overlay window is used, and some recorders may capture it." },
+      { q: "Will my screenshots be red?", a: "No, at brightness 30% and above: the tint is applied by the display's colour tables, which screen capture doesn't see. Verified with QuickTime and Zoom. Below 30% an overlay window is used for dimming, and some recorders may capture it." },
       { q: "What is PWM and why would I care?", a: "Many LED backlights dim by switching on and off hundreds of times a second (pulse-width modulation). Some people perceive it as flicker, eye strain or headaches, especially at low brightness. PWM-Safe keeps the backlight at 100% — where most panels don't pulse — and dims in software instead. Whether your display uses PWM, and whether it bothers you, is individual; Dimit doesn't claim to treat anything." },
       { q: "Does it work with my external monitor?", a: "Warmth and dimming: yes, on every connected display. Holding an external monitor's backlight at 100% needs DDC/CI, which is experimental, off by default, and hasn't yet been confirmed working on any monitor. Turn it on in Settings → Displays if you'd like to try, and tell us what happens." },
       { q: "Why isn't it on the Mac App Store?", a: "The App Store sandbox forbids the display and brightness access Dimit needs. It's distributed directly, signed and notarized." },
@@ -120,10 +120,10 @@ const en: Dict = {
   help: {
     title: "Help",
     sections: [
-      { title: "The main window", body: ["Click the menu-bar icon. The big button turns the filter ON and OFF. Warmth goes from 6500K (no change) to 0K (pure red). Brightness goes from 100% to 10%. DAY, EVENING and NIGHT are presets you can edit in Settings.", "Right-click the icon for presets, ON/OFF, Fallback mode, Restore Colours, Settings and Quit."] },
+      { title: "The main window", body: ["Click the menu-bar icon. The big button turns the filter ON and OFF. Warmth goes from 6500K (no change) to 0K (pure red). Brightness goes from 100% to 10%. DAY, EVENING and NIGHT are presets you can edit in Settings.", "Right-click the icon for presets, ON/OFF, Restore Colours, Settings and Quit."] },
       { title: "PWM-Safe", body: ["Turn it on under the sliders. The line beneath tells you what happened: the backlight is being held at 100% (and the slider now dims in software), the display is being checked, the display won't hold 100%, or the display has no supported way to control its backlight.", "If you press the keyboard brightness keys while it's on, Dimit puts the backlight back to 100% within a few seconds and tells you once. Use the slider in the app instead.", "Because the backlight stays at 100%, laptops use slightly more battery."] },
       { title: "Schedule", body: ["Settings → Schedule. Sunset to sunrise: pick your city, or press \"Use my location\" once. Dimit warms to EVENING at sunset, to NIGHT at your bedtime, and turns itself off at sunrise, ramping over a duration you choose. Fixed times: the same three phases with times you set.", "Moving a slider while a schedule is active pauses it until the next phase."] },
-      { title: "Fallback mode", body: ["On some Macs running macOS 26, the system silently ignores colour-table changes — an Apple bug (FB22273730) that Apple has confirmed and that turning off automatic brightness does not always fix. Dimit can't detect it, because macOS reports success, so the first time you turn the filter on there it offers Fallback mode in one click. Fallback mode (also in Settings → Advanced and the right-click menu) tints with an overlay window instead. It works everywhere, but screenshots and recordings will show the tint. macOS 27 is not affected."] },
+      { title: "macOS 26", body: ["On some Macs running macOS 26, the system silently ignores colour-table changes — an Apple bug (FB22273730) that Apple has confirmed. Dimit can't detect it, because macOS reports success. Turning off automatic brightness in System Settings → Displays fixes it on many machines. On the rest, Dimit's colour changes do nothing until Apple fixes the bug; dimming below 30% and PWM-Safe still work. macOS 27 is not affected."] },
       { title: "Keyboard shortcuts", body: ["Toggle ON/OFF: ⌃⌥⌘Z by default. Cycle presets, warmth up/down and brightness up/down can be assigned in Settings → General. They work from any app."] },
       { title: "Diagnostics", body: ["Settings → Advanced → Copy diagnostics puts a short text on the clipboard: the app version, your macOS version, Mac model, display list and Dimit's own recent log lines. Nothing else, and it's never sent automatically — paste it into a message to us if you need help."] },
     ],
@@ -207,7 +207,7 @@ const uz: Dict = {
     honesty: [
       "Bu tibbiy vosita emas va sog‘liq haqida hech qanday da’vo qilmaydi. Yorug‘lik va uyqu haqidagi ayrim tadqiqotlar «Ilmiy manbalar» sahifasida — o‘qing va o‘zingiz xulosa qiling.",
       "PWM-xavfsiz rejim Apple displeylarida orqa yoritishni 100% da ushlaydi. Boshqa monitorlar uchun DDC/CI kerak — bu tajribaviy, sukut bo‘yicha o‘chiq va hali birorta monitorda tasdiqlanmagan.",
-      "30% dan past yorqinlikda va Zaxira rejimda xiralashtirish ekran yozuvchilari yozib olishi mumkin bo‘lgan qatlam oynasi orqali bajariladi. Ilova bu rejimlarda ekanligingizni aytadi.",
+      "30% dan past yorqinlikda xiralashtirish ekran yozuvchilari yozib olishi mumkin bo‘lgan qatlam oynasi orqali bajariladi.",
       "macOS 13 yoki undan yangisi kerak. Mac App Store orqali tarqatilmaydi, chunki App Store u foydalanadigan displey kirishini taqiqlaydi.",
     ],
   },
@@ -237,7 +237,7 @@ const uz: Dict = {
     after: [
       "Menyu panelidagi belgini o‘ng tugma bilan bosing → «Ranglarni tiklash» ekranni darhol oddiy holatga qaytaradi.",
       "Dimit’dan chiqish har doim oddiy rang va yorqinlikni qaytaradi.",
-      "macOS 26 da Apple xatosi tufayli ba’zi Mac’larda tizim rang o‘zgarishlarini avtomatik yorqinlik o‘chiq bo‘lsa ham e’tiborsiz qoldirishi mumkin. Ekran iliq tus olmagan bo‘lsa, Dimit ko‘rsatadigan «Zaxira rejimni yoqish» tugmasidan yoki Sozlamalar → Qo‘shimcha bo‘limidan foydalaning.",
+      "macOS 26 da Apple xatosi tufayli ba’zi Mac’larda tizim rang o‘zgarishlarini e’tiborsiz qoldirishi mumkin. Tizim sozlamalari → Displeylar bo‘limida avtomatik yorqinlikni o‘chirish ko‘pchiligida yordam beradi; qolganlarida Apple tuzatmaguncha Dimit ranglarni o‘zgartira olmaydi.",
     ],
   },
   faq: {
@@ -245,7 +245,7 @@ const uz: Dict = {
     items: [
       { q: "Rostdan ham 5 $ mi?", a: "Minimal — 5 $; summani o‘zingiz tanlaysiz. Qancha to‘lashidan qat’i nazar, hamma bir xil ilova va bir xil bepul yangilanishlarni oladi." },
       { q: "Akkaunt yoki litsenziya kaliti kerakmi?", a: "Yo‘q. To‘lov veb-saytda; ilovada kalit ham, faollashtirish ham, sinov muddati ham yo‘q. Siz yangilanishlarni tekshirishni yoqmaguningizcha u internetga ulanmaydi." },
-      { q: "Skrinshotlarim qizil bo‘ladimi?", a: "Yo‘q, 30% va undan yuqori yorqinlikda: rang displeyning rang jadvallari orqali qo‘llanadi, ekran yozib olish esa ularni ko‘rmaydi. QuickTime va Zoom bilan tekshirilgan. 30% dan pastda va Zaxira rejimda qatlam oynasi ishlatiladi va ba’zi yozuvchilar uni yozib olishi mumkin." },
+      { q: "Skrinshotlarim qizil bo‘ladimi?", a: "Yo‘q, 30% va undan yuqori yorqinlikda: rang displeyning rang jadvallari orqali qo‘llanadi, ekran yozib olish esa ularni ko‘rmaydi. QuickTime va Zoom bilan tekshirilgan. 30% dan pastda xiralashtirish uchun qatlam oynasi ishlatiladi va ba’zi yozuvchilar uni yozib olishi mumkin." },
       { q: "PWM nima va nega bu muhim?", a: "Ko‘p LED orqa yoritishlar sekundiga yuzlab marta yonib-o‘chish orqali xiralashadi (impuls kengligi modulyatsiyasi). Ba’zilar buni, ayniqsa past yorqinlikda, miltillash, ko‘z charchog‘i yoki bosh og‘rig‘i sifatida sezadi. PWM-xavfsiz rejim orqa yoritishni 100% da — ko‘p panellar pulslamaydigan darajada — ushlab, xiralashtirishni dasturiy bajaradi. Displeyingiz PWM ishlatadimi va bu sizga xalaqit beradimi — bu shaxsiy; Dimit hech narsani davolashni da’vo qilmaydi." },
       { q: "Tashqi monitorim bilan ishlaydimi?", a: "Iliqlik va xiralashtirish: ha, barcha ulangan displeylarda. Tashqi monitor orqa yoritishini 100% da ushlash uchun DDC/CI kerak — bu tajribaviy, sukut bo‘yicha o‘chiq va hali birorta monitorda ishlashi tasdiqlanmagan. Sinab ko‘rmoqchi bo‘lsangiz, Sozlamalar → Displeylar bo‘limida yoqing va natijani bizga yozing." },
       { q: "Nega Mac App Store’da yo‘q?", a: "App Store sandbox’i Dimit’ga kerak bo‘lgan displey va yorqinlik kirishini taqiqlaydi. U to‘g‘ridan-to‘g‘ri, imzolangan va notarizatsiya qilingan holda tarqatiladi." },
@@ -257,10 +257,10 @@ const uz: Dict = {
   help: {
     title: "Yordam",
     sections: [
-      { title: "Asosiy oyna", body: ["Menyu panelidagi belgini bosing. Katta tugma filtrni YOQADI va O‘CHIRADI. Iliqlik 6500K (o‘zgarishsiz) dan 0K (to‘liq qizil) gacha. Yorqinlik 100% dan 10% gacha. KUN, KECH va TUN — Sozlamalarda tahrirlash mumkin bo‘lgan rejimlar.", "Rejimlar, YOQISH/O‘CHIRISH, Zaxira rejim, Ranglarni tiklash, Sozlamalar va Chiqish uchun belgini o‘ng tugma bilan bosing."] },
+      { title: "Asosiy oyna", body: ["Menyu panelidagi belgini bosing. Katta tugma filtrni YOQADI va O‘CHIRADI. Iliqlik 6500K (o‘zgarishsiz) dan 0K (to‘liq qizil) gacha. Yorqinlik 100% dan 10% gacha. KUN, KECH va TUN — Sozlamalarda tahrirlash mumkin bo‘lgan rejimlar.", "Rejimlar, YOQISH/O‘CHIRISH, Ranglarni tiklash, Sozlamalar va Chiqish uchun belgini o‘ng tugma bilan bosing."] },
       { title: "PWM-xavfsiz rejim", body: ["Slayderlar ostida yoqing. Pastdagi satr nima bo‘lganini aytadi: orqa yoritish 100% da ushlab turilmoqda (endi slayder dasturiy xiralashtiradi), displey tekshirilmoqda, displey 100% ni ushlamayapti yoki displeyda orqa yoritishni boshqarishning qo‘llab-quvvatlanadigan usuli yo‘q.", "Rejim yoniq paytda klaviaturadagi yorqinlik tugmalarini bossangiz, Dimit bir necha soniya ichida orqa yoritishni yana 100% ga qaytaradi va buni bir marta aytadi. Uning o‘rniga ilovadagi slayderdan foydalaning.", "Orqa yoritish 100% da qolgani uchun noutbuklar biroz ko‘proq batareya sarflaydi."] },
       { title: "Jadval", body: ["Sozlamalar → Jadval. Quyosh botishidan chiqishigacha: shahringizni tanlang yoki bir marta «Joylashuvimdan foydalanish» tugmasini bosing. Dimit quyosh botganda KECH ga, uxlash vaqtingizda TUN ga iliqlashadi va quyosh chiqqanda o‘zini o‘chiradi — siz tanlagan davomiylikda silliq o‘tadi. Belgilangan vaqtlar: o‘sha uch bosqich, siz belgilagan vaqtlar bilan.", "Jadval faol paytda slayderni surish uni keyingi bosqichgacha to‘xtatib turadi."] },
-      { title: "Zaxira rejim", body: ["macOS 26 o‘rnatilgan ba’zi Mac’larda tizim rang jadvali o‘zgarishlarini indamay e’tiborsiz qoldiradi — bu Apple tasdiqlagan xato (FB22273730) va avtomatik yorqinlikni o‘chirish har doim ham yordam bermaydi. Dimit buni aniqlay olmaydi, chunki macOS muvaffaqiyat haqida xabar beradi; shuning uchun u yerda filtrni birinchi marta yoqqaningizda Zaxira rejimni bir bosishda taklif qiladi. Zaxira rejim (shuningdek Sozlamalar → Qo‘shimcha va o‘ng tugma menyusida) o‘rniga qatlam oynasi bilan bo‘yaydi. U hamma joyda ishlaydi, lekin skrinshot va yozuvlarda rang ko‘rinadi. macOS 27 ga ta’sir qilmaydi."] },
+      { title: "macOS 26", body: ["macOS 26 o‘rnatilgan ba’zi Mac’larda tizim rang jadvali o‘zgarishlarini indamay e’tiborsiz qoldiradi — bu Apple tasdiqlagan xato (FB22273730). Dimit buni aniqlay olmaydi, chunki macOS muvaffaqiyat haqida xabar beradi. Tizim sozlamalari → Displeylar bo‘limida avtomatik yorqinlikni o‘chirish ko‘p kompyuterlarda yordam beradi. Qolganlarida Apple tuzatmaguncha Dimit’ning rang o‘zgarishlari ishlamaydi; 30% dan past xiralashtirish va PWM-xavfsiz rejim ishlayveradi. macOS 27 ga ta’sir qilmaydi."] },
       { title: "Tezkor tugmalar", body: ["YOQISH/O‘CHIRISH: sukut bo‘yicha ⌃⌥⌘Z. Rejimlarni almashtirish, iliqlik va yorqinlikni oshirish/kamaytirish Sozlamalar → Umumiy bo‘limida tayinlanadi. Ular istalgan ilovadan ishlaydi."] },
       { title: "Diagnostika", body: ["Sozlamalar → Qo‘shimcha → Diagnostikani nusxalash — almashish buferiga qisqa matn qo‘yadi: ilova versiyasi, macOS versiyangiz, Mac modeli, displeylar ro‘yxati va Dimit’ning so‘nggi jurnal satrlari. Boshqa hech narsa, va u hech qachon avtomatik yuborilmaydi — yordam kerak bo‘lsa, bizga xabarga qo‘shib yuboring."] },
     ],
@@ -344,7 +344,7 @@ const ru: Dict = {
     honesty: [
       "Это не медицинское устройство, и оно не делает заявлений о здоровье. Некоторые исследования о свете и сне перечислены на странице «Исследования» — прочитайте и решите сами.",
       "Режим без мерцания держит подсветку на 100% на дисплеях Apple. Сторонним мониторам нужен DDC/CI — экспериментальная функция, выключенная по умолчанию и пока не подтверждённая ни на одном мониторе.",
-      "Ниже 30% яркости и в Резервном режиме затемнение выполняется наложенным окном, которое могут захватить программы записи экрана. Приложение сообщает, когда вы в этих режимах.",
+      "Ниже 30% яркости затемнение выполняется наложенным окном, которое могут захватить программы записи экрана.",
       "Нужна macOS 13 или новее. Не распространяется через Mac App Store, потому что App Store запрещает используемый доступ к дисплею.",
     ],
   },
@@ -374,7 +374,7 @@ const ru: Dict = {
     after: [
       "Правый клик по значку в строке меню → «Восстановить цвета» мгновенно возвращает экран в норму.",
       "Выход из Dimit всегда восстанавливает обычные цвета и яркость.",
-      "В macOS 26 из-за ошибки Apple система на некоторых Mac может игнорировать изменение цвета даже при выключенной автояркости. Если экран не стал теплее, нажмите кнопку «Включить Резервный режим», которую показывает Dimit, или используйте Настройки → Дополнительно.",
+      "В macOS 26 из-за ошибки Apple система на некоторых Mac может игнорировать изменение цвета. Отключение автояркости в Системных настройках → Дисплеи помогает на многих; на остальных Dimit не сможет менять цвета, пока Apple не исправит ошибку.",
     ],
   },
   faq: {
@@ -382,7 +382,7 @@ const ru: Dict = {
     items: [
       { q: "Правда 5 $?", a: "Минимум — 5 $; сумму выбираете вы. Все получают одно и то же приложение и одни и те же бесплатные обновления, сколько бы ни заплатили." },
       { q: "Нужен аккаунт или лицензионный ключ?", a: "Нет. Оплата на сайте; в приложении нет ключа, активации и пробного периода. Оно не выходит в интернет, пока вы не включите проверку обновлений." },
-      { q: "Мои скриншоты будут красными?", a: "Нет, при яркости 30% и выше: оттенок накладывается через цветовые таблицы дисплея, которых захват экрана не видит. Проверено с QuickTime и Zoom. Ниже 30% и в Резервном режиме используется наложенное окно, и некоторые программы записи могут его захватить." },
+      { q: "Мои скриншоты будут красными?", a: "Нет, при яркости 30% и выше: оттенок накладывается через цветовые таблицы дисплея, которых захват экрана не видит. Проверено с QuickTime и Zoom. Ниже 30% для затемнения используется наложенное окно, и некоторые программы записи могут его захватить." },
       { q: "Что такое PWM и почему это важно?", a: "Многие LED-подсветки затемняются, включаясь и выключаясь сотни раз в секунду (широтно-импульсная модуляция). Некоторые воспринимают это как мерцание, усталость глаз или головную боль, особенно при низкой яркости. Режим без мерцания держит подсветку на 100% — где большинство панелей не пульсирует — и затемняет программно. Использует ли ваш дисплей PWM и мешает ли это вам — индивидуально; Dimit не претендует на лечение чего-либо." },
       { q: "Работает с моим внешним монитором?", a: "Теплота и затемнение: да, на каждом подключённом дисплее. Чтобы держать подсветку внешнего монитора на 100%, нужен DDC/CI — экспериментальная функция, выключенная по умолчанию и пока не подтверждённая ни на одном мониторе. Включите в Настройках → Дисплеи, если хотите попробовать, и расскажите нам, что получилось." },
       { q: "Почему его нет в Mac App Store?", a: "Песочница App Store запрещает доступ к дисплею и яркости, который нужен Dimit. Он распространяется напрямую, подписанный и нотаризованный." },
@@ -394,10 +394,10 @@ const ru: Dict = {
   help: {
     title: "Помощь",
     sections: [
-      { title: "Главное окно", body: ["Нажмите на значок в строке меню. Большая кнопка включает и выключает фильтр. Теплота — от 6500K (без изменений) до 0K (чистый красный). Яркость — от 100% до 10%. ДЕНЬ, ВЕЧЕР и НОЧЬ — режимы, которые можно изменить в Настройках.", "Правый клик по значку: режимы, ВКЛ/ВЫКЛ, Резервный режим, Восстановить цвета, Настройки и Выйти."] },
+      { title: "Главное окно", body: ["Нажмите на значок в строке меню. Большая кнопка включает и выключает фильтр. Теплота — от 6500K (без изменений) до 0K (чистый красный). Яркость — от 100% до 10%. ДЕНЬ, ВЕЧЕР и НОЧЬ — режимы, которые можно изменить в Настройках.", "Правый клик по значку: режимы, ВКЛ/ВЫКЛ, Восстановить цвета, Настройки и Выйти."] },
       { title: "Режим без мерцания", body: ["Включите под ползунками. Строка ниже сообщает, что произошло: подсветка удерживается на 100% (и ползунок теперь затемняет программно), дисплей проверяется, дисплей не держит 100% или у дисплея нет поддерживаемого способа управлять подсветкой.", "Если при включённом режиме нажать клавиши яркости, Dimit через несколько секунд вернёт подсветку на 100% и один раз сообщит об этом. Используйте ползунок в приложении.", "Поскольку подсветка остаётся на 100%, ноутбуки расходуют чуть больше батареи."] },
       { title: "Расписание", body: ["Настройки → Расписание. От заката до рассвета: выберите город или один раз нажмите «Использовать моё местоположение». Dimit теплеет до ВЕЧЕРА на закате, до НОЧИ в ваше время сна и выключается на рассвете, плавно за выбранную вами длительность. Заданное время: те же три фазы с вашими временами.", "Движение ползунка при активном расписании приостанавливает его до следующей фазы."] },
-      { title: "Резервный режим", body: ["На некоторых Mac с macOS 26 система молча игнорирует изменения цветовых таблиц — это подтверждённая Apple ошибка (FB22273730), и отключение автояркости помогает не всегда. Dimit не может это обнаружить, потому что macOS сообщает об успехе, поэтому при первом включении фильтра там он предлагает Резервный режим одним нажатием. Резервный режим (также в Настройках → Дополнительно и в меню по правому клику) окрашивает наложенным окном. Он работает везде, но скриншоты и записи будут окрашены. macOS 27 не затронута."] },
+      { title: "macOS 26", body: ["На некоторых Mac с macOS 26 система молча игнорирует изменения цветовых таблиц — это подтверждённая Apple ошибка (FB22273730). Dimit не может это обнаружить, потому что macOS сообщает об успехе. Отключение автояркости в Системных настройках → Дисплеи помогает на многих компьютерах. На остальных изменение цвета в Dimit не работает, пока Apple не исправит ошибку; затемнение ниже 30% и режим без мерцания продолжают работать. macOS 27 не затронута."] },
       { title: "Горячие клавиши", body: ["ВКЛ/ВЫКЛ: по умолчанию ⌃⌥⌘Z. Переключение режимов, теплота и яркость вверх/вниз назначаются в Настройках → Основные. Работают из любого приложения."] },
       { title: "Диагностика", body: ["Настройки → Дополнительно → Скопировать диагностику помещает в буфер обмена короткий текст: версия приложения, версия macOS, модель Mac, список дисплеев и последние строки журнала Dimit. Больше ничего, и это никогда не отправляется автоматически — вставьте в сообщение нам, если нужна помощь."] },
     ],

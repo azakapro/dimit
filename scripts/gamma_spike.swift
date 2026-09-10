@@ -57,7 +57,7 @@ for id in ids.prefix(Int(count)) {
 print("")
 print(">>> LOOK AT THE SCREEN NOW. It should be PURE RED for 4 seconds. <<<")
 print("    Red  = gamma path works on this build.")
-print("    Not red although 'set' returned 0 = the Tahoe-class bug; Fallback overlay becomes primary.")
+print("    Not red although 'set' returned 0 = the Tahoe-class bug (CLAUDE.md §3.3).")
 Thread.sleep(forTimeInterval: 4)
 CGDisplayRestoreColorSyncSettings()
 print("restored")

@@ -58,8 +58,7 @@ Rules that keep this testable:
 struct DisplayCommand: Equatable {
     let display: CGDirectDisplayID
     var gamma: GammaSpec?          // multipliers (r,g,b) and dim ∈ [0.30, 1]; nil = restore
-    var overlayAlpha: Double       // 0 = no overlay window
-    var overlayTint: OverlayTint   // .black (extreme dim) or .red(warmth) in Fallback mode
+    var overlayAlpha: Double       // 0 = no overlay window; the overlay is always black (dim floor)
     var hardwareBrightness: Float? // 1.0 while PWM pinned; nil = leave alone
 }
 
@@ -151,7 +150,7 @@ One `NSWindow` per screen, created lazily, keyed by display UUID. Properties fro
 
 - `sharingType = .none` set **before** `orderFront` (setting it afterwards is unreliable on some versions).
 - Recreated, not moved, on reconfiguration. Frame equals `NSScreen.frame` including the notch area.
-- Two uses: black with alpha for extreme dim, and red-tinted with alpha derived from warmth in Fallback mode. In Fallback mode gamma is left at baseline.
+- One use: black with alpha for extreme dim. (A second, red-tinted use — Fallback mode, gamma left at baseline — existed from C3 until 2026-09-10, when the owner removed the mode as too confusing.)
 
 ### 2.8 Persistence and secrets
 
@@ -329,7 +328,7 @@ Principles: native controls where accessibility matters (sliders, toggles), cust
 
 **Menu bar icon:** a 16 pt circle, half-filled diagonally ("dim"). Outline when OFF, filled when ON, 3 pt dot at the lower right when PWM pinned. Template image so it follows the menu bar tint.
 
-**Settings window (tabs):** General (launch at login, language, updates opt-in, hotkeys, presets), Schedule, Displays (per-display list with backend name and DDC experimental toggle), Advanced (Fallback mode, restore colours, copy diagnostics). No License tab — there is nothing to license (§4).
+**Settings window (tabs):** General (launch at login, language, updates opt-in, hotkeys, presets), Schedule, Displays (per-display list with backend name and DDC experimental toggle), Advanced (restore colours, copy diagnostics). No License tab — there is nothing to license (§4).
 
 **Onboarding (3 steps, first launch only):** headline, screenshots-stay-normal, no-account-no-tracking with the updates opt-in checkbox and a "Restore colours" safety button.
 

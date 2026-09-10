@@ -460,6 +460,16 @@ Removing the feature instead was declined, and the reason is on record: the firs
 
 **Also confirmed while checking (a side finding, not a bug):** on a true first launch Sparkle writes `SUEnableAutomaticChecks = 0` and the process holds no network sockets — the opt-in rule in CLAUDE.md §1.2/§4.3 holds on a clean install.
 
+## Fallback mode removed (2026-09-10, owner decision)
+
+After the 26.6.2 report, Fallback mode went from a Settings toggle to a one-tap banner button to a visible popover row in the space of a few hours — and the owner, using the app, found the whole thing confusing and asked for it to go. The competitive case for keeping it was put (f.lux has no such path and its Tahoe users swap colour profiles by hand nightly; the overlay code is shared with the dim floor so the saving is small) and the owner reaffirmed. Removed: `AppState.fallbackMode`, `RenderState.fallbackMode`, `PersistedState.fallbackMode`, `OverlayTint` (the overlay is now always black), `Config.fallbackMaxWarmthVeil`, the Advanced toggle, the right-click menu item, the popover row, the banner button, seven strings, and ten tests that covered only the removed branch.
+
+**Consequences, stated so nobody rediscovers them as bugs:**
+
+- On a Mac where Apple ignores the colour table (the 26.6.2 XDR case above), Dimit **cannot change colours**. The banner names the bug and the auto-brightness step that helps on many machines; the site's help page has a "macOS 26" section saying the same and that dimming below 30% and PWM-Safe still work. This is the honest position and it is the one the download page must keep.
+- Saved state from any C3–C7 build still carries a `"fallbackMode"` key. `PersistedState`'s per-field `decodeIfPresent` decoder ignores unknown keys, so those users keep every other setting on upgrade — pinned by `test_decodingJSONFromBeforeC4Fields_preservesEveryOtherField`, whose fixture deliberately keeps the dead key.
+- The "do screenshots show the overlay?" question (`sharingType = .none` vs the old help text) no longer needs an answer for tinting; it still matters for dimming below 30%, and stays a tester row.
+
 ## Performance
 
 | Date | Version | Machine | Idle CPU (5 min avg) | Popover open (ms) | Slider latency |

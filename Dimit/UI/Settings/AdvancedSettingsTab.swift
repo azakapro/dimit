@@ -1,15 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// ARCHITECTURE.md §10: "Advanced (Fallback mode, restore colours, copy
-/// diagnostics)."
-///
-/// Fallback mode also stays in the right-click menu where C3 put it. Two
-/// paths to one `appState.fallbackMode` binding can't diverge (there is no
-/// second copy of the value), and the menu item is the one that still works
-/// when the thing the user needs to fix is *the screen being unreadable* —
-/// which is exactly when Fallback mode matters and exactly when hunting for
-/// a Settings tab is hardest.
+/// ARCHITECTURE.md §10: "Advanced (restore colours, copy diagnostics)."
+/// A Fallback-mode toggle lived at the top of this tab from C3 until
+/// 2026-09-10, when the owner removed the mode as too confusing.
 struct AdvancedSettingsTab: View {
     @ObservedObject var appState: AppState
     @ObservedObject var displayManager: DisplayManager
@@ -20,30 +14,6 @@ struct AdvancedSettingsTab: View {
 
     var body: some View {
         Form {
-            Section {
-                Toggle(isOn: $appState.fallbackMode) {
-                    Text("fallback.title")
-                }
-                Text("fallback.help")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                // Fallback mode changes *how* the screen is tinted, not
-                // whether it is — so switching it on while Dimit is off does
-                // nothing visible at all. The owner did exactly that and
-                // reported the feature as broken; it wasn't (verified on
-                // hardware: with the filter on it puts a real overlay at
-                // window level 1001, alpha 0.70, and leaves gamma neutral).
-                // Nothing on screen said the filter had to be on, so this
-                // does, and only when it applies.
-                if appState.fallbackMode, !appState.isOn {
-                    Text("fallback.needs_on")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
             Section {
                 Button {
                     restoreColours()

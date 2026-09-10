@@ -128,7 +128,7 @@ Sonnet 5 for skeleton, settings, schedule, scripts, site, docs. Opus 5 for anyth
 |---|---|
 | Lemon Squeezy cannot pay out to the LLC in Uzbekistan | Confirm before C7 (§4). Fallback, in order: PayPal payout if available; otherwise the free-download + tips path in `docs/LAUNCH_STRATEGY.md` §4 (Buy Me a Coffee lists Uzbekistan) — the site and app don't change, only the button. |
 | The download gate is soft: the Sparkle zip is a public URL | Accepted with the 2026-09-09 decision — pay-what-you-want is an honour-system price, and a hard gate needs the license machinery this plan removed. Don't rediscover this as a bug. |
-| Gamma silently ignored on some macOS 26/27 machines (Apple bugs in CLAUDE.md §3.3) | Fallback mode exists; the C6 testers report per macOS version; the site says "tested on", not "works on every Mac". |
+| Gamma silently ignored on some macOS 26 machines (Apple bug FB22273730, CLAUDE.md §3.3; seen on the first stable-macOS tester) | No in-app workaround since Fallback mode was removed (2026-09-10, owner decision); the banner and the site's macOS 26 section tell the user the one step that helps on many machines; the C6 testers report per macOS version; the site says "tested on", not "works on every Mac". |
 | DisplayServices symbols missing on a future macOS | The protocol returns `.unsupported`; PWM-Safe shows the unsupported string; ship anyway. |
 | Only one dev machine, on a beta OS | Testers' Macs from C6 onward are the real test bed; ask their macOS versions when sharing the DMG. |
 | Part-time slips | Cycles are one PR each; if one slips more than three days, cut scope inside the cycle rather than extending it. |
