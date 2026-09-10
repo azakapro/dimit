@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>Dimit Updates</title>
+        <link>https://github.com/azakapro/dimit/releases</link>
+        <description>Signed updates for Dimit.</description>
+        <language>en</language>
+    </channel>
+</rss>

@@ -23,7 +23,7 @@ private struct DisplayPipeline {
     // Manual mode. See ScheduleCoordinator's own doc comment.
     let scheduleCoordinator: ScheduleCoordinator
     // C7. Mirrors the user's opt-in onto Sparkle; the only network code in
-    // the app, inert until that opt-in is on (ARCHITECTURE.md §8).
+    // the app, inert until that opt-in is on (ARCHITECTURE.md §4).
     let updateController: UpdateController
 }
 

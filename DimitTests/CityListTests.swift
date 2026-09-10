@@ -53,10 +53,10 @@ final class CityListTests: XCTestCase {
     // naming the wrong place — which these pin.
 
     func test_nearest_namesTheCityYouAreActuallyIn() {
-        // The coordinates CoreLocation actually returned on the dev machine
-        // when the owner pressed "Use my location" — the case that reported
-        // "Using manual coordinates" and named nothing.
-        let reported = Coordinate(latitude: 41.297733333849685, longitude: 69.28663862809425)
+        // A synthetic point near Tashkent, away from the bundled city centre.
+        // Regresses the device-location case that used to show "Using manual
+        // coordinates" and name nothing, without storing anyone's location.
+        let reported = Coordinate(latitude: 41.31, longitude: 69.26)
         XCTAssertEqual(CityList.nearest(to: reported)?.id, "tashkent")
     }
 

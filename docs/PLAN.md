@@ -1,28 +1,28 @@
 # Dimit — Plan (MVP-first)
 
-Rewritten 2026-09-09 for MVP-first; **distribution re-decided the same evening** (see Decisions). Rule of the plan: **ship a working app to real people first.** Each cycle is one PR, one version bump, one short demo GIF.
+Rewritten 2026-09-09 for MVP-first; **free, MIT-licensed distribution decided 2026-09-10** (see Decisions). Rule of the plan: **ship a working app to real people first.** Each cycle is one PR, one version bump, one short demo GIF.
 
 ## Decisions
 
 | Date | Decision |
 |---|---|
-| 2026-09-08 | Product name **Dimit**, bundle ID `app.dimit.mac`, primary domain **dimit.uz** (dimit.app later), seller is the owner's Uzbek LLC, Apple Developer account currently a friend's (LLC enrollment planned; v1.0 ships under the LLC), one developer working part-time with Claude Code. |
-| 2026-09-09, morning | MVP-first: cycles C0–C3 are the display engine and ship as a zip to friends before any licensing, payments or website exist. |
-| 2026-09-09, evening | **Pay-what-you-want download, $5 minimum, through Lemon Squeezy, on our own Astro site (en/uz/ru).** Lemon Squeezy is merchant of record, hosts the DMG, takes the payment, sends the receipt and the download link. **No in-app licensing** — no license server, no keys, no trial, no seats — and **no Payme/Click**. The old C7–C9 (license server, Payme/Click, global launch) collapse into one cycle, C7. **Not open source**: considered and withdrawn the same day; the repo stays private and attribution stays. `docs/LAUNCH_STRATEGY.md` (written the same day, committed with this re-plan) argued for free + open source + tips; its beta process, release gates and "claims inside the evidence" discipline still apply, its licensing and monetization recommendation does not. |
+| 2026-09-08 | Product name **Dimit**, bundle ID `app.dimit.mac`, author **Azizullo Temirov**. |
+| 2026-09-09 | MVP-first: cycles C0–C3 are the display engine and ship as a zip to beta testers before release infrastructure. |
+| 2026-09-10 | **Free and open source under MIT.** The README is the product page; downloads come from [GitHub Releases](https://github.com/azakapro/dimit/releases). Sparkle remains opt-in, using `https://azakapro.github.io/dimit/appcast.xml`, served from `docs/` on `main` through GitHub Pages. Optional [Buy Me a Coffee support](https://buymeacoffee.com/TODO_HANDLE) buys no features. No accounts, licence keys, trial, activation, telemetry or application server. The maintainer changes repository visibility after reviewing the conversion. |
 
 ## 1. Versions
 
 | Version | Cycles | What a user gets | Status / target |
 |---|---|---|---|
-| **MVP v0.1** | C0–C3 | Menu-bar app: warmth to 0K, software dim, 3 presets, ON/OFF, all displays, PWM-Safe on Apple displays, extreme dim, Fallback mode, 3 languages. Shared as a zip with friends. | ✅ merged and tagged 2026-09-09 (PRs #1–#3) |
+| **MVP v0.1** | C0–C3 | Menu-bar app: warmth to 0K, software dim, 3 presets, ON/OFF, all displays, PWM-Safe on Apple displays, extreme dim, Fallback mode, 3 languages. Shared as a zip with beta testers. Fallback mode was later removed on 2026-09-10. | ✅ merged and tagged 2026-09-09 (PRs #1–#3) |
 | v0.2 | C4 | Settings window, hotkeys, launch at login, onboarding, diagnostics, menu-bar icon states | ✅ 2026-09-09 (#4) |
 | v0.3 | C5 | Sunset/sunrise + fixed-time schedule, DDC/CI experimental on external monitors | ✅ 2026-09-09 (#5, #6) |
-| v0.4 beta | C6 | Signed + notarized DMG, release scripts, 10–20 Telegram testers, the QA matrix including the capture matrix, bug fixes | scripts + ad-hoc DMG ✅ 2026-09-10 (#8, tagged `v0.4`); the Developer ID build and the tester rows are what's still open |
-| **v1.0** | C7 | dimit.uz with the Lemon Squeezy pay-what-you-want checkout, Sparkle opt-in updates, licensing dead code removed, user-facing README, launch (Telegram beta → public → Product Hunt, per `docs/LAUNCH_STRATEGY.md` §7–§8) | code + site ✅ 2026-09-10 (#9). Tag waits on the owner: Developer ID under the LLC, the Lemon Squeezy store + verified payout + checkout URL in `site/src/config.ts`, a fluent read of the uz/ru site copy, tester rows on a stable macOS. Outer bound **2026-11-02** |
-| v1.1+ | later | DDC promoted to default ON after real-monitor verification, per-display overrides, chromaticity warmth mode, Lemon Squeezy affiliates | after v1.0 feedback |
+| v0.4 beta | C6 | Signed + notarized DMG, release scripts, beta testers, the QA matrix including the capture matrix, bug fixes | scripts + ad-hoc DMG ✅ 2026-09-10 (#8, tagged `v0.4`); the Developer ID build and the tester rows are what's still open |
+| **v1.0** | C7 | Free MIT release, GitHub Releases downloads, Sparkle opt-in updates via GitHub Pages, README product page, contribution and bug-report guidance | Sparkle and cleanup landed 2026-09-10 (#9); distribution conversion and the release gates below remain to be verified. Developer ID signing, a reachable signed appcast and remaining hardware QA are still release work. |
+| v1.1+ | later | DDC promoted to default ON after real-monitor verification, per-display overrides, chromaticity warmth mode | after v1.0 feedback |
 | v2 | Phase 2 | Windows | 2027 |
 
-Everything keeps the architecture in `docs/ARCHITECTURE.md`; `License/` and `server/` never exist.
+Everything keeps the architecture in `docs/ARCHITECTURE.md`; there is no application server or activation machinery.
 
 ## 2. Cycles
 
@@ -50,7 +50,7 @@ Every cycle starts with this prompt to Claude Code, with the cycle number filled
 
 **In:** `DisplayModels`, `DisplayManager` (enumerate, UUID keying, reconfiguration callback, wake notifications with 1.0 s re-apply), `GammaController` (baseline read once per display UUID, table build per ARCHITECTURE §2.4, apply, read-back mismatch counter), `Applier` (diff against last applied), restore on OFF, `applicationWillTerminate`, SIGTERM/SIGINT, and **on launch before anything else**. "Restore colours" item in the right-click menu.
 **Out:** brightness backends, overlay, PWM, fallback mode.
-**Done when (by hand, rows in QA.md):** 0K is pure red on the built-in display and on the home monitor when plugged in; ⌘⇧4 screenshot at 0K is not red; QuickTime recording not red; unplug/replug monitor while ON re-applies; sleep/wake re-applies within ~1 s; quit restores; `kill -9` then relaunch restores; idle CPU < 0.5% over 5 min; slider feels instant. *(The external-monitor and sleep/wake rows are still the **pending** rows in QA.md — owner hardware only.)*
+**Done when (by hand, rows in QA.md):** 0K is pure red on the built-in display and on the home monitor when plugged in; ⌘⇧4 screenshot at 0K is not red; QuickTime recording not red; unplug/replug monitor while ON re-applies; sleep/wake re-applies within ~1 s; quit restores; `kill -9` then relaunch restores; idle CPU < 0.5% over 5 min; slider feels instant. *(The external-monitor and sleep/wake rows are still the **pending** rows in QA.md — maintainer hardware only.)*
 
 ### C3 — PWM-Safe and extreme dim · Opus 5 · ~18 h → tag **v0.1** — ✅ merged 2026-09-09 (#3), tagged `v0.1`
 
@@ -58,7 +58,7 @@ Every cycle starts with this prompt to Claude Code, with the cycle number filled
 **Out:** Settings window, hotkeys, login item, schedule.
 **Done when:** PWM-Safe on the built-in display shows `pinned`; pressing F1 while pinned re-pins within 5 s and shows the toast once; disabling restores the previous hardware brightness; brightness 10% works via overlay and a screenshot at 10% is **not** dark; Fallback mode makes the screen red and a screenshot **is** red; all C2 rows still pass; tests pass.
 
-**Carried into C4 as owner-only checks:** three of the "Done when" clauses above can't be closed from an unattended session and were *not* silently ticked off — pressing F1 to trigger a real drift re-pin (closed by the owner's live test, QA.md), and the two screenshot assertions (10% overlay not dark, Fallback mode red). Same for the external monitor and sleep/wake rows. They're the **pending** rows in docs/QA.md.
+**Carried into C4 as maintainer-only checks:** three of the "Done when" clauses above can't be closed from an unattended session and were *not* silently ticked off — pressing F1 to trigger a real drift re-pin (closed by the maintainer's live test, QA.md), and the two screenshot assertions (10% overlay not dark, Fallback mode red). Same for the external monitor and sleep/wake rows. They're the **pending** rows in docs/QA.md.
 
 ### C4 — Daily-use polish · Sonnet 5 · ~12 h → **v0.2** — ✅ merged 2026-09-09 (#4), tagged `v0.2`
 
@@ -66,35 +66,43 @@ Every cycle starts with this prompt to Claude Code, with the cycle number filled
 **Out:** schedule, DDC.
 **Done when:** every hotkey works while another app is frontmost; login item toggles and survives reboot; onboarding shows once; VoiceOver reads every control in all three languages; no new permission prompts appeared.
 
-**Carried into C5 from the independent review** (details in docs/QA.md): a sleep-time restore path (§1.8 requires it; only wake is observed today — **still open**), the drift poll's run-loop mode (fixed in C5), and the cold-popover budget (measured 180 ms against §8's 100 ms — **still open**). **Not code fixes, and both gate claims we plan to make publicly:** capture exclusion is not guaranteed by any public API, so §1.4's "screen-shares must not be tinted" needs a real capture matrix in C6 before it goes on the site; and CoreDisplay can report a false verified pin, which needs a Studio Display, Pro Display XDR or Intel Mac in the hands of a beta tester.
+**Carried into C5 from the independent review** (details in docs/QA.md): a sleep-time restore path (§1.8 requires it; only wake is observed today — **still open**), the drift poll's run-loop mode (fixed in C5), and the cold-popover budget (measured 180 ms against §8's 100 ms — **still open**). **Not code fixes, and both gate claims we plan to make publicly:** capture exclusion is not guaranteed by any public API, so §1.4's "screen-shares must not be tinted" needs a real capture matrix in C6 before it is claimed in the README; and CoreDisplay can report a false verified pin, which needs a Studio Display, Pro Display XDR or Intel Mac in the hands of a beta tester.
 
 ### C5 — Scheduling and DDC experimental · Sonnet 5 (schedule) then Opus 5 (DDC) · ~18 h → **v0.3** — ✅ C5a merged (#5), C5b merged (#6), tagged `v0.3` 2026-09-09
 
 **In:** `ScheduleEngine` per ARCHITECTURE §3 with NOAA tests (Tashkent 2026-09-08 within ±3 min), city list, optional CoreLocation only after the user taps "Use my location", fixed-times mode, 20-min linear ramps, manual override pauses until the next phase. Schedule tab in Settings. Then `DDCController` (IOAVService on Apple Silicon, VCP 0x10) behind the persisted `AppState.ddcEnabled` default OFF, Experimental toggle in the Displays tab.
-**Out:** licensing, site.
+**Out:** release infrastructure.
 **Done when:** with the Mac's clock moved past today's Tashkent sunset the app ramps to EVENING over 20 min; no Location prompt appears unless the button is pressed; DDC toggle either pins the home monitor to 100% or shows `unsupported` cleanly, never hangs the UI.
 
-**C5b's "Done when" is only half closed, deliberately.** "Shows `unsupported` cleanly" — yes, verified. "Pins the home monitor to 100%" and "never hangs the UI" — **no**: no external monitor was connected, and DDC's spec-mandated 50 ms read wait blocks the main actor. DDC therefore ships default-OFF behind an Experimental toggle that says so. Two things gate promoting it (CLAUDE.md §3.4 already schedules that for 1.1): a monitor that actually answers Get VCP, and moving DDC transactions off the main actor. **Update 2026-09-10:** the home monitor (Xiaomi Mi Monitor) was connected — it speaks DDC/CI but answers every Get VCP with a constant error frame, so Dimit reports `unsupported` (correctly: m1ddc reads the same frame as "brightness 110"). Whether its OSD has DDC/CI switched off is still an open owner question. Details: docs/QA.md § External-monitor session.
+**C5b's "Done when" is only half closed, deliberately.** "Shows `unsupported` cleanly" — yes, verified. "Pins the home monitor to 100%" and "never hangs the UI" — **no**: no external monitor was connected, and DDC's spec-mandated 50 ms read wait blocks the main actor. DDC therefore ships default-OFF behind an Experimental toggle that says so. Two things gate promoting it (CLAUDE.md §3.4 already schedules that for 1.1): a monitor that actually answers Get VCP, and moving DDC transactions off the main actor. **Update 2026-09-10:** the home monitor (Xiaomi Mi Monitor) was connected — it speaks DDC/CI but answers every Get VCP with a constant error frame, so Dimit reports `unsupported` (correctly: m1ddc reads the same frame as "brightness 110"). Whether its OSD has DDC/CI switched off is still an open maintainer question. Details: docs/QA.md § External-monitor session.
 
 ### C6 — Beta · Sonnet 5, Opus 5 for display bugs · ~14 h + tester time → **v0.4** — scripts, checklist and the ad-hoc DMG landed 2026-09-10 (#8); tester rows and the Developer ID build open
 
-**In:** `scripts/build.sh` (universal archive, Developer ID, hardened runtime), `scripts/build_dmg.sh` (built with `hdiutil` — create-dmg was in the original scope and dropped, see the script header), `scripts/notarize.sh` (works with whichever Developer ID is available; the friend's account is fine for beta builds only), `docs/RELEASE.md`. A one-page tester checklist copied from CLAUDE.md §8. **The capture matrix** the C4 review asked for: ⌘⇧4/⌘⇧5, QuickTime, Zoom, Google Meet and one ScreenCaptureKit-based recorder (OBS or similar), each against the three paths — gamma (brightness ≥ 30%), the extreme-dim overlay (< 30%), and Fallback mode — recorded in docs/QA.md so the site can say exactly what is and isn't guaranteed. Send the DMG to 10–20 Telegram testers (`docs/LAUNCH_STRATEGY.md` §9 has the invitation draft). Fill `docs/QA.md` for every macOS version they have. **Owner session with the home monitor** — done 2026-09-10 for the C2 multi-display rows (closed: both displays tint, replug re-applies in 105 ms) and the C5b DDC rows (closed on the `unsupported` branch); the schedule was also verified switching on by itself at night across display sleep/wake on both displays; full sleep/wake confirmed by the owner; the one thing left is the monitor's OSD DDC/CI setting (EDID reads fine over the same bus, so it is the panel's command channel that is off — docs/QA.md § Closing the DDC question). Fix what all of that finds.
-**Out:** Sparkle, site, checkout, licensing of any kind.
-**Done when:** a fresh browser download of the DMG opens on a tester's Mac using the published instructions (the distributed artifact, not an Xcode build); QA.md has at least one row per macOS major the testers own; every "must" row passes on at least one machine per major; the capture matrix is filled for all three paths on at least two recorders; no open crash or stuck-tint report; the DDC rows are closed one way or the other (works / doesn't on the home monitor).
+**In:** `scripts/build.sh` (universal archive, Developer ID, hardened runtime), `scripts/build_dmg.sh` (built with `hdiutil` — create-dmg was in the original scope and dropped, see the script header), `scripts/notarize.sh` (Developer ID signing and notarization), `docs/RELEASE.md`. A one-page tester checklist copied from CLAUDE.md §8. **The capture matrix** the C4 review asked for: ⌘⇧4/⌘⇧5, QuickTime, Zoom, Google Meet and one ScreenCaptureKit-based recorder (OBS or similar), each against the two current paths — gamma (brightness ≥ 30%) and the extreme-dim overlay (< 30%) — recorded in docs/QA.md so the README can say exactly what is and isn't guaranteed. Historical Fallback-mode rows remain as evidence of the removed feature. Share the DMG with beta testers. Fill `docs/QA.md` for every macOS version they have. **Maintainer session with the home monitor** — done 2026-09-10 for the C2 multi-display rows (closed: both displays tint, replug re-applies in 105 ms) and the C5b DDC rows (closed on the `unsupported` branch); the schedule was also verified switching on by itself at night across display sleep/wake on both displays; full sleep/wake confirmed by the maintainer; the one thing left is the monitor's OSD DDC/CI setting (EDID reads fine over the same bus, so it is the panel's command channel that is off — docs/QA.md § Closing the DDC question). Fix what all of that finds.
+**Out:** Sparkle and the v1.0 distribution work.
+**Done when:** a fresh browser download of the DMG opens on a tester's Mac using the published instructions (the distributed artifact, not an Xcode build); QA.md has at least one row per macOS major the testers own; every "must" row passes on at least one machine per major; the capture matrix is filled for both current paths on at least two recorders; no open crash or stuck-tint report; the DDC rows are closed one way or the other (works / doesn't on the home monitor).
 **PR:** `chore(c6): release scripts and beta fixes`, one PR per fix batch. Tag `v0.4`.
 
-### C7 — Site, Lemon Squeezy checkout, Sparkle, launch · Sonnet 5 · ~30 h → **v1.0** — code and site landed 2026-09-10 (#9); the four owner items below are what remain before the tag
+### C7 — Free MIT distribution and opt-in updates · Sonnet 5 → **v1.0** — Sparkle and cleanup landed 2026-09-10 (#9); release gates remain open
 
-**In:** `site/` Astro per ARCHITECTURE §7 — pages in `en` (at `/`), `uz`, `ru`; `/download` with the Lemon Squeezy checkout overlay (variant checkout URL in `site/src/config.ts`), install steps and a "Lost your download? → My Orders" link; `/updates/` for the Sparkle appcast and zips; legal entity + support contact in the footer; Cloudflare Pages. Lemon Squeezy product wired per ARCHITECTURE §5 (pay what you want, $5 minimum, suggested amount from §4 below, DMG attached, license keys OFF, test mode first). Sparkle 2 **opt-in** per ARCHITECTURE §8: EdDSA keys generated and kept in the Keychain, `SUFeedURL`/`SUPublicEDKey` in Info.plist, `updateChecksEnabled` → `automaticallyChecksForUpdates`, "Check for Updates…" in the right-click menu, `scripts/make_appcast.sh`. **Licensing dead-code cleanup:** the 13 `license.*` rows in the String Catalog, `Log.license`, the two licensing tests in `DiagnosticsBundleTests`, and every code comment that still quotes the old CLAUDE.md §4.2 "key-hash" / §7 "license state" wording or says "License (C7)". README rewritten for users (what it does, demo, download, tested systems, install, limitations, support, then build instructions). `docs/RELEASE.md` gains the Lemon Squeezy file-upload step. Release notes. Launch per `docs/LAUNCH_STRATEGY.md` §7–§8 with the copy in §9, edited for a paid download.
-**Out:** Payme/Click, license keys, affiliates, analytics beyond cookieless Cloudflare Web Analytics, Windows.
-**Done when:** from a fresh browser, `/download` → overlay → a Lemon Squeezy **test-mode** purchase at exactly $5 and one above it each end with a working DMG link on the order page and in the email, and that DMG passes the C6 install checklist; a purchase below $5 is impossible in the checkout; Sparkle finds a test update only when opted in, and a 10-minute idle run with the opt-in off shows **no** outbound connection from Dimit (network monitor); `npm run build` passes and every page renders in all three locales with no untranslated placeholder; terms/privacy/refund exist in all three languages with the uz/ru reviewed by a fluent person; the footer shows the legal entity and the support contact; the Lemon Squeezy payout method is verified in the dashboard; every public claim on the site has a matching docs/QA.md row; tag `v1.0`, notarized under the LLC's Developer ID.
-**PR:** `feat(c7): site, lemon squeezy checkout, sparkle, cleanup`. Tag `v1.0`.
+**In:** MIT `LICENSE` with copyright `2026 Azizullo Temirov`; README as the product page, with a demo, GitHub Releases installation, tested systems, honest limitations, build instructions, bug reporting and licence. A short optional Buy Me a Coffee link belongs in the README only and buys no features. `CONTRIBUTING.md` and a bug-report template request useful hardware evidence without serial numbers. DMGs and Sparkle ZIPs are attached to [GitHub Releases](https://github.com/azakapro/dimit/releases). `scripts/make_appcast.sh` produces `docs/appcast.xml`; GitHub Pages serves `docs/` on `main` at `https://azakapro.github.io/dimit/appcast.xml`, keeping the small feed in the same reviewed tree as the release instructions. Sparkle 2 remains **opt-in** per ARCHITECTURE §4: EdDSA private key in the Keychain, `SUFeedURL`/`SUPublicEDKey` in Info.plist, `SUEnableAutomaticChecks` false, `updateChecksEnabled` → `automaticallyChecksForUpdates`, and the existing explicit “Check for Updates…” action. Preserve the completed removal of unused activation strings, logging and tests. `docs/RELEASE.md` documents attaching release assets and publishing the appcast. Keep hardware QA, Apple bug references and authorship while removing private material.
+**Out:** feature gating, accounts, telemetry, an application server, support links in the app UI, new dependencies, network calls or permission prompts, Windows, and changing repository visibility before maintainer review.
+**Done when:**
+
+- The MIT licence and user documentation are present, and every product claim stays within the evidence in `docs/QA.md`.
+- A fresh download of the DMG from GitHub Releases passes the C6 install checklist; ad-hoc beta instructions retain the quarantine-removal step until a notarized artifact replaces them.
+- The appcast is reachable at the Pages URL and refers to signed ZIP assets on GitHub Releases; Sparkle finds a test update only after consent to a check. Automatic checks stay disabled until opted in, and a 10-minute idle run with opt-in off shows **no** outbound connection from Dimit.
+- `xcodebuild test` and `scripts/build.sh` pass; the release artifact survives the script's launch check. Record test counts and any hardware checks actually run, leaving unverified rows pending.
+- New or changed app strings have en/uz/ru entries, with uz/ru marked `needs_review` until a fluent reviewer approves them; the existing translation-review backlog remains explicit.
+- The `v1.0` release is Developer-ID signed and notarized, with remaining release gates in `docs/RELEASE.md` closed. GitHub Pages serves `docs/` on `main`; no separate product website is required.
+
+**PR:** `chore(c7): free MIT distribution and opt-in updates`; this conversion uses branch `chore-open-source`. Tag `v1.0` only after the release gates pass.
 
 ## 3. PR requirements (every cycle)
 
 The template lives in `.github/pull_request_template.md`. A PR is mergeable only when:
 
-1. Title is `feat(cN): …` / `fix(cN): …` / `chore(cN): …`; branch `cN-short-name`.
+1. Title is `feat(cN): …` / `fix(cN): …` / `chore(cN): …`; branch `cN-short-name` (this conversion uses the requested `chore-open-source` branch).
 2. `xcodebuild test` passes and the count of tests is in the description.
 3. The "Done when" list of the cycle is pasted in with a ✅ or a written reason for every line.
 4. QA rows run by hand are added to `docs/QA.md` in the same PR.
@@ -104,31 +112,15 @@ The template lives in `.github/pull_request_template.md`. A PR is mergeable only
 8. The gamma-restore paths (OFF, quit, signals, launch) are untouched or the diff explains the change.
 9. `/code-review high` run before requesting merge; findings fixed or listed as accepted.
 
-## 4. Business track (runs beside the cycles, costs hours of forms, not code)
+## 4. Model assignment, one line
 
-Nothing here blocks C6. Start each item at the cycle named so it is ready when needed.
+Sonnet 5 for skeleton, settings, schedule, scripts, docs. Opus 5 for anything that touches gamma, brightness backends, DDC, or the PWM state machine. Fable 5.1 only to re-plan when a cycle slips by more than three days or a gate fails.
 
-| Item | Start at | Needed by |
-|---|---|---|
-| D-U-N-S number, then Apple Developer Program for the LLC | C0 (started) | C7 (v1.0 must be signed under the LLC; the friend's account only for v0.x betas, because a Team ID change later breaks Sparkle — so the appcast starts under the final Team ID) |
-| **Lemon Squeezy store:** sign up, business verification for the LLC, payout method (bank wire or PayPal). **Confirm in the dashboard that payouts to the LLC in Uzbekistan actually work before C7 starts** — `docs/LAUNCH_STRATEGY.md` checked Buy Me a Coffee and GitHub Sponsors availability, not Lemon Squeezy | now | C7 |
-| Suggested amount above the $5 minimum (Lemon Squeezy shows a suggested price next to the minimum) — decide with the beta testers | C6 | C7 |
-| dimit.uz registration + DNS; a free static host for the site + `/updates/` — Cloudflare Pages by a small margin over Vercel/Netlify/GitHub Pages, reasoning in ARCHITECTURE §7.1. **No Supabase and no database**: there is nothing to store (§7.1). | C5 | C7 |
-| Telegram channel + support handle | C6 | C6 beta |
-| Terms / privacy / refund pages in uz/ru/en, reviewed by a fluent person | C6 | C7 |
-| Product Hunt maker account onboarding (a one-week participation wait applies) | C6 | C7 launch day |
-
-## 5. Model assignment, one line
-
-Sonnet 5 for skeleton, settings, schedule, scripts, site, docs. Opus 5 for anything that touches gamma, brightness backends, DDC, or the PWM state machine. Fable 5.1 only to re-plan when a cycle slips by more than three days or a gate fails.
-
-## 6. Risks that matter now
+## 5. Risks that matter now
 
 | Risk | Mitigation |
 |---|---|
-| Lemon Squeezy cannot pay out to the LLC in Uzbekistan | Confirm before C7 (§4). Fallback, in order: PayPal payout if available; otherwise the free-download + tips path in `docs/LAUNCH_STRATEGY.md` §4 (Buy Me a Coffee lists Uzbekistan) — the site and app don't change, only the button. |
-| The download gate is soft: the Sparkle zip is a public URL | Accepted with the 2026-09-09 decision — pay-what-you-want is an honour-system price, and a hard gate needs the license machinery this plan removed. Don't rediscover this as a bug. |
-| Gamma silently ignored on some macOS 26 machines (Apple bug FB22273730, CLAUDE.md §3.3; seen on the first stable-macOS tester) | No in-app workaround since Fallback mode was removed (2026-09-10, owner decision); the banner and the site's macOS 26 section tell the user the one step that helps on many machines; the C6 testers report per macOS version; the site says "tested on", not "works on every Mac". |
+| Gamma silently ignored on some macOS 26 machines (Apple bug FB22273730, CLAUDE.md §3.3; seen on the first stable-macOS tester) | No in-app workaround since Fallback mode was removed (2026-09-10, maintainer decision); the banner and the README limitations tell the user the one step that helps on many machines; the C6 testers report per macOS version; the README says "tested on", not "works on every Mac". |
 | DisplayServices symbols missing on a future macOS | The protocol returns `.unsupported`; PWM-Safe shows the unsupported string; ship anyway. |
 | Only one dev machine, on a beta OS | Testers' Macs from C6 onward are the real test bed; ask their macOS versions when sharing the DMG. |
 | Part-time slips | Cycles are one PR each; if one slips more than three days, cut scope inside the cycle rather than extending it. |

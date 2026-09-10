@@ -4,7 +4,7 @@ Thank you for trying it. This takes 15–20 minutes. Please do the steps in orde
 
 ## Install
 
-1. Open the DMG, drag **Dimit** to **Applications**.
+1. Download the DMG from [GitHub Releases](https://github.com/azakapro/dimit/releases), open it, and drag **Dimit** to **Applications**.
 2. This beta is not yet notarized, so macOS will refuse to open it. Open **Terminal** (⌘Space, type Terminal) and paste:
    `xattr -dr com.apple.quarantine /Applications/Dimit.app`
    then open Dimit normally. (The other route — System Settings → Privacy & Security → *Open Anyway* — also works but asks for your password. The old right-click → Open trick no longer works on recent macOS.)
@@ -42,7 +42,7 @@ Tick each one; write a sentence if anything was different.
 
 ## Report
 
-Copy, fill in, send to the Telegram handle or email in the message that gave you the download:
+Copy, fill in, and open a [GitHub issue](https://github.com/azakapro/dimit/issues/new?template=bug_report.md):
 
 ```
 Mac model:            (e.g. MacBook Air M2, 2022)
@@ -54,6 +54,6 @@ What was different:   (steps → what you expected → what happened)
 Diagnostics:          Settings → Advanced → "Copy diagnostics" → paste here
 ```
 
-The diagnostics text contains your macOS version, Mac model, display list and Dimit's own last 200 log lines — nothing else. Read it before pasting if you like.
+The diagnostics text contains your macOS version, Mac model, display list and Dimit's own last 200 log lines. Read it before posting publicly and remove any private details.
 
 Please **don't** send serial numbers or photos of your screen unless the problem is about how the screen looks (then a phone photo is the only thing that shows it — screen recordings can't capture the tint).

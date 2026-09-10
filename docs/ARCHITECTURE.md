@@ -1,8 +1,8 @@
 # Dimit — Architecture
 
-Companion to `CLAUDE.md` (product rules and API-level detail) and `docs/PLAN.md` (schedule). This file is the contract between the app track and the server/site track. Change it before changing code.
+Companion to `CLAUDE.md` (product rules and API-level detail) and `docs/PLAN.md` (schedule). This file describes the app architecture and distribution pipeline. Change it before changing code.
 
-**Scope (2026-09-09):** §1, §2, §10 and §11 shipped in C0–C3; §3 (schedule) shipped in C5. §9 (release pipeline) is C6. §4–§8 (distribution, the Lemon Squeezy store, the purchase flow, the site and opt-in updates) are C7, and until they land there is **no network code in the app at all**. §4–§7 previously described a license server, keys, a trial and Payme/Click checkout; that design was dropped on 2026-09-09 (docs/PLAN.md → Decisions) and these sections replace it.
+**Scope (2026-09-10):** §1–§2 describe the display engine; §3 covers scheduling; §4 defines free MIT distribution and opt-in Sparkle updates; §9 covers the release pipeline; §10–§12 cover UI, testing and remaining engineering questions. Surviving section numbers are retained for code references. `docs/PLAN.md` tracks cycles C0–C7.
 
 ## 1. System context
 
@@ -16,17 +16,12 @@ flowchart LR
         Render --> Overlay[OverlayDimmer]
         State --> Upd["Sparkle updater (opt-in, off by default)"]
     end
-    Upd -. "HTTPS, only when opted in" .-> Updates
-    subgraph CFP["Cloudflare Pages (dimit.uz)"]
-        Site["Astro site /uz /ru /en"]
-        Updates["/updates/appcast.xml + .zip"]
-    end
-    Site -- "checkout overlay (lemon.js)" --> LS[Lemon Squeezy]
-    LS -- "payment, VAT as merchant of record" --> LS
-    LS -- "DMG download link + receipt" --> Buyer[Buyer]
+    Upd -. "HTTPS after automatic opt-in or explicit manual check" .-> Feed["GitHub Pages: appcast.xml"]
+    Upd -. "EdDSA-verified update" .-> Releases["GitHub Releases: DMG + ZIP"]
+    Reader["README: install or build from source"] --> Releases
 ```
 
-Network policy: **the app makes no network request at all** unless the user opts into update checks, in which case Sparkle fetches one signed appcast from `dimit.uz`. No license calls, no analytics, no telemetry — there is no server. Money and file delivery happen entirely on Lemon Squeezy's side, which the app never talks to (§4).
+Network policy: **the app makes no request by default**. Sparkle may fetch the GitHub Pages appcast and release assets only after automatic-check opt-in or an explicit one-off manual check (§4). No activation calls, analytics or telemetry; no application server.
 
 ## 2. App module map and layering
 
@@ -95,7 +90,7 @@ for i in 0..<n:
 
 - `origR/G/B` are read once per display at first touch (`CGGetDisplayTransferByTable`) and cached as the restore baseline keyed by display UUID, not by ID (IDs change across reconnects).
 - `dim ∈ [0.30, 1.0]`. Below 0.30 the overlay takes over: `overlayAlpha = 1 - brightness / 0.30`, gamma dim stays at 0.30.
-- After each set, read back and compare; a mismatch logs `gammaMismatch` and increments a counter shown in diagnostics. A match proves nothing on macOS 26+ (Apple bugs FB19136488, FB22273730), which is why Fallback mode exists and the auto-brightness banner is shown.
+- After each set, read back and compare; a mismatch logs `gammaMismatch` and increments a counter shown in diagnostics. A match proves nothing on macOS 26+ (Apple bugs FB19136488, FB22273730), which is why the auto-brightness banner is shown. Fallback mode was removed on 2026-09-10; see CLAUDE.md §3.3 for the observed limitation and Apple forum evidence.
 
 ### 2.5 Brightness backends
 
@@ -150,7 +145,7 @@ One `NSWindow` per screen, created lazily, keyed by display UUID. Properties fro
 
 - `sharingType = .none` set **before** `orderFront` (setting it afterwards is unreliable on some versions).
 - Recreated, not moved, on reconfiguration. Frame equals `NSScreen.frame` including the notch area.
-- One use: black with alpha for extreme dim. (A second, red-tinted use — Fallback mode, gamma left at baseline — existed from C3 until 2026-09-10, when the owner removed the mode as too confusing.)
+- One use: black with alpha for extreme dim. (A second, red-tinted use — Fallback mode, gamma left at baseline — existed from C3 until 2026-09-10, when the maintainer removed the mode as too confusing.)
 
 ### 2.8 Persistence and secrets
 
@@ -158,10 +153,10 @@ One `NSWindow` per screen, created lazily, keyed by display UUID. Properties fro
 |---|---|---|
 | `AppState` (everything user-visible) | `UserDefaults.standard`, JSON blob, written 250 ms after the last change | `state.v1` |
 | Gamma baselines | memory only, never persisted (stale baselines would bake a tint in) | |
-| Sparkle's own bookkeeping (last check date, skipped version) | `UserDefaults.standard`, written by Sparkle itself once C7 lands | `SU*` keys |
+| Sparkle's own bookkeeping (last check date, skipped version) | `UserDefaults.standard`, written by Sparkle itself | `SU*` keys |
 | Logs | `os_log`, subsystem `app.dimit.mac`; the last 200 lines are read back through `OSLogStore` for diagnostics | |
 
-There is no Keychain use and no secret of any kind on the user's machine: nothing is licensed, nothing is activated, nothing identifies the install (§4).
+The installed app uses no Keychain secret or persistent install identifier (§4). The release-signing key belongs only on the maintainer's build machine.
 
 ## 3. Scheduling engine
 
@@ -193,111 +188,16 @@ func target(at now: Date, phases: [SchedulePhase]) -> (warmthK: Double, brightne
 - **`ScheduleConfig`/`TimeOfDay`/`Coordinate` all have hand-written `decodeIfPresent`-per-field decoders**, matching `PersistedState`'s own. `Persistence`'s outer `decodeIfPresent(ScheduleConfig.self, forKey:)` only protects against the *key* being absent; it does nothing once decoding starts and a field *inside* the nested struct turns out to be missing. Without this, the next field added to any of the three (a schedule feature is likely to grow one) would reintroduce the "one new key wipes every existing user's entire saved state" bug this codebase has already hit and fixed twice.
 - **The NOAA algorithm was derived from first principles, not transcribed from memory**, after two wrong transcriptions each passed an initial sanity check anyway (one swapped sunrise and sunset outright; a first "fix" put both events 9+ hours off) — see `SolarCalculator.swift`'s own comment on the final formula. Verified against two independent references before trusting it: Tashkent 2026-09-08 (±3 min per CLAUDE.md §8) and London's 2026-12-21 winter solstice — then re-verified against this machine's real system clock and timezone for the current date, and independently reproduced a third time by a reviewer with no access to the other two verifications.
 
-## 4. Distribution and payment
+## 4. Distribution and updates
 
-Decided 2026-09-09 (docs/PLAN.md → Decisions), replacing the license-server design that occupied §4–§7 of this file until then.
+Dimit is **free and open source under the MIT licence**, copyright **2026 Azizullo Temirov**. The README is the product page. [GitHub Releases](https://github.com/azakapro/dimit/releases) distributes the DMG and the Sparkle ZIP; users can also build from source. No account, activation, licence key, feature gate or application server is required.
 
-**Dimit is a paid download, not a licensed app.** The user pays on our site through a Lemon Squeezy checkout overlay, Lemon Squeezy delivers the DMG, and the app that arrives is unconditional: every copy is identical, fully functional forever, with no key, no trial, no seat count, no activation, no expiry and no remote off switch. Nothing in the app knows, or can know, whether it was paid for.
-
-Consequences, stated plainly so nobody re-derives them later as bugs:
-
-- **The app makes no network request at all** except Sparkle's update check, which does nothing until the user opts in (§8). There is no host to reach, no `api.` subdomain, no request on launch. CLAUDE.md §1.2's "zero network traffic except license activation" is now simply zero.
-- **`License/` and `server/` never exist.** The Settings window has no License tab; the popover has no trial line and no status pill for a licence state.
-- **The download gate is soft, by design.** The Sparkle appcast and its zips are public URLs, and a buyer can hand the DMG to anyone. Pay-what-you-want is an honour-system price; a hard gate needs exactly the machinery this decision removed.
-- **No personal data reaches us.** Lemon Squeezy holds the buyer's email and sends the receipt. We never store it and the app never sees it.
-
-### 4.1 Price
-
-Pay what you want, **minimum $5 USD**, with a suggested price set in the dashboard (chosen with the beta testers — docs/PLAN.md §4). Lemon Squeezy shows the suggested amount in an editable price field and refuses anything below the minimum, so the floor is enforced by the platform rather than by our page.
-
-Fee arithmetic at the floor, from Lemon Squeezy's own fees page (checked 2026-09-09), because it decides whether $5 is a sensible minimum: the platform fee is **5% + $0.50**, plus **1.5% for transactions outside the US** and a further **1.5% for PayPal**. A $5 card sale from Europe therefore costs $0.50 + $0.25 + $0.075 ≈ **$0.83, about 17%**. The fixed 50¢ is what hurts at this price — the identical fee is 4.2% of a $20 order — which is the argument for setting the *suggested* price well above the minimum. The same page invites merchants selling below $10 to ask for custom pricing; worth an email once there is any volume. Tax sits on top and is not ours to handle: Lemon Squeezy is the **merchant of record**, so it calculates, collects, files and remits VAT and sales tax, and its name is what appears on the buyer's statement.
-
-### 4.2 What we collect and log
-
-Nothing. No accounts, no analytics, no telemetry, no crash reporter, no device identifier, no email address anywhere in the app. `Logger.swift` writes to `os_log` under the `app.dimit.mac` subsystem; the diagnostics bundle (CLAUDE.md §7) is assembled locally, shown to the user and copied to their own clipboard — the app never transmits it. Log failures, never payloads. The site collects nothing beyond Cloudflare Web Analytics' cookieless aggregate counts (§7).
-
-### 4.3 Payouts — a launch prerequisite, not a code concern
-
-Lemon Squeezy pays out in USD twice a month by bank transfer or PayPal, minus a payout fee (1% per payout for non-US bank accounts, 3% capped at $30 for non-US PayPal). Its supported-countries page lists **Uzbekistan among the countries where bank payouts are supported** (checked 2026-09-09), and PayPal payouts cover 200+ countries. That is a published list, not a confirmation for one particular business, so docs/PLAN.md §4 makes "a verified payout method in the dashboard" a prerequisite that must clear before C7 starts — and docs/PLAN.md §6 carries the fallback if it doesn't.
-
-## 5. Lemon Squeezy store setup
-
-One store, one product, one variant. All of it is dashboard configuration; the only thing this repo holds is the resulting checkout URL in `site/src/config.ts`.
-
-| Setting | Value |
-|---|---|
-| Product | Dimit |
-| Pricing type | Pay what you want — minimum **$5.00**, suggested price TBD (docs/PLAN.md §4) |
-| Delivery | Digital download; the notarized `Dimit-x.y.dmg` uploaded as the product file |
-| License keys | **Off.** Lemon Squeezy can mint and validate keys, but the app has nothing to check them with; enabling them would put a key in the receipt that does nothing. |
-| Tax category | Software / digital goods |
-| Confirmation button | "Download Dimit" → Lemon Squeezy's own order page, not a URL of ours |
-| Receipt | Default receipt, carrying the download link |
-
-**Replacing the product file is how buyers get new versions without Sparkle.** Uploading a new file makes it available to every past buyer from their My Orders page; deleting a file removes it from past buyers too, so **never delete an old DMG — only add or replace**. `docs/RELEASE.md` (C6) carries this as a numbered release step.
-
-**Test mode first.** Test mode accepts fake cards and produces the whole real order flow. Products built in test mode do not move to live mode by themselves but can be copied across ("Copy to Live Mode"). C7's "Done when" requires two test-mode purchases — one at exactly the $5 floor, one above it — each ending with a DMG that installs.
-
-## 6. Purchase and download lifecycle
-
-```mermaid
-sequenceDiagram
-    participant U as Visitor (dimit.uz/download)
-    participant J as lemon.js overlay
-    participant L as Lemon Squeezy
-    U->>J: click "Download — pay what you want, from $5"
-    J->>L: open checkout overlay (embed=1)
-    U->>L: amount (>= $5), email, card or PayPal
-    L->>L: charge; collect VAT as merchant of record
-    L-->>U: order page with the DMG link
-    L-->>U: receipt email with the same link
-    U->>U: open the DMG, drag Dimit to Applications
-```
-
-Nothing calls back to us: no webhook, no server, no state to reconcile. Refunds are requested from Lemon Squeezy (30 days, no questions — CLAUDE.md §4.4) and have no effect on an installed copy; the refund page has to say exactly that, which is the honest price of having no kill switch.
-
-A buyer who loses the link uses **My Orders** (`app.lemonsqueezy.com/my-orders`, reached by entering the purchase email) — which is why every footer and the download page point at it.
-
-## 7. Site (`site/`, Astro)
-
-- Locales: `en` at `/`, `uz` at `/uz/`, `ru` at `/ru/`. Three full translations of the same page set. (The app's Uzbek-first framing is about its own UI and the Telegram beta; the buying audience for a $5 USD download is global.)
-- Pages per locale: home, download, faq, help, science, changelog, terms, privacy, refund.
-- **The download page is the only commercial surface.** The checkout is Lemon Squeezy's overlay, which needs exactly two things in the page:
-
-```html
-<script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
-
-<a class="lemonsqueezy-button"
-   href="https://<store>.lemonsqueezy.com/checkout/buy/<variant-uuid>?embed=1&media=0&desc=0&dark=1">
-  Download Dimit — pay what you want, from $5
-</a>
-```
-
-  `lemon.js` (2.3 kB, loaded from Lemon Squeezy's CDN — do not self-host) binds every `a.lemonsqueezy-button` on load. `?embed=1` is what makes it an overlay rather than a redirect; `media`, `logo`, `desc`, `discount` and `dark` toggle the overlay's chrome. Astro emits static HTML, so the `window.createLemonSqueezy()` re-init call the docs describe is not needed here — that is the React/Vue remount case. If the script fails to load, the anchor is still a working link to the hosted checkout: **never hide the href behind a JS-only click handler**, that fallback is the whole reason this is an `<a>`.
-- In the same viewport as the button: version, minimum macOS, the **tested-on** list drawn from docs/QA.md, signing/notarization status, the two-line install instruction, and "Already bought it? Find your download" → My Orders.
-- `site/src/config.ts`: `checkoutUrl`, `minPriceUSD`, `currentVersion`, `minMacOS`, `telegram`, `supportEmail`, `legalEntity`. The footer renders the last three — a real legal entity and a real contact address are a trust advantage over the anonymous competition, and the terms/refund pages need them anyway.
-- Hosting: any free static host. `appcast.xml` and the release zips go under `/updates/` (§8).
-
-### 7.1 Hosting, and the services we deliberately don't use
-
-The site is **static**: Astro with no SSR, no API routes, no forms that post anywhere, no secrets in the build. That is not an accident of the current scope — §4 removed the only thing that ever needed a backend — and it makes the hosting choice nearly free of consequence.
-
-- **No Supabase, and no database anywhere.** Asked directly on 2026-09-09; the honest answer is that there is no data to keep. No accounts, no licences, no orders (Lemon Squeezy owns those), no user records, no analytics rows, and the app cannot talk to a server at all (§4.3). Adding Supabase would mean a project, a dashboard, an API key, a free tier that pauses on inactivity, and a privacy claim to defend — in exchange for storing nothing. If some future feature genuinely needs stored state, that is a new decision under CLAUDE.md §12, not a commit.
-- **Host: Cloudflare Pages, marginally over Vercel/Netlify/GitHub Pages**, all of which are free and would serve this site identically. Two tie-breakers, neither dramatic: dimit.uz's DNS is already planned on Cloudflare (docs/PLAN.md §4), and Cloudflare Pages' free tier has no bandwidth cap, which matters only because `/updates/` serves Sparkle's zips (~10 MB per release) to every user who opted into update checks — Vercel's free tier meters that bandwidth. Its cookieless Web Analytics is also the one analytics product that fits CLAUDE.md §1.2. If Vercel is more comfortable to deploy from, use it: move the appcast and zips to the GitHub release URLs and the difference disappears.
-- **No CI service is required either.** Builds are notarized locally on the owner's Mac (§9) because notarization needs the Developer ID certificate; a hosted runner would need that certificate uploaded as a secret, which is a real risk taken for no gain at this scale.
-- Analytics: Cloudflare Web Analytics (cookieless) only. UTM parameters label inbound traffic; nothing is ever attached to a download.
-- Claims discipline: every product claim on the site needs a row in docs/QA.md behind it. `docs/LAUNCH_STRATEGY.md` §2 holds the wording table for the four claims that are easiest to overstate — capture exclusion, PWM, external monitors, and compatibility.
-
-## 8. Updates (Sparkle 2, opt-in)
-
-The only network code in the app, and it is inert until the user turns it on.
-
-- `updateChecksEnabled` (persisted since C4, default false) drives `SPUUpdater.automaticallyChecksForUpdates`. With it off Sparkle must issue **no request at all** — C7's "Done when" verifies that with a network monitor, not by reading the code.
-- Feed: `SUFeedURL = https://dimit.uz/updates/appcast.xml`, EdDSA-signed. `SUPublicEDKey` goes in Info.plist; the private key lives in the login Keychain and is **never** committed.
-- "Check for Updates…" in the right-click menu works regardless of the automatic setting: an explicit user action is not what the opt-in protects against.
-- `scripts/make_appcast.sh` runs Sparkle's `generate_appcast` over `site/public/updates/` (§9).
-- Sparkle is the second and last dependency after KeyboardShortcuts; CLAUDE.md §2 pre-approves it by name.
-- Sparkle updates and the Lemon Squeezy product file are two independent delivery paths for the same build (§5). Both are updated in the same release, from the same notarized artifact.
+- **Sparkle is the only network-capable app feature.** `updateChecksEnabled` and `SUEnableAutomaticChecks` default to `false`. Automatic checks require explicit opt-in in onboarding or Settings. Choosing "Check for Updates…" explicitly consents to one check, without changing the automatic setting. Without either action, Sparkle must make no request; verify with a network monitor.
+- Feed: `SUFeedURL = https://azakapro.github.io/dimit/appcast.xml`. `scripts/make_appcast.sh` generates `docs/appcast.xml`; configure GitHub Pages to serve the repository's `docs/` folder. Keeping the small feed beside the release documentation makes changes reviewable without a second branch or a separate build pipeline. ZIP enclosure URLs point to GitHub Release assets, keeping binaries out of the repository.
+- Sparkle verifies each update's EdDSA signature. `SUPublicEDKey` belongs in Info.plist; the private signing key stays in the maintainer's login Keychain and is never committed. Sparkle and KeyboardShortcuts are the only external app dependencies, pre-approved by CLAUDE.md §2.
+- Upload the DMG and ZIP from the same built app to a GitHub Release before publishing the feed entry. Keep old assets available for existing appcast entries. Release instructions must state actual signing and notarization status; ad-hoc builds remain usable through the documented installation steps.
+- No accounts, analytics, telemetry, crash reporter, device identifier or email collection in the app. Logs use `os_log`; diagnostics are assembled locally and copied to the user's clipboard for review. The app never transmits them (CLAUDE.md §4.2).
+- Optional Buy Me a Coffee support belongs only in the README, buys no features, and has no app UI or network integration.
 
 ## 9. Release pipeline
 
@@ -306,11 +206,11 @@ As built in C6 (`docs/RELEASE.md` is the step-by-step):
 1. `scripts/build.sh` — `xcodebuild archive` + export with the Developer ID when `DIMIT_SIGN_IDENTITY`/`DIMIT_TEAM_ID` are set, ad-hoc otherwise; universal; hardened runtime; fails the build if the app carries any entitlement. Regenerates the Xcode project first. Emits `Dimit.app` and a `.zip`.
 2. `scripts/notarize.sh` — in this order, because the ticket has to be on the app before it is sealed into an image: notarize + staple the app → re-zip it for Sparkle → `scripts/build_dmg.sh` from the stapled app → notarize + staple the DMG. Refuses ad-hoc builds.
 3. `scripts/build_dmg.sh` — `hdiutil` image with an Applications symlink, mounted and checked after creation (contents, signature). No `create-dmg`, no background: cosmetics don't justify a dependency (CLAUDE.md §7 "As built in C6").
-4. `scripts/make_appcast.sh` (C7) — Sparkle `generate_appcast` with the EdDSA private key from the Keychain; output into `site/public/updates/`.
-5. Upload the notarized DMG to the Lemon Squeezy product as a new or replacement file — **never delete an older one** (§5).
-6. Version `MAJOR.MINOR`; build number = UTC `YYYYMMDDHHMM`, generated by `build.sh` and read back from the built app by every later step (never from `project.yml`, so a premature bump can't mislabel an artifact). Tag `vX.Y`. A GitHub release keeps our own record; the public download is Lemon Squeezy's.
+4. `scripts/make_appcast.sh` — Sparkle `generate_appcast` with the EdDSA private key from the Keychain; output `docs/appcast.xml`, with enclosure URLs pointing to GitHub Release ZIP assets.
+5. Attach the DMG and ZIP to the GitHub Release, verify the asset URLs, then publish `docs/appcast.xml` through GitHub Pages (§4). Until notarization is available, disclose that limitation in the release notes and README.
+6. Version `MAJOR.MINOR`; build number = UTC `YYYYMMDDHHMM`, generated by `build.sh` and read back from the built app by every later step (never from `project.yml`, so a premature bump can't mislabel an artifact). Tag `vX.Y`. GitHub Releases is the public download source.
 
-All three scripts share `scripts/lib.sh` (output directory, version lookup, signature checks).
+The release scripts share `scripts/lib.sh` (output directory, version lookup, signature checks).
 
 ## 10. UI design spec (no Figma; build this directly)
 
@@ -336,19 +236,19 @@ Typography: SF Pro, values in SF Mono for the two numbers so they do not jitter.
 
 **As built in C4** (this file is the contract, so it records what the code does where that differs from the sketch above):
 
-- **Settings tabs shipped: General, Displays, Advanced**, plus **Schedule from C5** (see that cycle's "As built" note below). The License tab this file used to promise no longer exists in the design at all — the 2026-09-09 distribution decision (§4) removed the feature, not just the tab. The Displays tab lists each display with its real brightness-backend name; **C5b added the Experimental DDC toggle**, so that line is now complete. Preset editing (CLAUDE.md §3.7 "user-editable; reset to defaults") lives in General, since no tab above names it.
+- **Settings tabs shipped: General, Displays, Advanced**, plus **Schedule from C5** (see that cycle's "As built" note below). The Displays tab lists each display with its real brightness-backend name; **C5b added the Experimental DDC toggle**, so that line is now complete. Preset editing (CLAUDE.md §3.7 "user-editable; reset to defaults") lives in General, since no tab above names it.
 - **The settings window is our own `NSWindow`, not SwiftUI's `Settings {}` scene.** Opening that scene programmatically needs `openSettings` (macOS 14+) or an undocumented selector whose name Apple has changed between releases; CLAUDE.md §2 fixes the target at macOS 13. Same result for the user, none of the version risk.
 - **Language override applies live, without relaunch.** CLAUDE.md §5 says "set Bundle on relaunch"; instead `AppState.effectiveLocale` is applied with `.environment(\.locale, …)` at every SwiftUI root (popover, settings, onboarding), which is how `Text` resolves String Catalog lookups. AppKit surfaces (right-click menu, window titles, toast) go through `AppState.localized(_:)`, which sets the resource's locale before `String(localized:)`. Verified by rendering all three surfaces off-screen in en/uz/ru (`DimitTests/LayoutRenderTests`).
 - **Onboarding completion is recorded on "Get Started" or a user-initiated close only** (`windowShouldClose`), never on app termination — first found by a probe where SIGTERM during step 1 marked the intro as done.
 - **Launch at login has no persisted mirror.** `SMAppService.mainApp.status` is the source of truth (survives reboot, visible in System Settings); `LaunchAtLogin` is a thin wrapper so the toggle has one testable surface.
-- **`updateChecksEnabled` is a stored preference only.** No Sparkle, no network — C7 reads it. Defaults to off (CLAUDE.md §1.2 opt-in).
+- **`updateChecksEnabled` was introduced as a stored preference in C4.** C7 connects it to Sparkle; it defaults to off (CLAUDE.md §1.2 opt-in).
 - **Global hotkeys** are `KeyboardShortcuts` (pre-approved in CLAUDE.md §2), Carbon `RegisterEventHotKey` underneath — no Accessibility or Input Monitoring prompt. The handlers are one-line calls into `AppState` (`cycleToNextPreset`, `adjustWarmth`, `adjustBrightness`), which is where the logic and the tests are; the registration layer itself has no fake to inject and is deliberately untested.
 
 ## 11. Testing strategy
 
 | Level | What | Where |
 |---|---|---|
-| Unit (Swift) | `WarmthCurve`, gamma math, `render`, `LicenseState` transitions incl. grace, `ScheduleEngine` NOAA values, `PWMSafeCoordinator` with a fake backend | `DimitTests` |
+| Unit (Swift) | `WarmthCurve`, gamma math, `render`, `ScheduleEngine` NOAA values, `PWMSafeCoordinator` with a fake backend | `DimitTests` |
 | Manual matrix | CLAUDE.md §8 rows | `docs/QA.md`, one row per machine × macOS × display |
 | Performance | idle CPU, popover open time, slider latency | recorded in `docs/QA.md` per release |
 
@@ -358,5 +258,3 @@ Typography: SF Pro, values in SF Mono for the two numbers so they do not jitter.
 
 - Auto-brightness detection on macOS 26/27: no public key found on the dev machine (2026-09-08). Timeboxed in C3, nothing reliable found, so the banner is unconditional on macOS ≥ 26 — closed, kept here as the reason.
 - The exact home monitor model for DDC; record it in QA.md the first time it is tested (C6).
-- The suggested price to show above the $5 minimum (§4.1) — ask the beta testers in C6.
-- Whether Lemon Squeezy's published Uzbekistan payout support (§4.3) actually clears verification for this LLC. Must be answered before C7 starts.

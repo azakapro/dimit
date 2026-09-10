@@ -35,7 +35,7 @@ packages:
     exactVersion: 1.9.4
   # CLAUDE.md §2 pre-approves "sparkle-project/Sparkle (updates)"; C7 wires
   # it in. The only network code in the app, and inert until the user opts
-  # in (ARCHITECTURE.md §8). Pinned exactly, like KeyboardShortcuts.
+  # in (ARCHITECTURE.md §4). Pinned exactly, like KeyboardShortcuts.
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     exactVersion: 2.9.6
