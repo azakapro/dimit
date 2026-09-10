@@ -263,6 +263,17 @@ struct ZapButtonStyle: ButtonStyle {
                     shape.strokeBorder(Color.primary.opacity(0.25), lineWidth: 1.5)
                 }
             }
+            // The OFF state has no opaque fill, and this is the app's
+            // primary control: state plainly what is clickable rather than
+            // depending on how SwiftUI hit-tests a shape filled with
+            // `.clear`. (Probing the real hit region from a test turned out
+            // to be impossible here — `NSHostingView.hitTest` answers for
+            // the whole host, identically for the opaque ON state, so it
+            // can't tell the two apart. One line beats an open question on
+            // the button everything else in the popover hangs off.) It also
+            // correctly excludes the rounded corners, which a default
+            // rectangular hit area would not.
+            .contentShape(shape)
             .opacity(configuration.isPressed ? 0.85 : 1)
     }
 }

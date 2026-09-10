@@ -351,6 +351,13 @@ Two things worth keeping from this:
 
 The ON state's 3.44:1 clears WCAG's 3:1 bar for large text (17pt bold) but not the 4.5:1 normal-text bar. That ceiling belongs to the specified brand colours, so the test's floor is the large-text bar and raising it is a palette decision for the owner, not a silent edit.
 
+**Two things this fix could not verify here, both needing the owner's hands:**
+
+| Item | Status |
+|---|---|
+| **Is the whole OFF button clickable?** It no longer has an opaque fill, and a SwiftUI control's hit region depends on how a `.clear`-filled shape is treated. | **Handled, not measured.** Three attempts to observe the real hit region failed: `NSHostingView.hitTest` returns nil for every point when the view isn't in a window, and returns the host view itself for every point when it is — giving the *same* answer for the opaque ON state, so it cannot discriminate. Closed instead by declaring `.contentShape(shape)` in the style, which defines the hit area explicitly. Owner: click the OFF button near its left edge, not the centre, and confirm it toggles. |
+| **Does the button still show a keyboard focus ring?** It moved from a system `.borderedProminent` style to a custom `ButtonStyle`, and custom styles do not necessarily inherit the system focus effect. CLAUDE.md §8 requires "full keyboard operation". | **Open.** Not verifiable off-screen. Owner: System Settings → Keyboard → turn on "Keyboard navigation", open the popover, press Tab until the ON/OFF button is focused, and confirm a visible ring appears. If it doesn't, the fix is a `@FocusState`-driven ring in `ZapButtonStyle` — real work, so it is recorded here rather than guessed at now. |
+
 ## Performance
 
 | Date | Version | Machine | Idle CPU (5 min avg) | Popover open (ms) | Slider latency |
