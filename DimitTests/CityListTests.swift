@@ -46,4 +46,52 @@ final class CityListTests: XCTestCase {
         XCTAssertLessThan(try! XCTUnwrap(CityList.city(id: "london")).coordinate.longitude, 0)
         XCTAssertLessThan(try! XCTUnwrap(CityList.city(id: "new_york")).coordinate.longitude, 0)
     }
+
+    // `nearest` names a device location offline, because reverse geocoding
+    // would be a network call the app is not allowed to make (CLAUDE.md
+    // §4.3). It only ever produces a *label*, so the risk it carries is
+    // naming the wrong place — which these pin.
+
+    func test_nearest_namesTheCityYouAreActuallyIn() {
+        // The coordinates CoreLocation actually returned on the dev machine
+        // when the owner pressed "Use my location" — the case that reported
+        // "Using manual coordinates" and named nothing.
+        let reported = Coordinate(latitude: 41.297733333849685, longitude: 69.28663862809425)
+        XCTAssertEqual(CityList.nearest(to: reported)?.id, "tashkent")
+    }
+
+    func test_nearest_picksTheClosestWhenSeveralAreInRange() {
+        // Fergana valley: Fergana, Andijan and Namangan sit within ~80 km of
+        // each other, so this is where an "any city in range" bug would show.
+        for city in CityList.all where ["fergana", "andijan", "namangan"].contains(city.id) {
+            XCTAssertEqual(CityList.nearest(to: city.coordinate)?.id, city.id, "at \(city.id)'s own coordinates")
+        }
+    }
+
+    func test_nearest_returnsNothingWhenTheListHasNowhereClose() {
+        // Mid-Pacific. Naming the "nearest" city here would be a lie, and
+        // the caller shows the raw coordinates instead.
+        XCTAssertNil(CityList.nearest(to: Coordinate(latitude: 0, longitude: -160)))
+    }
+
+    func test_nearest_isNotFooledByLongitudeWrapAroundOrIdenticalPoints() {
+        // asin's argument is clamped in the haversine; without that, a point
+        // identical to a city's own coordinate can produce NaN and lose the
+        // comparison silently.
+        let tashkent = CityList.city(id: "tashkent")!
+        XCTAssertEqual(CityList.nearest(to: tashkent.coordinate)?.id, "tashkent")
+        // Just west of the antimeridian: nothing in the list is near, and the
+        // maths must not wrap it onto London or Tokyo.
+        XCTAssertNil(CityList.nearest(to: Coordinate(latitude: 0, longitude: 179.9)))
+    }
+
+    func test_everyCityHasPlausibleCoordinatesAndAUniqueID() {
+        var seen = Set<String>()
+        for city in CityList.all {
+            XCTAssertTrue(seen.insert(city.id).inserted, "duplicate city id: \(city.id)")
+            XCTAssertTrue((-90...90).contains(city.coordinate.latitude), "\(city.id) latitude")
+            XCTAssertTrue((-180...180).contains(city.coordinate.longitude), "\(city.id) longitude")
+        }
+        XCTAssertGreaterThan(CityList.all.count, 25, "the list was expanded so manual coordinates could be removed")
+    }
 }

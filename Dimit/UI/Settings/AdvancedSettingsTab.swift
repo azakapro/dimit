@@ -28,6 +28,20 @@ struct AdvancedSettingsTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                // Fallback mode changes *how* the screen is tinted, not
+                // whether it is — so switching it on while Dimit is off does
+                // nothing visible at all. The owner did exactly that and
+                // reported the feature as broken; it wasn't (verified on
+                // hardware: with the filter on it puts a real overlay at
+                // window level 1001, alpha 0.70, and leaves gamma neutral).
+                // Nothing on screen said the filter had to be on, so this
+                // does, and only when it applies.
+                if appState.fallbackMode, !appState.isOn {
+                    Text("fallback.needs_on")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             Section {

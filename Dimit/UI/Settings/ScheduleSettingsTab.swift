@@ -13,8 +13,6 @@ struct ScheduleSettingsTab: View {
     // requestLocation() below.
     @State private var locationProvider: LocationProvider?
     @State private var locationMessage: String?
-    @State private var manualLatitudeText = ""
-    @State private var manualLongitudeText = ""
     // True while a one-shot CoreLocation request is outstanding — disables
     // the button so a slow permission dialog or GPS fix can't be
     // double-clicked into two overlapping requests, the second of which
@@ -87,39 +85,17 @@ struct ScheduleSettingsTab: View {
             }
 
             Picker(selection: cityBinding) {
-                Text("schedule.location_none").tag(Optional<String>.none)
+                // Not "No location set": the picker's empty row sat
+                // directly above a caption reading "Using your location ·
+                // Tashkent", so the two lines contradicted each other. This
+                // row means "no city chosen", which is true either way; the
+                // caption below is the one that reports the real state.
+                Text("schedule.city_choose").tag(Optional<String>.none)
                 ForEach(CityList.all) { city in
                     Text(city.titleKey).tag(Optional(city.id))
                 }
             } label: {
                 Text("schedule.city")
-            }
-
-            DisclosureGroup {
-                // "Manual coordinates" is meaningless until you know the
-                // city list is only 14 entries — the owner asked "why we
-                // need manual coordinates?" and the UI never said. This is
-                // the escape hatch for someone in an unlisted city who also
-                // doesn't want to grant location access; without it that
-                // person simply cannot use Sunset to sunrise.
-                Text("schedule.manual_coordinates_help")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack {
-                    TextField("schedule.latitude", text: $manualLatitudeText)
-                        .accessibilityLabel(Text("schedule.latitude"))
-                    TextField("schedule.longitude", text: $manualLongitudeText)
-                        .accessibilityLabel(Text("schedule.longitude"))
-                    Button {
-                        applyManualCoordinates()
-                    } label: {
-                        Text("schedule.apply_coordinates")
-                    }
-                    .disabled(!manualCoordinatesAreValid)
-                }
-            } label: {
-                Text("schedule.manual_coordinates")
             }
 
             Text(currentLocationDescription)
@@ -147,8 +123,15 @@ struct ScheduleSettingsTab: View {
         if let cityID = appState.scheduleConfig.selectedCityID, let city = CityList.city(id: cityID) {
             return appState.localized("schedule.location_using_city", appState.localized(city.titleKey))
         }
-        if appState.scheduleConfig.location != nil {
-            return appState.localized("schedule.location_using_coordinates")
+        // A location the device reported. This used to read "Using manual
+        // coordinates" — the only non-city branch there was — so granting
+        // location access told you the wrong thing and named nothing.
+        // Name the nearest city offline when there is one; otherwise show
+        // the actual numbers, which is at least true.
+        if let location = appState.scheduleConfig.location {
+            let place = CityList.nearest(to: location).map { appState.localized($0.titleKey) }
+                ?? String(format: "%.2f, %.2f", location.latitude, location.longitude)
+            return appState.localized("schedule.location_using_device", place)
         }
         return appState.localized("schedule.location_none")
     }
@@ -171,28 +154,6 @@ struct ScheduleSettingsTab: View {
                 locationMessage = appState.localized("schedule.location_failed")
             }
         }
-    }
-
-    /// Real latitude/longitude range, not just "parses as a Double" — a
-    /// fat-fingered "413" instead of "41.3" used to sail straight through
-    /// into `SolarCalculator`, which would either compute a nonsensical
-    /// time or silently return `nil` ("sun never rises"), with no error
-    /// shown anywhere (found by an independent review).
-    private static let latitudeRange = -90.0...90.0
-    private static let longitudeRange = -180.0...180.0
-
-    private var manualCoordinatesAreValid: Bool {
-        guard let lat = Double(manualLatitudeText), let lon = Double(manualLongitudeText) else { return false }
-        return Self.latitudeRange.contains(lat) && Self.longitudeRange.contains(lon)
-    }
-
-    private func applyManualCoordinates() {
-        guard let lat = Double(manualLatitudeText), let lon = Double(manualLongitudeText),
-              Self.latitudeRange.contains(lat), Self.longitudeRange.contains(lon)
-        else { return }
-        appState.scheduleConfig.location = Coordinate(latitude: lat, longitude: lon)
-        appState.scheduleConfig.selectedCityID = nil
-        locationMessage = nil
     }
 
     // MARK: - Shared rows

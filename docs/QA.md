@@ -398,6 +398,19 @@ Reason: … code signature … not valid for use in process:
 
 The **Launch at login** failure that started this investigation is still open and now testable: it was only ever tried from a Debug build running under Xcode's debugger. Four hypotheses about it were tested and disproven on the way here (not the DerivedData location — a probe registered from `/tmp`; not a broken signature; not the four duplicate `app.dimit.mac` copies on disk; not the embedded test plugin). The app now logs the failing call's domain, code, bundle path and service status, so the next attempt is a measurement rather than a guess.
 
+## Owner walkthrough of Settings (2026-09-10) — four reports, one real bug
+
+The owner used the app and asked four questions. Three had the same shape: the feature worked, and the interface said something false or nothing at all. Recorded because "it doesn't work" and "it doesn't say what it's doing" arrive from users identically.
+
+| Reported | What was actually true | Change |
+|---|---|---|
+| *"it asked my location but didn't show it after"* | **Real bug.** CoreLocation returned `41.2977, 69.2866` and it was stored correctly, but `currentLocationDescription` had only two branches — city, or "Using manual coordinates" — so a device fix displayed as *manual coordinates* and named nowhere. The City row simultaneously read "No location set", contradicting the line under it. | Shows the nearest city by name, resolved **offline** against the bundled list (`CityList.nearest`, 75 km cap, haversine). Reverse geocoding would name it exactly but is a network call, and CLAUDE.md §4.3 allows the app one, for Sparkle, on opt-in. Verified by rendering the tab with the owner's own coordinates: **"Using your location · Tashkent"**. The picker's empty row now reads "Choose a city" so the two lines agree. |
+| *"i don't think fallback mode is working"* | **Not broken.** `isOn` was `false`. Fallback mode changes *how* the screen is tinted, not *whether* — with the filter off it correctly does nothing. Verified with the filter on: overlay at window level **1001**, alpha **0.700**, full-screen, gamma left neutral at `(0.500, 0.500, 0.500)`. | The toggle now says so, but only when it applies (`fallbackMode && !isOn`). Kept: it is the only recourse when gamma is silently ignored (CLAUDE.md §3.3), which is the failure it exists for. |
+| *"why we need manual coordinates?"* | Fair. It existed because the city list had 14 entries; almost nobody types a latitude. | **Removed** — UI, both text fields, `applyManualCoordinates`, the validation ranges and six strings. The city list went 14 → **33** (all Uzbek regional centres, plus Ankara, Dubai, Astana, Ashgabat, Baku, St Petersburg, Kyiv, Seoul, Tokyo, Delhi, Berlin, Paris, Los Angeles), and "Use my location" covers the rest. |
+| *"what is transition? it is not understandable"* | Fair. Labelled `Transition · 20 min`, explained nowhere. | Relabelled **Fade over** with a caption; range `1...120` → `0...120` so the caption's "set it to 0 to switch instantly" is reachable (`ScheduleEngine` already treats a zero ramp that way). |
+
+Five tests cover `CityList.nearest`, including the owner's exact coordinates, the Fergana-valley case where three cities sit within ~80 km of each other, a mid-Pacific point that must name nothing rather than guess, and an antimeridian point that must not wrap onto London or Tokyo. 187 → 192.
+
 ## Performance
 
 | Date | Version | Machine | Idle CPU (5 min avg) | Popover open (ms) | Slider latency |
