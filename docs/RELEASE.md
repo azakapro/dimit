@@ -55,7 +55,9 @@ From docs/LAUNCH_STRATEGY.md §7 and docs/PLAN.md §2 C6/C7, checked against the
 
 ## 3. Ad-hoc beta builds (v0.x)
 
-Without `DIMIT_SIGN_IDENTITY`, `build.sh` produces an ad-hoc signed app; skip `notarize.sh` (it refuses ad-hoc builds) and run `scripts/build_dmg.sh` instead. Gatekeeper refuses an un-notarized app, and since macOS 15 the old right-click → Open trick no longer bypasses it. The message that carries the link must say:
+Without `DIMIT_SIGN_IDENTITY`, `build.sh` produces an ad-hoc signed app; skip `notarize.sh` (it refuses ad-hoc builds) and run `scripts/build_dmg.sh` instead.
+
+**Ad-hoc builds have the hardened runtime off, on purpose.** With it on, macOS's library validation only lets a process load libraries signed by its own Team ID; an ad-hoc signature has none, so the embedded `Sparkle.framework` is refused and the app dies before `main()` (`Library not loaded … different Team IDs`). This shipped once: a build that passed every static check and crashed on launch. `build.sh` now also *runs* every artifact for three seconds and fails the build if it dies — do not remove that step to save time. The Developer ID path keeps the hardened runtime on, as CLAUDE.md §7 requires; there Xcode re-signs the framework with the same Team ID and validation passes. Gatekeeper refuses an un-notarized app, and since macOS 15 the old right-click → Open trick no longer bypasses it. The message that carries the link must say:
 
 > After dragging Dimit to Applications, open Terminal and run:
 > `xattr -dr com.apple.quarantine /Applications/Dimit.app`

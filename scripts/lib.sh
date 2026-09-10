@@ -34,10 +34,31 @@ assert_release_signature() {
         return 1
     fi
     echo "entitlements: none (as specified)"
-    if grep -q "runtime" <<<"$(signature_info "$1")"; then
-        echo "hardened runtime: on"
-    else
-        echo "ERROR: hardened runtime is OFF on $1" >&2
-        return 1
-    fi
+    # $2 is the signing mode, and the hardened-runtime expectation flips
+    # with it. Developer ID: ON, per CLAUDE.md §7. Ad-hoc: OFF — with it on,
+    # library validation refuses the separately-signed Sparkle.framework
+    # and the app dies before main() ("different Team IDs"; build.sh has
+    # the full story). An earlier version of this check demanded ON in
+    # both modes, which is exactly what let a dead-on-arrival beta pass.
+    local runtime_on=0
+    grep -q "runtime" <<<"$(signature_info "$1")" && runtime_on=1
+    case "${2:-}" in
+        developer-id)
+            if [ "$runtime_on" = 1 ]; then
+                echo "hardened runtime: on"
+            else
+                echo "ERROR: hardened runtime is OFF on $1 — a Developer ID build must have it (CLAUDE.md §7)" >&2
+                return 1
+            fi ;;
+        adhoc)
+            if [ "$runtime_on" = 0 ]; then
+                echo "hardened runtime: off (ad-hoc build — on, it cannot load Sparkle.framework; see build.sh)"
+            else
+                echo "ERROR: hardened runtime is ON in an ad-hoc build — this app will die at launch with 'different Team IDs' (see build.sh)" >&2
+                return 1
+            fi ;;
+        *)
+            echo "assert_release_signature: pass the signing mode as \$2 (developer-id | adhoc)" >&2
+            return 1 ;;
+    esac
 }

@@ -56,7 +56,28 @@ PLIST
     rm -rf "$OUT/export"
 else
     echo "Building ($BUILD), AD-HOC signed (beta/local only — no DIMIT_SIGN_IDENTITY set)"
-    xcodebuild build "${COMMON[@]}" -derivedDataPath "$OUT/DerivedData" CODE_SIGN_IDENTITY="-"
+    # ENABLE_HARDENED_RUNTIME=NO for ad-hoc builds only. With the hardened
+    # runtime on, macOS enforces *library validation*: a process may load
+    # only libraries signed by the same Team ID. An ad-hoc signature carries
+    # no Team ID, so the embedded Sparkle.framework — signed separately —
+    # fails that check and dyld kills the app at launch before `main`:
+    #
+    #   Library not loaded: @rpath/Sparkle.framework/Versions/B/Sparkle
+    #   Reason: ... mapping process and mapped file (non-platform) have
+    #   different Team IDs
+    #
+    # This is why the Debug build ran fine while the Release build did not:
+    # Debug carries `get-task-allow`, which relaxes library validation, and
+    # has the hardened runtime off. Nothing caught it because no build
+    # before C7 embedded a framework at all.
+    #
+    # Turning it off costs nothing here — an ad-hoc build can't be notarized
+    # and Gatekeeper rejects it regardless, so the hardened runtime protects
+    # nothing in a build only testers side-load. The Developer ID path above
+    # keeps it ON (CLAUDE.md §7), and there it genuinely works: Xcode
+    # re-signs embedded frameworks with the same Team ID as the app.
+    xcodebuild build "${COMMON[@]}" -derivedDataPath "$OUT/DerivedData" \
+        CODE_SIGN_IDENTITY="-" ENABLE_HARDENED_RUNTIME=NO
     cp -R "$OUT/DerivedData/Build/Products/Release/Dimit.app" "$APP"
 fi
 
@@ -66,7 +87,47 @@ echo "signature: valid"
 echo "architectures: $(lipo -archs "$APP/Contents/MacOS/Dimit")"
 VERSION=$(app_version "$APP")
 echo "version: $VERSION ($(app_build "$APP"))"
-assert_release_signature "$APP"
+if [ -n "${DIMIT_SIGN_IDENTITY:-}" ]; then
+    assert_release_signature "$APP" developer-id
+else
+    assert_release_signature "$APP" adhoc
+fi
+
+# Prove it launches. Every check above is static, and a statically perfect
+# build shipped dead on arrival once: valid signature, right architectures,
+# no entitlements — and dyld killed it before main() because the hardened
+# runtime rejected the embedded Sparkle.framework. Nothing short of running
+# the artifact catches that class of failure, so this runs it: three
+# seconds alive, then a clean exit on SIGTERM (which is also the
+# gamma-restore path, CLAUDE.md §1.8).
+#
+# The binary is started directly rather than via `open`, so this is a new
+# process with a known PID and not a re-activation of a copy that is
+# already running. It refuses to run beside one: two Dimits fight over the
+# gamma table, and the check would be measuring the wrong process anyway.
+# If the saved state has the filter ON, the screen tints for those three
+# seconds and restores — the same thing every QA probe in docs/QA.md does.
+if pgrep -x Dimit >/dev/null; then
+    echo "ERROR: Dimit is running — quit it first; the launch check needs to start its own copy" >&2
+    exit 1
+fi
+"$APP/Contents/MacOS/Dimit" >/dev/null 2>&1 &
+SMOKE_PID=$!
+sleep 3
+if kill -0 "$SMOKE_PID" 2>/dev/null; then
+    kill -TERM "$SMOKE_PID"
+    sleep 1
+    if kill -0 "$SMOKE_PID" 2>/dev/null; then
+        kill -KILL "$SMOKE_PID" 2>/dev/null || true
+        echo "ERROR: the built app ignored SIGTERM — the gamma-restore-on-quit path (CLAUDE.md §1.8) may be broken" >&2
+        exit 1
+    fi
+    echo "launch check: alive after 3 s, quit cleanly on SIGTERM"
+else
+    wait "$SMOKE_PID" 2>/dev/null || true
+    echo "ERROR: the built app died within 3 s of launch — see the newest ~/Library/Logs/DiagnosticReports/Dimit-*.ips" >&2
+    exit 1
+fi
 
 ditto -c -k --keepParent "$APP" "$OUT/Dimit-$VERSION.zip"
 echo "built: $APP  and  $OUT/Dimit-$VERSION.zip"
