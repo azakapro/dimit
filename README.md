@@ -36,7 +36,7 @@ been tested. See the systems and limitations below.
 
 1. Download the DMG attached to a [GitHub Release](https://github.com/azakapro/dimit/releases).
 2. Open it and drag **Dimit.app** into **Applications**.
-3. The current v0.4 beta is ad-hoc signed and **not notarized**. After downloading
+3. The current v0.5 beta is ad-hoc signed and **not notarized**. After downloading
    it from this repository, remove its quarantine flag in Terminal:
 
    ```bash
