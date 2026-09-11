@@ -1,3 +1,5 @@
+<img src="docs/images/icon.png" width="96" alt="">
+
 # Dimit
 
 **Free and open source under the MIT licence.** Dimit is a native macOS menu-bar
