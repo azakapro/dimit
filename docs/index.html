@@ -52,6 +52,7 @@
   .shots img { width:calc(50% - 7px); min-width:210px; border:1px solid var(--line); border-radius:12px; }
   .feats { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:22px; margin:34px 0 0; }
   .f p { margin:0; font-size:14px; color:var(--dim); }
+  .note { font-size:13px; color:var(--dim); margin:14px 0 0; }
   .steps li { margin-bottom:12px; }
   pre { background:rgba(128,128,128,.13); padding:11px 13px; border-radius:8px;
     overflow-x:auto; margin:9px 0 0; }
@@ -75,7 +76,6 @@
       <a class="cta" href="https://github.com/azakapro/dimit/releases/download/v0.5/Dimit-0.5.dmg">Download for Mac</a>
       <span class="req">Requires macOS 13 Ventura or later, Apple silicon or Intel. · v0.5 beta</span>
     </p>
-    <div class="warn"><strong>Before you download</strong><p>On <b>macOS 26</b> an Apple bug (FB22273730) makes some Macs ignore colour changes entirely. Turning off automatic brightness in System Settings → Displays fixes it on many machines; on the rest, warmth will not work until Apple fixes it. Dimming and PWM-Safe still work. macOS 27 and 15 are unaffected.</p></div>
     <div class="shots">
       <img src="images/popover-off.png" alt="Dimit off" loading="lazy" onerror="this.remove()">
       <img src="images/popover-on.png" alt="Dimit on at 2700K" loading="lazy" onerror="this.remove()">
@@ -94,6 +94,7 @@
       <li>This beta is not notarised yet, so macOS will refuse to open it. Paste this into Terminal:<pre><code>xattr -dr com.apple.quarantine /Applications/Dimit.app</code></pre></li>
       <li>Then open Dimit. It lives in the <b>menu bar</b> — there is no Dock icon.</li>
     </ol>
+    <p class="note">If colours don’t change on <b>macOS 26</b>, turn off automatic brightness in System Settings → Displays — an Apple bug (FB22273730) affects some Macs. Dimming and PWM-Safe work regardless.</p>
     <p class="foot">Free and open source (MIT).
       <a href="https://github.com/azakapro/dimit">View source on GitHub</a> ·
       <a href="https://buymeacoffee.com/azakapro">Buy me a coffee</a>
@@ -106,7 +107,6 @@
       <a class="cta" href="https://github.com/azakapro/dimit/releases/download/v0.5/Dimit-0.5.dmg">Mac uchun yuklab olish</a>
       <span class="req">macOS 13 Ventura yoki undan yangisi kerak, Apple silicon yoki Intel. · v0.5 beta</span>
     </p>
-    <div class="warn"><strong>Yuklab olishdan oldin</strong><p><b>macOS 26</b> da Apple xatosi (FB22273730) tufayli ba’zi Mac’lar rang o‘zgarishlarini butunlay e’tiborsiz qoldiradi. Tizim sozlamalari → Displeylar bo‘limida avtomatik yorqinlikni o‘chirish ko‘p kompyuterlarda yordam beradi; qolganlarida Apple tuzatmaguncha iliqlik ishlamaydi. Xiralashtirish va PWM-xavfsiz rejim ishlayveradi. macOS 27 va 15 ga ta’sir qilmaydi.</p></div>
     <div class="shots">
       <img src="images/popover-off.png" alt="Dimit off" loading="lazy" onerror="this.remove()">
       <img src="images/popover-on.png" alt="Dimit on at 2700K" loading="lazy" onerror="this.remove()">
@@ -125,6 +125,7 @@
       <li>Bu beta hali notarizatsiya qilinmagan, shuning uchun macOS uni ochishdan bosh tortadi. Terminalga buni joylashtiring:<pre><code>xattr -dr com.apple.quarantine /Applications/Dimit.app</code></pre></li>
       <li>So‘ng Dimit ni oching. U <b>menyu panelida</b> turadi — Dock belgisi yo‘q.</li>
     </ol>
+    <p class="note"><b>macOS 26</b> da ranglar o‘zgarmasa, Tizim sozlamalari → Displeylar bo‘limida avtomatik yorqinlikni o‘chiring — Apple xatosi (FB22273730) ba’zi Mac’larga ta’sir qiladi. Xiralashtirish va PWM-xavfsiz rejim baribir ishlaydi.</p>
     <p class="foot">Bepul va ochiq kodli (MIT).
       <a href="https://github.com/azakapro/dimit">GitHub’da manba kodi</a> ·
       <a href="https://buymeacoffee.com/azakapro">Menga qahva oling</a>
@@ -137,7 +138,6 @@
       <a class="cta" href="https://github.com/azakapro/dimit/releases/download/v0.5/Dimit-0.5.dmg">Скачать для Mac</a>
       <span class="req">Требуется macOS 13 Ventura или новее, Apple silicon или Intel. · v0.5 бета</span>
     </p>
-    <div class="warn"><strong>Перед загрузкой</strong><p>В <b>macOS 26</b> из-за ошибки Apple (FB22273730) некоторые Mac полностью игнорируют изменение цвета. Отключение автояркости в Системных настройках → Дисплеи помогает на многих компьютерах; на остальных теплота не заработает, пока Apple не исправит ошибку. Затемнение и режим без мерцания работают. macOS 27 и 15 не затронуты.</p></div>
     <div class="shots">
       <img src="images/popover-off.png" alt="Dimit off" loading="lazy" onerror="this.remove()">
       <img src="images/popover-on.png" alt="Dimit on at 2700K" loading="lazy" onerror="this.remove()">
@@ -156,6 +156,7 @@
       <li>Эта бета ещё не нотаризована, поэтому macOS откажется её открыть. Вставьте это в Терминал:<pre><code>xattr -dr com.apple.quarantine /Applications/Dimit.app</code></pre></li>
       <li>Затем откройте Dimit. Он живёт в <b>строке меню</b> — значка в Dock нет.</li>
     </ol>
+    <p class="note">Если на <b>macOS 26</b> цвета не меняются, отключите автояркость в Системных настройках → Дисплеи — ошибка Apple (FB22273730) затрагивает некоторые Mac. Затемнение и режим без мерцания работают в любом случае.</p>
     <p class="foot">Бесплатно и с открытым кодом (MIT).
       <a href="https://github.com/azakapro/dimit">Исходный код на GitHub</a> ·
       <a href="https://buymeacoffee.com/azakapro">Купить мне кофе</a>
