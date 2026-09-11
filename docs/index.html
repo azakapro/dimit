@@ -45,13 +45,21 @@
     font-weight:600; font-size:16px; padding:13px 26px; border-radius:10px; }
   .cta:hover { filter:brightness(1.08); }
   .req { font-size:13px; color:var(--dim); }
-  .warn { background:var(--warnbg); border:1px solid var(--warnline); border-radius:10px;
+  .x-unused { background:var(--warnbg); border:1px solid var(--warnline); border-radius:10px;
     padding:13px 16px; font-size:14px; margin:0 0 28px; }
   .warn p { margin:5px 0 0; color:var(--fg); }
   .shots { display:flex; gap:14px; flex-wrap:wrap; margin:0 0 8px; }
   .shots img { width:calc(50% - 7px); min-width:210px; border:1px solid var(--line); border-radius:12px; }
   .feats { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:22px; margin:34px 0 0; }
   .f p { margin:0; font-size:14px; color:var(--dim); }
+  .firstrun { border:1px solid var(--line); border-radius:10px; padding:13px 15px; margin:0 0 26px; }
+  .firstrun p { margin:0 0 9px; font-size:14px; }
+  .cmd { display:flex; gap:9px; align-items:center; background:rgba(128,128,128,.13);
+    border-radius:8px; padding:9px 11px; }
+  .cmd code { flex:1; overflow-x:auto; white-space:nowrap; }
+  .copy { font:inherit; font-size:13px; padding:5px 11px; border:1px solid var(--line);
+    background:var(--bg); color:var(--fg); border-radius:6px; cursor:pointer; flex:none; }
+  .copy:hover { border-color:var(--fg); }
   .note { font-size:13px; color:var(--dim); margin:14px 0 0; }
   .steps li { margin-bottom:12px; }
   pre { background:rgba(128,128,128,.13); padding:11px 13px; border-radius:8px;
@@ -76,6 +84,7 @@
       <a class="cta" href="https://github.com/azakapro/dimit/releases/download/v0.5/Dimit-0.5.dmg">Download for Mac</a>
       <span class="req">Requires macOS 13 Ventura or later, Apple silicon or Intel. · v0.5 beta</span>
     </p>
+    <div class="firstrun"><p>Not notarised by Apple yet. Drag <b>Dimit</b> to <b>Applications</b>, then run this once in Terminal:</p><div class="cmd"><code>xattr -dr com.apple.quarantine /Applications/Dimit.app</code><button type="button" class="copy" data-copied="Copied">Copy</button></div></div>
     <div class="shots">
       <img src="images/popover-off.png" alt="Dimit off" loading="lazy" onerror="this.remove()">
       <img src="images/popover-on.png" alt="Dimit on at 2700K" loading="lazy" onerror="this.remove()">
@@ -107,6 +116,7 @@
       <a class="cta" href="https://github.com/azakapro/dimit/releases/download/v0.5/Dimit-0.5.dmg">Mac uchun yuklab olish</a>
       <span class="req">macOS 13 Ventura yoki undan yangisi kerak, Apple silicon yoki Intel. · v0.5 beta</span>
     </p>
+    <div class="firstrun"><p>Hali Apple tomonidan notarizatsiya qilinmagan. <b>Dimit</b> ni <b>Applications</b> ga sudrang, so‘ng Terminalda bir marta bajaring:</p><div class="cmd"><code>xattr -dr com.apple.quarantine /Applications/Dimit.app</code><button type="button" class="copy" data-copied="Nusxalandi">Nusxalash</button></div></div>
     <div class="shots">
       <img src="images/popover-off.png" alt="Dimit off" loading="lazy" onerror="this.remove()">
       <img src="images/popover-on.png" alt="Dimit on at 2700K" loading="lazy" onerror="this.remove()">
@@ -138,6 +148,7 @@
       <a class="cta" href="https://github.com/azakapro/dimit/releases/download/v0.5/Dimit-0.5.dmg">Скачать для Mac</a>
       <span class="req">Требуется macOS 13 Ventura или новее, Apple silicon или Intel. · v0.5 бета</span>
     </p>
+    <div class="firstrun"><p>Пока не нотаризовано Apple. Перетащите <b>Dimit</b> в <b>Applications</b>, затем один раз выполните в Терминале:</p><div class="cmd"><code>xattr -dr com.apple.quarantine /Applications/Dimit.app</code><button type="button" class="copy" data-copied="Скопировано">Копировать</button></div></div>
     <div class="shots">
       <img src="images/popover-off.png" alt="Dimit off" loading="lazy" onerror="this.remove()">
       <img src="images/popover-on.png" alt="Dimit on at 2700K" loading="lazy" onerror="this.remove()">
@@ -177,6 +188,13 @@
   var q = new URLSearchParams(location.search).get("lang");
   var saved = null; try { saved = localStorage.getItem("dimit-lang"); } catch (e) {}
   show(q || saved || (navigator.language || "en").slice(0, 2));
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest(".copy"); if (!b) return;
+    var code = b.parentNode.querySelector("code").textContent;
+    var done = function () { var o = b.textContent; b.textContent = b.dataset.copied;
+      setTimeout(function () { b.textContent = o; }, 1600); };
+    if (navigator.clipboard) { navigator.clipboard.writeText(code).then(done, function () {}); }
+  });
   document.getElementById("langnav").addEventListener("click", function (ev) {
     var b = ev.target.closest("button"); if (b) show(b.dataset.l);
   });
