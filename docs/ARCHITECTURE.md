@@ -90,7 +90,7 @@ for i in 0..<n:
 
 - `origR/G/B` are read once per display at first touch (`CGGetDisplayTransferByTable`) and cached as the restore baseline keyed by display UUID, not by ID (IDs change across reconnects).
 - `dim ∈ [0.30, 1.0]`. Below 0.30 the overlay takes over: `overlayAlpha = 1 - brightness / 0.30`, gamma dim stays at 0.30.
-- After each set, read back and compare; a mismatch logs `gammaMismatch` and increments a counter shown in diagnostics. A match proves nothing on macOS 26+ (Apple bugs FB19136488, FB22273730), which is why the auto-brightness banner is shown. Fallback mode was removed on 2026-09-10; see CLAUDE.md §3.3 for the observed limitation and Apple forum evidence.
+- After each set, read back and compare; a mismatch logs `gammaMismatch` and increments a counter shown in diagnostics. A match proves nothing on macOS 26+ (Apple bugs FB19136488, FB22273730), which is why the popover offers the "Colours not changing?" help there — the user's own eyes are the only available detector. Fallback mode was removed on 2026-09-10 and the automatic banner on 2026-09-11; see CLAUDE.md §3.3 for both and for the Apple forum evidence.
 
 ### 2.5 Brightness backends
 
@@ -256,5 +256,5 @@ Typography: SF Pro, values in SF Mono for the two numbers so they do not jitter.
 
 ## 12. Open questions to resolve during build
 
-- Auto-brightness detection on macOS 26/27: no public key found on the dev machine (2026-09-08). Timeboxed in C3, nothing reliable found, so the banner is unconditional on macOS ≥ 26 — closed, kept here as the reason.
+- Auto-brightness detection on macOS 26/27: no public key found on the dev machine (2026-09-08). Timeboxed in C3, nothing reliable found. The consequence was an unconditional banner on macOS ≥ 26, which on 2026-09-11 became an unconditional *offer* of help (a collapsed disclosure) instead — closed, kept here as the reason.
 - The exact home monitor model for DDC; record it in QA.md the first time it is tested (C6).

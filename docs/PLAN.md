@@ -54,7 +54,7 @@ Every cycle starts with this prompt to Claude Code, with the cycle number filled
 
 ### C3 — PWM-Safe and extreme dim · Opus 5 · ~18 h → tag **v0.1** — ✅ merged 2026-09-09 (#3), tagged `v0.1`
 
-**In:** `BrightnessBackend` protocol and the backends from ARCHITECTURE §2.5, `PWMSafeCoordinator` state machine **with tests against a fake backend**, 5 s poll only while pinned, brightness-key detection toast once per session. `OverlayDimmer` per screen for brightness 10–30% (`sharingType = .none` before ordering front, recreated on reconfiguration). Fallback mode. Auto-brightness banner (no detection key exists on macOS 27; shown once on macOS ≥ 26 at first ON, dismissable forever). Battery note string. Menu-bar icon states.
+**In:** `BrightnessBackend` protocol and the backends from ARCHITECTURE §2.5, `PWMSafeCoordinator` state machine **with tests against a fake backend**, 5 s poll only while pinned, brightness-key detection toast once per session. `OverlayDimmer` per screen for brightness 10–30% (`sharingType = .none` before ordering front, recreated on reconfiguration). Fallback mode. Auto-brightness banner (no detection key exists on macOS 27; shown once on macOS ≥ 26 at first ON, dismissable forever — superseded 2026-09-11 by a collapsed "Colours not changing?" disclosure, CLAUDE.md §3.3). Battery note string. Menu-bar icon states.
 **Out:** Settings window, hotkeys, login item, schedule.
 **Done when:** PWM-Safe on the built-in display shows `pinned`; pressing F1 while pinned re-pins within 5 s and shows the toast once; disabling restores the previous hardware brightness; brightness 10% works via overlay and a screenshot at 10% is **not** dark; Fallback mode makes the screen red and a screenshot **is** red; all C2 rows still pass; tests pass.
 
@@ -120,7 +120,7 @@ Sonnet 5 for skeleton, settings, schedule, scripts, docs. Opus 5 for anything th
 
 | Risk | Mitigation |
 |---|---|
-| Gamma silently ignored on some macOS 26 machines (Apple bug FB22273730, CLAUDE.md §3.3; seen on the first stable-macOS tester) | No in-app workaround since Fallback mode was removed (2026-09-10, maintainer decision); the banner and the README limitations tell the user the one step that helps on many machines; the C6 testers report per macOS version; the README says "tested on", not "works on every Mac". |
+| Gamma silently ignored on some macOS 26 machines (Apple bug FB22273730, CLAUDE.md §3.3; documented by Apple DTS, never reproduced on hardware we can reach) | No in-app workaround since Fallback mode was removed (2026-09-10, maintainer decision); the popover's "Colours not changing?" disclosure and the README limitations tell an affected user the one step that helps on many machines; the C6 testers report per macOS version; the README says "tested on", not "works on every Mac". |
 | DisplayServices symbols missing on a future macOS | The protocol returns `.unsupported`; PWM-Safe shows the unsupported string; ship anyway. |
 | Only one dev machine, on a beta OS | Testers' Macs from C6 onward are the real test bed; ask their macOS versions when sharing the DMG. |
 | Part-time slips | Cycles are one PR each; if one slips more than three days, cut scope inside the cycle rather than extending it. |

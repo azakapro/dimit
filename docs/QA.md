@@ -66,7 +66,7 @@ Private-framework verification came first, before writing any of the rest of thi
 | `menu.restore_colours` and Fallback mode toggle in the right-click menu | pass (logic; not clicked live) | Same C1-carried-forward limitation: this session's virtual display can't reliably drive real menu clicks. Verified by construction and by the underlying `restoreColours()`/`fallbackMode` toggle paths, which the integration probe exercises directly. |
 | PWM re-pin toast (once per session) | pass (unit test only) | `ToastPresenter` itself (the actual on-screen HUD window) wasn't visually confirmed for the same screenshot-compositing reason as the overlay above; the *trigger logic* (fires once, not on a second drift) is tested in `PWMSafeCoordinatorTests`. |
 | External monitor: DDC stub reports unsupported, real monitor's actual brightness backend | **pending** | No external monitor connected this session. `DDCBackend` was a stub (`.unsupported` always) in C3; **C5b implements it for real** — see the C5b section below, and note it is still unverified against a monitor. |
-| Auto-brightness banner appears once, dismissable forever | pass (logic only) | `AppState.handleIsOnChanged`/`dismissAutoBrightnessBanner` unit-testable logic; the actual banner UI wasn't clicked live for the same reason as the menu. Confirmed no reliable detection key exists on this macOS 27 beta (`defaults read com.apple.BezelServices dAuto` — no such key), matching CLAUDE.md §3.3's anticipated fallback. |
+| Auto-brightness banner appears once, dismissable forever | pass (logic only) — **behaviour since replaced, 2026-09-11** | `AppState.handleIsOnChanged`/`dismissAutoBrightnessBanner` unit-testable logic; the actual banner UI wasn't clicked live for the same reason as the menu. Confirmed no reliable detection key exists on this macOS 27 beta (`defaults read com.apple.BezelServices dAuto` — no such key), matching CLAUDE.md §3.3's anticipated fallback. The banner itself is gone; see "The macOS 26 banner became a disclosure" below. |
 
 **Two real, verified findings about hardware/OS behavior, not assumptions**, both documented prominently in code comments so they aren't lost: `CoreDisplayBackend` doesn't actually control the built-in panel's brightness on this Apple Silicon machine (its `get()` is a constant), and the `IORegistry` brightness cross-check CLAUDE.md's own spec describes as "observed on the dev machine" does not track live changes on *this* dev machine as re-tested for this cycle. Both are implemented per spec regardless (harmless, and may behave correctly on hardware this session doesn't have), with the discrepancy flagged for whoever tests on a Studio Display, Pro Display XDR, or Intel Mac.
 
@@ -366,7 +366,7 @@ The thing appearing at the bottom is the **PWM-pinned badge** (CLAUDE.md §3.9: 
 
 **Pinned by two tests** (183 → 187 with the button's two): that the pinned and unpinned icons are the same size and both stay template images, and that the pinned one is actually different from the unpinned one — without the second, a version that ignored `pwmPinned` entirely would pass the first. The size test was verified to fail against the old code (15×15 vs 18×18) before being trusted.
 
-**Open, not changed here:** the auto-brightness banner's text names **macOS 26** specifically (`banner.autobrightness`), but it is shown on macOS ≥ 26 — so every macOS 27 user reads a warning about a version they are not on. Fixing the wording means re-translating the string into uz and ru, which CLAUDE.md §5 says not to do silently, so it is recorded here for the translation pass rather than machine-translated now.
+**Open at the time, resolved 2026-09-11:** the auto-brightness banner's text names **macOS 26** specifically, but it was shown on macOS ≥ 26 — so every macOS 27 user read a warning about a version they are not on. The banner no longer appears by itself (see "The macOS 26 banner became a disclosure" below), so nobody reads that text unless they went looking for it; the wording itself is unchanged and still names 26.
 
 ## Every ad-hoc build since C7 was dead on arrival (found 2026-09-10, by the maintainer double-clicking it)
 
@@ -418,35 +418,20 @@ The failure was only ever reproduced against a Debug build running from DerivedD
 
 Recorded because the lesson generalises: **four confident hypotheses, all wrong, none cheap.** What actually resolved it was the crash report, and what will resolve the next one is that `LaunchAtLogin.setEnabled` now logs the error domain, code, bundle path and service status before rethrowing — so a user hitting this produces a diagnosable line in "Copy diagnostics" instead of "Invalid argument".
 
-## First stable-macOS report: Tahoe 26.6.2 — the colour table is ignored (2026-09-10)
+## Apple's macOS 26 colour-table bug — what we know, and what we never reproduced
 
-> **Later report, 2026-09-11: the same Mac now works.** The tester (a MacBook Pro **M4**) reports warmth, dimming and everything else working on the same 26.6.2. Read this section as what was observed on 2026-09-10, not as the current state of that machine; the tester-reports table below carries both rows and what we can and cannot conclude from the pair.
+**Apple's bug is real and documented** (developer.apple.com/forums/thread/795074 and /819331, fetched 2026-09-10): on some Macs running macOS 26, `CGSetDisplayTransferByTable` is silently ignored while read-back returns the values it stored — DTS reproduced that on 26.3.1, so **no software check in Dimit can detect it**, exactly as CLAUDE.md §3.3 predicted. f.lux users report the same on 26.5.1 and swap display profiles nightly as a workaround. Thread 819331 adds that on XDR built-ins, toggling auto-brightness can leave the colour table "in an inconsistent state … looks permanently bad until the user changes presets" — which is why the in-app advice is worded as a thing that helps on many machines, not a fix. Both threads describe the bug as fixed-then-regressed across 26.x builds. macOS 27 (the dev machine) does not have it.
 
-The first tester on a **shipping** macOS. MacBook Pro with the built-in XDR panel ("Apple XDR Display (P3-1600 nits)" preset visible in his Displays pane), macOS **26.6.2**. Evidence is a phone video of the physical screen — which, unlike a screen recording, *does* show a gamma tint — frames extracted at 1.1 s intervals.
+**We have never reproduced it ourselves.** One tester on 26.6.2 reported colour changes failing on 2026-09-10; on 2026-09-11 the same tester on the same Mac and the same macOS build reported everything working, and that earlier report was withdrawn from the tester table at the maintainer's request. Nothing in the gamma path changed between the two, so this is not a fix anyone can claim — it is simply a bug we cannot demonstrate on hardware we can reach. The README therefore describes FB18559786 / FB19136488 / FB22273730 as affecting *some* Macs, on Apple's evidence rather than ours.
 
-| Time | App state (visible in the popover) | What the panel showed |
-|---|---|---|
-| 0.0 s | off | Normal. System Settings → Displays open: **auto-brightness OFF, True Tone OFF** — he had already followed the banner's advice. |
-| 3.3 s | **ON, 0K, 40%, NIGHT, PWM-Safe on** | **Not red.** Mountains still pink and blue. No tint of any kind. |
-| 6.7 s | off | Normal. |
-| 10.0 s | ON, 2700K, 80%, EVENING | Whole image lighter, lower contrast — the maintainer's word was *"whitish"*. Not warm. |
-| 12.2 s | ON, 4000K, 100%, DAY | Same: brighter and washed, not warm. |
-
-**Reading.** `CGSetDisplayTransferByTable` is being ignored on this machine — exactly CLAUDE.md §3.3's Tahoe scenario, now seen for real. The "whitish" is the second-order effect: PWM-Safe pinned the backlight to 100% (that call goes through DisplayServices and works), the software dim that should have compensated lives in the ignored gamma table, so the net result of turning Dimit on was a *brighter* screen with no colour change. On a phone camera that reads as washed out.
-
-**Confirmed against Apple's own threads** (developer.apple.com/forums/thread/795074 and /819331, fetched 2026-09-10): DTS reproduced the API being silently ignored on 26.3.1 with read-back returning the stored values — so no software check can detect it, as §3.3 predicted; f.lux users report the same on 26.5.1 and are "swapping display profiles back and forth every night" as a workaround; and on XDR built-ins, toggling auto-brightness off can leave the colour table "in an inconsistent state … looks permanently bad until the user changes presets". That last point means the banner's old advice — turn off auto-brightness — was not merely insufficient for him; on his panel class it is a documented way to make things worse. macOS 27 (the dev machine) does not have the bug; both threads describe it as fixed-then-regressed across 26.x builds.
-
-**What changed.** No detection is possible, so the fix is to make the working path one tap away instead of a Settings excursion: the macOS-26 banner now reads *"On macOS 26 an Apple bug can stop Dimit from changing your screen's colours on some Macs. If the screen didn't turn warm, use Fallback mode."* with a **Use Fallback mode** button (`AppState.useFallbackModeFromBanner()`: sets `fallbackMode`, dismisses forever, persisted), and the Displays-settings link demoted to second. Fallback mode writes no gamma table at all — `Renderer` emits `gamma: nil` and `DisplayCoordinator` restores — so it cannot trip the bug, and its dim veil replaces the software dim that PWM-Safe depends on. The README documented the same behavior at that point; the removal recorded below supersedes that guidance. `banner.autobrightness` is gone from the catalog.
-
-**Still to verify on his machine:** that Fallback mode actually tints on 26.6.2 (overlay windows are ordinary AppKit and it is verified on 27, but that is an inference until he flips it), and whether the 26.6.2 "whitish" state is the 819331 "inconsistent table" — i.e. whether it persists after Dimit quits and restores. He was asked to check both.
+**What it cost while we believed we had a reproduction:** Fallback mode (the overlay tint) was promoted from a Settings toggle to a one-tap banner button, and then removed entirely as too confusing — see "Fallback mode removed" below. The removal still stands.
 
 ### Tester reports (one row per Mac)
 
 | Date | Tester | Mac | macOS | Display(s) | Result | Notes |
 |---|---|---|---|---|---|---|
 | 2026-09-10 | maintainer, second Mac | **MacBook Air (M2)** — model reported by the maintainer on 2026-09-11 ("if i am not mistaken"), not read off About This Mac | **15.6** (Sequoia, stable) | built-in | **Works** — maintainer: "working good"; warmth and dimming apply | First stable-macOS machine where the colour-table path works, closing the RELEASE.md §2 gate "at least one Mac on a stable macOS release". Quit/restore not yet reported from this machine. |
-| 2026-09-10 | a beta tester | MacBook Pro (built-in XDR, ProMotion) | **26.6.2** | built-in | **Colour table ignored** (Apple FB22273730); PWM-Safe pin + no software dim → brighter, "whitish" | Auto-brightness and True Tone were off. Install, quarantine command, launch, menu-bar icon, popover, presets, PWM-Safe toggle all worked. **Superseded by the 2026-09-11 row below — same Mac, working.** |
-| **2026-09-11** | the same beta tester | **MacBook Pro (M4)**, built-in XDR / ProMotion | **26.6.2** | built-in | **Works** — maintainer relaying the tester: "all worked … everything is working fine" | Same Mac and same macOS build as the failing row above. What changed between the two reports is **not established**: the tester was on an earlier build, and nothing in the gamma path changed between them, so this is not a fix we can claim. Recorded as a second, later observation rather than as a retraction of the first — the phone video above is still what it is. Consequence for the README: we no longer have a machine that reproduces FB22273730, so the macOS 26 limitation is stated as a bug that affects *some* Macs, not as one we can show. |
+| 2026-09-11 | a beta tester | **MacBook Pro (M4)**, built-in XDR / ProMotion | **26.6.2** | built-in | **Works** — maintainer relaying the tester: "all worked … everything is working fine" | Warmth, dimming, PWM-Safe, install and UI all working. An earlier report from this Mac (2026-09-10) had colour changes failing; it was withdrawn at the maintainer's request after this one, and the section above records what that leaves us able to claim about Apple's bug. |
 
 ### Fallback mode was silently sticky (2026-09-10)
 
@@ -456,7 +441,7 @@ The maintainer deleted the app, installed the new build, and found Fallback mode
 
 The underlying complaint was still right, and became more right in the previous commit. Fallback mode is sticky, and nothing outside Settings → Advanced ever indicated it was on. That was tolerable while enabling it required going to look for it; the macOS-26 banner's new one-tap button made accidental, unexplained activation easy. **The popover now shows a row whenever the mode is active, with a "Turn off" button in it** — so it cannot be silently on. Rendered in en/ru; the popover stays at its fixed 320 pt.
 
-Removing the feature instead was declined, and the reason is on record: the first stable-macOS tester's Mac cannot tint at all without it (see the 26.6.2 section above). Deleting it would make Dimit non-functional on an entire macOS version.
+Removing the feature instead was declined *at the time*, on the belief that a tester's Mac could not tint at all without it. That belief rested on the 26.6.2 report later withdrawn (see the section above), and the maintainer removed the feature the next day regardless.
 
 **Deliberately not claimed in the new string:** that screenshots will show the tint. `OverlayDimmer` sets `sharingType = .none` on the overlay (line 100), which is supposed to exclude it from capture, while `fallback.help` tells users "Screenshots will look tinted in this mode." Those contradict, neither has ever been tested, and the beta tester has been asked to settle it. The new row says only what is certain.
 
@@ -468,9 +453,26 @@ After the 26.6.2 report, Fallback mode went from a Settings toggle to a one-tap 
 
 **Consequences, stated so nobody rediscovers them as bugs:**
 
-- On a Mac where Apple ignores the colour table (the 26.6.2 XDR case above), Dimit **cannot change colours**. The banner names the bug and the auto-brightness step that helps on many machines; the README limitations must say the same and explain that dimming below 30% and PWM-Safe still work.
+- On a Mac where Apple ignores the colour table (the macOS 26 bug above — Apple's evidence; we have no such machine), Dimit **cannot change colours**. The in-app help names the bug and the auto-brightness step that helps on many machines; the README limitations say the same and explain that dimming and PWM-Safe still work.
 - Saved state from any C3–C7 build still carries a `"fallbackMode"` key. `PersistedState`'s per-field `decodeIfPresent` decoder ignores unknown keys, so those users keep every other setting on upgrade — pinned by `test_decodingJSONFromBeforeC4Fields_preservesEveryOtherField`, whose fixture deliberately keeps the dead key.
 - The "do screenshots show the overlay?" question (`sharingType = .none` vs the old help text) no longer needs an answer for tinting; for dimming below 30% it was **answered on 2026-09-11 — screenshots are unaffected** (capture matrix above). Recordings and shares below 30%, and ScreenCaptureKit recorders at any brightness, are still open.
+
+## The macOS 26 banner became a disclosure (2026-09-11, maintainer decision)
+
+The yellow banner from C3 opened itself the first time the filter was turned ON, on every Mac running macOS 26 or later, and said an Apple bug might stop colours from changing. It was written while we believed a tester's Mac reproduced that bug. With that report withdrawn and no machine we can reach reproducing it, the banner was warning people who have no problem — and CLAUDE.md §3.3 had always conceded the condition is undetectable from inside the process, so it could never be aimed better than "everyone on 26+".
+
+**What replaced it.** A collapsed `DisclosureGroup` at the foot of the popover reading *"Colours not changing?"*, shown on macOS ≥ 26 only. Opening it reveals the same `banner.gamma_blocked` text and the same Displays-settings button. The user is the detector the app doesn't have: they can see whether the screen turned warm.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Offered on macOS ≥ 26, never below | pass | `AppStateTests.test_gammaBugHelp_isOfferedOnMacOS26AndLater` / `_isNotOfferedBeforeMacOS26`, with the OS version injected (`AppState.init(persistence:osMajorVersion:)`) instead of read from the runner, so both branches are actually exercised on one machine — the old test could only assert whichever branch this Mac happened to be on. |
+| Nothing makes help appear by itself | pass | `test_gammaBugHelp_doesNotChangeWhenTheFilterIsToggled`. `showsGammaBugHelp` is a `let` set once in `init`, and `isOn`'s `didSet` hook is gone entirely, so a regression here fails to compile rather than shipping. |
+| Costs about one line when closed, in all three languages | pass | `LayoutRenderTests.test_popover_gammaBugHelpIsOneCollapsedLine_andAbsentBeforeMacOS26`: popover stays 320 pt wide, and the row adds between 12 and 60 pt of height in en/uz/ru (Russian is the long one). The 12 pt floor is deliberate — an earlier `> 0` would have passed on rounding noise. |
+| Whole suite | pass | 184 tests, 0 failures (183 before: three banner tests removed, four added). |
+
+**Not verified by clicking:** the disclosure has not been opened on a running app — the same standing limitation as every other popover control in this environment (this file, C3/C4 rows). Its two children are a `Text` and the Displays-settings `Button` that the banner already shipped.
+
+**Removed:** `AppState.showAutoBrightnessBanner`, `dismissAutoBrightnessBanner()`, the `isOn` `didSet` hook that triggered it, `Persistence.hasShownAutoBrightnessBanner`, and the `banner.dismiss` string. The `autoBrightnessBannerShown.v1` default is left in place on existing installs: it would only record that someone once closed a banner that no longer exists.
 
 ## Performance
 

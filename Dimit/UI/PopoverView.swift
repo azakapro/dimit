@@ -15,18 +15,22 @@ struct PopoverView: View {
     // previews/tests switch locale and how C4's in-app language override
     // will need to work (CLAUDE.md §5: "Settings has a language override").
     @Environment(\.locale) private var locale
+    /// Collapsed on every popover open, deliberately: it is a
+    /// troubleshooting question, not a setting, so it has nothing to
+    /// remember and never occupies the popover unless asked for.
+    @State private var isGammaBugHelpExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
-            if appState.showAutoBrightnessBanner {
-                autoBrightnessBanner
-            }
             onOffButton
             warmthRow
             brightnessRow
             presetPicker
             pwmSafeRow
+            if appState.showsGammaBugHelp {
+                gammaBugHelp
+            }
         }
         .padding(16)
         .frame(width: 320)
@@ -48,23 +52,32 @@ struct PopoverView: View {
         }
     }
 
-    // CLAUDE.md §3.3: shown once, ever, the first time the filter turns ON
-    // on macOS ≥ 26 (no reliable detection key exists for auto-brightness
-    // itself — see AppState.swift's comment).
+    // The macOS 26 colour-bug help (Apple FB22273730), on macOS ≥ 26 only.
     //
-    // History that explains the wording: the first stable-macOS tester
-    // (26.6.2, MacBook Pro XDR, auto-brightness already off) got no colour
-    // change at all — Apple's Tahoe bug, FB22273730, undetectable from
-    // here. For one day this banner offered a one-tap Fallback mode
-    // (overlay tint); the owner then removed Fallback mode as too
-    // confusing. So the banner states the bug and the one thing that helps
-    // on many machines, and the site's macOS 26 section says the rest.
-    private var autoBrightnessBanner: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("banner.gamma_blocked")
-                .font(.caption)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 12) {
+    // This used to be a yellow banner that appeared by itself the first
+    // time the filter was turned ON — CLAUDE.md §3.3's original wording,
+    // written when we believed we had a machine that reproduced the bug.
+    // We don't: every Mac we can test on applies the colour table fine
+    // (docs/QA.md), and Apple's own threads say it hits *some* Macs. A
+    // warning shown to everyone on macOS 26+ therefore alarmed mostly
+    // people with no problem.
+    //
+    // The bug is still undetectable from inside the process (read-back
+    // returns the values it stored, DTS-confirmed), so the user is the
+    // only available detector: they can see whether the screen turned
+    // warm. Hence a quiet one-line question instead of a warning — closed
+    // by default, and the same explanation and Displays-settings shortcut
+    // behind it for whoever answers "no".
+    // A `DisclosureGroup` rather than a hand-rolled chevron button so the
+    // expanded/collapsed state is announced by VoiceOver without inventing
+    // two more strings for it (CLAUDE.md §8's accessibility bar).
+    private var gammaBugHelp: some View {
+        DisclosureGroup(isExpanded: $isGammaBugHelpExpanded) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("banner.gamma_blocked")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 Button {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.Displays-Settings.extension") {
                         NSWorkspace.shared.open(url)
@@ -75,19 +88,14 @@ struct PopoverView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.blue)
-                Spacer()
-                Button {
-                    appState.dismissAutoBrightnessBanner()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("banner.dismiss"))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
+        } label: {
+            Text("help.colours_not_changing")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
-        .padding(10)
-        .background(.yellow.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var onOffButton: some View {

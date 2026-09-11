@@ -48,28 +48,6 @@
         }
       }
     },
-    "banner.dismiss": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dismiss"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Скрыть"
-          }
-        },
-        "uz": {
-          "stringUnit": {
-            "state": "needs_review",
-            "value": "Yopish"
-          }
-        }
-      }
-    },
     "banner.gamma_blocked": {
       "localizations": {
         "en": {
@@ -110,6 +88,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Displey sozlamalarini ochish"
+          }
+        }
+      }
+    },
+    "help.colours_not_changing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colours not changing?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Цвета не меняются?"
+          }
+        },
+        "uz": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Ranglar o‘zgarmayaptimi?"
           }
         }
       }
