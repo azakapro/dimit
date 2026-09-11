@@ -290,13 +290,15 @@ No Developer ID certificate and no notarization credentials exist on this machin
 
 | Capture method | Gamma path (brightness ≥ 30%) | Extreme-dim overlay (< 30%) | Fallback mode |
 |---|---|---|---|
-| ⌘⇧4 screenshot | **not tinted** — maintainer + C2 probe, macOS 27 | pending | pending (expected: tinted; the UI says so) |
+| ⌘⇧4 screenshot | **not tinted** — maintainer + C2 probe, macOS 27 | **not dimmed** — maintainer, 2026-09-11: "below 30% no effect on any screenshots" | pending (expected: tinted; the UI said so) |
 | ⌘⇧5 / QuickTime recording | **not tinted** — maintainer, macOS 27 (v0.2) | pending | pending |
 | Zoom screen share | **not tinted** — maintainer, macOS 27 (v0.2) | pending | pending |
 | Google Meet / Teams | pending | pending | pending |
 | ScreenCaptureKit recorder (OBS or similar) | pending | pending | pending |
 
-The two overlay columns rely on `sharingType = .none`, which Apple describes as legacy with no guarantee against ScreenCaptureKit (docs/QA.md § Independent review). Fallback mode was subsequently removed; its column records the unanswered historical checks. The below-30% column still needs measurements, and the README must disclose that captures may show the dimming overlay.
+The two overlay columns rely on `sharingType = .none`, which Apple describes as legacy with no guarantee against ScreenCaptureKit (docs/QA.md § Independent review). Fallback mode was subsequently removed; its column records the unanswered historical checks.
+
+**Below-30% screenshots are now measured, and `sharingType = .none` holds for them (2026-09-11).** The maintainer reports that dimming below the 30% floor has "no effect on any screenshots" — the overlay window does not enter a ⌘⇧4 capture, which is what the C4 review asked for and what the README's capture claim was previously limited to. The README no longer caps its claim at 30%. Still pending in that column: recordings and shares below 30% (QuickTime, Zoom, Meet/Teams) and any ScreenCaptureKit recorder at any brightness — the case Apple's own guidance says is not guaranteed, so OBS-class recorders stay named as untested in the README.
 
 ## C7 — Sparkle opt-in updates and cleanup (2026-09-10, same machine)
 
@@ -418,6 +420,8 @@ Recorded because the lesson generalises: **four confident hypotheses, all wrong,
 
 ## First stable-macOS report: Tahoe 26.6.2 — the colour table is ignored (2026-09-10)
 
+> **Later report, 2026-09-11: the same Mac now works.** The tester (a MacBook Pro **M4**) reports warmth, dimming and everything else working on the same 26.6.2. Read this section as what was observed on 2026-09-10, not as the current state of that machine; the tester-reports table below carries both rows and what we can and cannot conclude from the pair.
+
 The first tester on a **shipping** macOS. MacBook Pro with the built-in XDR panel ("Apple XDR Display (P3-1600 nits)" preset visible in his Displays pane), macOS **26.6.2**. Evidence is a phone video of the physical screen — which, unlike a screen recording, *does* show a gamma tint — frames extracted at 1.1 s intervals.
 
 | Time | App state (visible in the popover) | What the panel showed |
@@ -440,8 +444,9 @@ The first tester on a **shipping** macOS. MacBook Pro with the built-in XDR pane
 
 | Date | Tester | Mac | macOS | Display(s) | Result | Notes |
 |---|---|---|---|---|---|---|
-| 2026-09-10 | maintainer, second Mac | (model not yet recorded) | **15.6** (Sequoia, stable) | built-in | **Works** — maintainer: "working good"; warmth and dimming apply | First stable-macOS machine where the colour-table path works, closing the RELEASE.md §2 gate "at least one Mac on a stable macOS release". Not yet reported from this machine: the below-30% screenshot, quit/restore, and the Mac model — ask when convenient. |
-| 2026-09-10 | a beta tester | MacBook Pro (built-in XDR, ProMotion; exact model not yet reported) | **26.6.2** | built-in | **Colour table ignored** (Apple FB22273730); PWM-Safe pin + no software dim → brighter, "whitish" | Auto-brightness and True Tone were off. Install, quarantine command, launch, menu-bar icon, popover, presets, PWM-Safe toggle all worked. Fallback mode not yet tried. |
+| 2026-09-10 | maintainer, second Mac | **MacBook Air (M2)** — model reported by the maintainer on 2026-09-11 ("if i am not mistaken"), not read off About This Mac | **15.6** (Sequoia, stable) | built-in | **Works** — maintainer: "working good"; warmth and dimming apply | First stable-macOS machine where the colour-table path works, closing the RELEASE.md §2 gate "at least one Mac on a stable macOS release". Quit/restore not yet reported from this machine. |
+| 2026-09-10 | a beta tester | MacBook Pro (built-in XDR, ProMotion) | **26.6.2** | built-in | **Colour table ignored** (Apple FB22273730); PWM-Safe pin + no software dim → brighter, "whitish" | Auto-brightness and True Tone were off. Install, quarantine command, launch, menu-bar icon, popover, presets, PWM-Safe toggle all worked. **Superseded by the 2026-09-11 row below — same Mac, working.** |
+| **2026-09-11** | the same beta tester | **MacBook Pro (M4)**, built-in XDR / ProMotion | **26.6.2** | built-in | **Works** — maintainer relaying the tester: "all worked … everything is working fine" | Same Mac and same macOS build as the failing row above. What changed between the two reports is **not established**: the tester was on an earlier build, and nothing in the gamma path changed between them, so this is not a fix we can claim. Recorded as a second, later observation rather than as a retraction of the first — the phone video above is still what it is. Consequence for the README: we no longer have a machine that reproduces FB22273730, so the macOS 26 limitation is stated as a bug that affects *some* Macs, not as one we can show. |
 
 ### Fallback mode was silently sticky (2026-09-10)
 
@@ -465,7 +470,7 @@ After the 26.6.2 report, Fallback mode went from a Settings toggle to a one-tap 
 
 - On a Mac where Apple ignores the colour table (the 26.6.2 XDR case above), Dimit **cannot change colours**. The banner names the bug and the auto-brightness step that helps on many machines; the README limitations must say the same and explain that dimming below 30% and PWM-Safe still work.
 - Saved state from any C3–C7 build still carries a `"fallbackMode"` key. `PersistedState`'s per-field `decodeIfPresent` decoder ignores unknown keys, so those users keep every other setting on upgrade — pinned by `test_decodingJSONFromBeforeC4Fields_preservesEveryOtherField`, whose fixture deliberately keeps the dead key.
-- The "do screenshots show the overlay?" question (`sharingType = .none` vs the old help text) no longer needs an answer for tinting; it still matters for dimming below 30%, and stays a tester row.
+- The "do screenshots show the overlay?" question (`sharingType = .none` vs the old help text) no longer needs an answer for tinting; for dimming below 30% it was **answered on 2026-09-11 — screenshots are unaffected** (capture matrix above). Recordings and shares below 30%, and ScreenCaptureKit recorders at any brightness, are still open.
 
 ## Performance
 

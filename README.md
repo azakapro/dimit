@@ -60,24 +60,29 @@ for the checks, measurements, and remaining gaps.
 |---|---|---|
 | MacBook Pro 16-inch M1 Pro (`MacBookPro18,1`), built-in XDR | 27.0 beta (`26A5416b`) | Warmth, dimming, PWM pin/restore, scheduling, and sleep/wake exercised; gamma capture checked with QuickTime and Zoom. |
 | Same Mac with Xiaomi Mi Monitor, 2560×1440 at 144 Hz | 27.0 beta | Gamma applies to both displays and re-applies on reconnect. DDC reads return an error; hardware brightness control remains unconfirmed. |
-| Mac with built-in display; model not yet reported | 15.6 | A tester reports warmth and dimming working; the broader matrix is pending. |
-| Beta tester's MacBook Pro, built-in XDR / ProMotion; exact model not yet reported | 26.6.2 | **Colour changes fail** despite automatic brightness and True Tone being off. Install and UI work. |
+| MacBook Air (M2), built-in | 15.6 | Warmth and dimming reported working; the broader matrix is pending. |
+| MacBook Pro (M4), built-in XDR / ProMotion | 26.6.2 | Warmth, dimming, PWM-Safe and install all reported working (2026-09-11). An earlier report from the same Mac had colour changes failing; what changed is not established — see [QA](docs/QA.md). |
 
 macOS 13 and 14, Intel hardware, and other display combinations still need reports.
 
 ## Known limitations
 
-- **macOS 26 colour bug.** Some Macs ignore gamma changes while returning success.
-  Tracked Apple reports are **FB18559786, FB19136488, and FB22273730**; the technical
-  evidence and Apple forum threads are preserved in [CLAUDE.md §3.3](CLAUDE.md#33-gamma-tables-gammacontrollerswift)
-  and [QA](docs/QA.md). Turning off automatic brightness helps some machines,
-  but did not help the 26.6.2 XDR tester. Dimit has no tint fallback for affected
-  Macs. The black overlay below 30% can still dim, and hardware PWM pinning can
-  still run; **pinning without working gamma dimming can make the screen brighter**.
-- **Capture below 30% brightness.** Gamma tint does not enter the captured
-  framebuffer; QuickTime and Zoom were checked on the macOS 27 test machine.
-  Below 30%, dimming uses a black overlay. Some recorders may capture it despite
-  `sharingType = .none`; the capture matrix is incomplete, so exclusion is not guaranteed.
+- **macOS 26 colour bug.** On some Macs, macOS 26 stores a gamma change and reports
+  success while the screen keeps its normal colours. Tracked Apple reports are
+  **FB18559786, FB19136488, and FB22273730**; the evidence and Apple's forum threads
+  are in [CLAUDE.md §3.3](CLAUDE.md#33-gamma-tables-gammacontrollerswift) and
+  [QA](docs/QA.md). Turning off automatic brightness in System Settings → Displays
+  helps on many of them. The one Mac we had seen it on — a MacBook Pro M4 on 26.6.2 —
+  works on re-test, so no machine we can reach still reproduces it. Dimit has no tint
+  fallback: where the bug does hit, dimming and PWM-Safe still work but colours do not
+  change, and **pinning the backlight without working gamma dimming makes the screen
+  brighter**.
+- **Capture with other recorders.** Screenshots, QuickTime recordings and Zoom shares
+  show normal colours on the Macs tested; screenshots were also checked below 30%,
+  where dimming uses an overlay window, and the overlay does not appear in them.
+  `sharingType = .none` is what excludes it, and Apple describes that as legacy with
+  no guarantee against ScreenCaptureKit — OBS-class recorders, and recordings or
+  shares taken below 30%, are still untested.
 - **Experimental DDC.** Off by default, limited to one external monitor, and no
   successful third-party backlight pin has been confirmed. A DDC transaction can
   briefly block the UI; the Mi Monitor returned error frames in hardware testing.

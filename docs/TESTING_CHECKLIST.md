@@ -20,7 +20,7 @@ Tick each one; write a sentence if anything was different.
 - [ ] Take a screenshot (⌘⇧4) while red. Open it: it is **not** red. *(Expected — that's the point.)*
 - [ ] Record a short screen recording (⌘⇧5) while red and play it back: **not** red.
 - [ ] If you can: share your screen in Zoom / Google Meet / Teams while red. The other side sees **normal** colours. Say which app.
-- [ ] Drag Brightness below 30%. The screen gets darker than the keyboard keys allow. Take a screenshot: is it dark or normal? *(Tell us either way — this one we genuinely don't know for every Mac.)*
+- [ ] Drag Brightness below 30%. The screen gets darker than the keyboard keys allow. Take a screenshot: it should look **normal**, not dark. *(Confirmed on the Macs tested so far — tell us if yours differs.)*
 
 **Safety**
 - [ ] Quit Dimit from its menu while red. Colours restore.
