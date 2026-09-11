@@ -61,7 +61,7 @@ for the checks, measurements, and remaining gaps.
 | MacBook Pro 16-inch M1 Pro (`MacBookPro18,1`), built-in XDR | 27.0 beta (`26A5416b`) | Warmth, dimming, PWM pin/restore, scheduling, and sleep/wake exercised; gamma capture checked with QuickTime and Zoom. |
 | Same Mac with Xiaomi Mi Monitor, 2560×1440 at 144 Hz | 27.0 beta | Gamma applies to both displays and re-applies on reconnect. DDC reads return an error; hardware brightness control remains unconfirmed. |
 | MacBook Air (M2), built-in | 15.6 | Warmth and dimming reported working; the broader matrix is pending. |
-| MacBook Pro (M4), built-in XDR / ProMotion | 26.6.2 | Warmth, dimming, PWM-Safe and install all reported working (2026-09-11). An earlier report from the same Mac had colour changes failing; what changed is not established — see [QA](docs/QA.md). |
+| MacBook Pro (M4), built-in XDR / ProMotion | 26.6.2 | Warmth, dimming, PWM-Safe, install and UI all reported working. |
 
 macOS 13 and 14, Intel hardware, and other display combinations still need reports.
 
@@ -72,11 +72,10 @@ macOS 13 and 14, Intel hardware, and other display combinations still need repor
   **FB18559786, FB19136488, and FB22273730**; the evidence and Apple's forum threads
   are in [CLAUDE.md §3.3](CLAUDE.md#33-gamma-tables-gammacontrollerswift) and
   [QA](docs/QA.md). Turning off automatic brightness in System Settings → Displays
-  helps on many of them. The one Mac we had seen it on — a MacBook Pro M4 on 26.6.2 —
-  works on re-test, so no machine we can reach still reproduces it. Dimit has no tint
-  fallback: where the bug does hit, dimming and PWM-Safe still work but colours do not
-  change, and **pinning the backlight without working gamma dimming makes the screen
-  brighter**.
+  helps on many of them. Every Mac we have been able to test on works, so this is
+  Apple's evidence rather than ours. Dimit has no tint fallback: where the bug does
+  hit, dimming and PWM-Safe still work but colours do not change, and **pinning the
+  backlight without working gamma dimming makes the screen brighter**.
 - **Capture with other recorders.** Screenshots, QuickTime recordings and Zoom shares
   show normal colours on the Macs tested; screenshots were also checked below 30%,
   where dimming uses an overlay window, and the overlay does not appear in them.

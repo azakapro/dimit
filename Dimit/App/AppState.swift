@@ -20,7 +20,7 @@ import Foundation
 /// don't exist yet (`ScheduleConfig` etc.).
 @MainActor
 final class AppState: ObservableObject {
-    @Published var isOn: Bool { didSet { handleIsOnChanged(wasOn: oldValue) } }
+    @Published var isOn: Bool
     @Published var warmthK: Double { didSet { clearPresetIfDrifted() } }
     @Published var brightness: Double { didSet { clearPresetIfDrifted() } }
     @Published var pwmSafe: Bool
@@ -65,30 +65,36 @@ final class AppState: ObservableObject {
     /// ignorant of app state.
     @Published var ddcEnabled: Bool
 
-    /// CLAUDE.md §3.3: "show a one-time banner ... on macOS ≥ 26 the first
-    /// time the filter is turned ON, dismissable forever." No reliable
-    /// detection key for auto-brightness was found on this macOS 27 beta
-    /// (checked directly: `defaults read com.apple.BezelServices dAuto`
-    /// returns no such key, and nothing else in `com.apple.CoreBrightness`
-    /// tracked it either) — CLAUDE.md's own §3.3 anticipates exactly this
-    /// outcome and specifies the unconditional fallback, which is what
-    /// this implements.
+    /// Whether the popover offers the macOS 26 colour-bug help at all.
     ///
-    /// Honest about its limits: the first report from a stable macOS
-    /// (26.6.2, MacBook Pro XDR, 2026-09-10) showed Apple's Tahoe bug
-    /// (FB22273730, DTS-confirmed) ignoring the colour table with
-    /// auto-brightness already off, and read-back can't tell us. The
-    /// in-app escape hatch for that case (Fallback mode, an overlay tint)
-    /// existed from C3 and was removed on 2026-09-10 by owner decision as
-    /// too confusing, so this banner is now the app's only word on the
-    /// subject, and the site says the rest.
-    @Published private(set) var showAutoBrightnessBanner = false
+    /// CLAUDE.md §3.3 originally specified a one-time banner shown
+    /// automatically on macOS ≥ 26 the first time the filter is turned ON,
+    /// because no reliable auto-brightness detection key exists (checked
+    /// directly on macOS 27: `defaults read com.apple.BezelServices dAuto`
+    /// returns no such key, and nothing in `com.apple.CoreBrightness`
+    /// tracked it either). That shipped, and it was wrong in the common
+    /// case: the bug (FB22273730) hits *some* Macs, and every machine we
+    /// can test on is fine, so a warning that fires for everyone on
+    /// macOS 26+ alarms far more people than it helps — and it is the same
+    /// "too confusing" failure the owner removed Fallback mode for.
+    ///
+    /// So the help is no longer pushed: it sits behind a one-line
+    /// "Colours not changing?" disclosure in the popover, which only the
+    /// user affected by the bug ever opens. Undetectable still means
+    /// undetectable — we cannot show it *only* to affected Macs, so this
+    /// stays version-gated and the user decides. `true` on macOS ≥ 26;
+    /// injectable so tests don't depend on the runner's OS.
+    let showsGammaBugHelp: Bool
 
     private let persistence: Persistence
     private var saveCancellable: AnyCancellable?
 
-    init(persistence: Persistence = .shared) {
+    init(
+        persistence: Persistence = .shared,
+        osMajorVersion: Int = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+    ) {
         self.persistence = persistence
+        self.showsGammaBugHelp = osMajorVersion >= 26
         let saved = persistence.load()
         self.isOn = saved.isOn
         self.warmthK = saved.warmthK
@@ -208,21 +214,6 @@ final class AppState: ObservableObject {
 
     func adjustBrightness(by delta: Double) {
         brightness = (brightness + delta).clamped(to: Config.minBrightness...Config.maxBrightness)
-    }
-
-    private func handleIsOnChanged(wasOn: Bool) {
-        guard isOn, !wasOn else { return } // only the OFF -> ON transition
-        guard !persistence.hasShownAutoBrightnessBanner else { return }
-        guard ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26 else { return }
-        showAutoBrightnessBanner = true
-    }
-
-    /// The banner's dismiss button. "Dismissable forever" per CLAUDE.md
-    /// §3.3 — persisted immediately (not debounced with the rest of state)
-    /// since this is a one-time UI event, not a value `Renderer` reads.
-    func dismissAutoBrightnessBanner() {
-        showAutoBrightnessBanner = false
-        persistence.hasShownAutoBrightnessBanner = true
     }
 
     /// Writes current state immediately, bypassing the 250 ms debounce.

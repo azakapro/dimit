@@ -42,42 +42,34 @@ final class AppStateTests: XCTestCase {
         XCTAssertNil(state.activePreset)
     }
 
-    // Code review caught that docs/QA.md claimed this logic was verified
-    // while no test existed for it. The banner is only supposed to appear
-    // on an OFF -> ON transition, once ever, on macOS 26+.
-    func test_autoBrightnessBanner_onlyAppearsOnOffToOnTransition() {
-        let state = freshState()
-        XCTAssertFalse(state.showAutoBrightnessBanner, "not shown before the filter is ever turned on")
-
-        state.isOn = true
-        // Guarded by the OS version, so only assert the shape that holds
-        // on every macOS: on 26+ it shows, below that it must not.
-        let expectedOnThisOS = ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26
-        XCTAssertEqual(state.showAutoBrightnessBanner, expectedOnThisOS)
-    }
-
-    func test_autoBrightnessBanner_isNotReshownAfterDismissal_evenAcrossInstances() {
+    // The macOS 26 colour-bug help is offered on macOS >= 26 and nowhere
+    // else. It replaced a banner that appeared on its own; these assert
+    // the version gate, and — the point of the change — that nothing about
+    // turning the filter on or off can make help appear by itself.
+    func test_gammaBugHelp_isOfferedOnMacOS26AndLater() {
         let suite = "test.\(UUID().uuidString)"
-        let state = AppState(persistence: Persistence(suiteName: suite))
-        state.isOn = true
-        state.dismissAutoBrightnessBanner()
-        XCTAssertFalse(state.showAutoBrightnessBanner)
-
-        // "Dismissable forever" (CLAUDE.md §3.3) — a fresh launch reading
-        // the same persisted store must not show it again.
-        let relaunched = AppState(persistence: Persistence(suiteName: suite))
-        relaunched.isOn = false
-        relaunched.isOn = true
-        XCTAssertFalse(relaunched.showAutoBrightnessBanner)
+        XCTAssertTrue(AppState(persistence: Persistence(suiteName: suite), osMajorVersion: 26).showsGammaBugHelp)
+        XCTAssertTrue(AppState(persistence: Persistence(suiteName: suite), osMajorVersion: 27).showsGammaBugHelp)
     }
 
-    func test_autoBrightnessBanner_doesNotReappearOnEveryToggle() {
-        let state = freshState()
+    func test_gammaBugHelp_isNotOfferedBeforeMacOS26() {
+        let suite = "test.\(UUID().uuidString)"
+        XCTAssertFalse(AppState(persistence: Persistence(suiteName: suite), osMajorVersion: 13).showsGammaBugHelp)
+        XCTAssertFalse(AppState(persistence: Persistence(suiteName: suite), osMajorVersion: 15).showsGammaBugHelp)
+    }
+
+    // The regression this change exists to prevent: a Mac that is fine
+    // must never be told about a bug it doesn't have, and toggling the
+    // filter must not change what the popover offers. `showsGammaBugHelp`
+    // is a `let`, so this is really a design assertion — it will stop
+    // compiling, not just failing, if anyone makes it stateful again.
+    func test_gammaBugHelp_doesNotChangeWhenTheFilterIsToggled() {
+        let state = AppState(persistence: Persistence(suiteName: "test.\(UUID().uuidString)"), osMajorVersion: 26)
+        let before = state.showsGammaBugHelp
         state.isOn = true
-        state.dismissAutoBrightnessBanner()
         state.isOn = false
         state.isOn = true
-        XCTAssertFalse(state.showAutoBrightnessBanner)
+        XCTAssertEqual(state.showsGammaBugHelp, before)
     }
 
     func test_renderState_reflectsCurrentFields() {

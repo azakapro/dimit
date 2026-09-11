@@ -159,21 +159,17 @@ final class Persistence {
 
     // MARK: - One-time UI flags
 
-    /// CLAUDE.md §3.3: the auto-brightness banner shows once, ever,
-    /// "dismissable forever." Kept as its own boolean rather than a field
-    /// on `PersistedState` — it's a one-time UI flag, not part of the
-    /// render-relevant state `RenderState`/`Renderer` care about.
-    private let autoBrightnessBannerShownKey = "autoBrightnessBannerShown.v1"
-
-    var hasShownAutoBrightnessBanner: Bool {
-        get { defaults.bool(forKey: autoBrightnessBannerShownKey) }
-        set { defaults.set(newValue, forKey: autoBrightnessBannerShownKey) }
-    }
+    // `autoBrightnessBannerShown.v1` was the dismissal flag for the
+    // macOS 26 banner that used to appear by itself (CLAUDE.md §3.3). The
+    // banner is gone — the same help is now a user-opened disclosure in
+    // the popover, so there is nothing to dismiss and nothing to remember.
+    // The key is deliberately not deleted from existing installs: reading
+    // it would tell us only that someone once closed a banner that no
+    // longer exists, and `UserDefaults` costs nothing to leave alone.
 
     /// C4/ARCHITECTURE.md §10: "Onboarding (3 steps, first launch only)."
-    /// Same one-time-flag shape as the banner above, not part of
-    /// `PersistedState` for the same reason: it's a UI event, not
-    /// render-relevant state.
+    /// A one-time UI flag, kept as its own boolean rather than a field on
+    /// `PersistedState`: it's a UI event, not render-relevant state.
     private let onboardingCompletedKey = "onboardingCompleted.v1"
 
     var hasCompletedOnboarding: Bool {

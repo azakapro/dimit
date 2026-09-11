@@ -29,6 +29,32 @@ final class LayoutRenderTests: XCTestCase {
         }
     }
 
+    /// The macOS 26 help replaced a banner that opened itself; its whole
+    /// point is that it costs one quiet line until someone asks. This
+    /// measures that: present on 26+, absent below, and worth about a line
+    /// of height in every language (Russian is the long one, CLAUDE.md §5).
+    func test_popover_gammaBugHelpIsOneCollapsedLine_andAbsentBeforeMacOS26() {
+        for locale in locales {
+            let offered = render(popover(locale: locale, osMajorVersion: 26), name: "popover-help-\(locale)")
+            let notOffered = render(popover(locale: locale, osMajorVersion: 15), name: "popover-nohelp-\(locale)")
+
+            XCTAssertEqual(offered.width, 320, accuracy: 0.5, "\(locale): the help row must not widen the popover")
+            XCTAssertEqual(notOffered.width, 320, accuracy: 0.5)
+            let added = offered.height - notOffered.height
+            XCTAssertGreaterThan(added, 12, "\(locale): macOS 26 should be offered the help")
+            XCTAssertLessThan(added, 60, "\(locale): collapsed help must stay about one line, not a paragraph")
+        }
+    }
+
+    private func popover(locale: String, osMajorVersion: Int) -> some View {
+        PopoverView(
+            appState: freshState(locale: locale, osMajorVersion: osMajorVersion),
+            pwmSafeCoordinator: PWMSafeCoordinator(backends: []),
+            openSettings: {}
+        )
+        .environment(\.locale, Locale(identifier: locale))
+    }
+
     func test_settings_fitsItsFixedFrame_inEveryLanguage() {
         for locale in locales {
             let state = freshState(locale: locale)
@@ -279,8 +305,11 @@ final class LayoutRenderTests: XCTestCase {
             + 0.0722 * linear(colour.blueComponent)
     }
 
-    private func freshState(locale: String) -> AppState {
-        let state = AppState(persistence: Persistence(suiteName: "test.\(UUID().uuidString)"))
+    private func freshState(locale: String, osMajorVersion: Int = 27) -> AppState {
+        let state = AppState(
+            persistence: Persistence(suiteName: "test.\(UUID().uuidString)"),
+            osMajorVersion: osMajorVersion
+        )
         state.locale = locale
         state.isOn = true
         state.pwmSafe = true
