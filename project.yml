@@ -60,7 +60,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.dimit.mac
         PRODUCT_NAME: Dimit
-        MARKETING_VERSION: "0.5"
+        MARKETING_VERSION: "0.6"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: Dimit/Info.plist
         SWIFT_EMIT_LOC_STRINGS: YES
