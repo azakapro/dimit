@@ -121,6 +121,12 @@ personal coordinates. Review copied diagnostics and screenshots before sharing.
 For colour issues, describe the physical screen; screenshots cannot prove a gamma tint.
 [The tester checklist](docs/TESTING_CHECKLIST.md) lists useful hardware checks.
 
+## Support
+
+Dimit is free and always will be. If it earned a place in your menu bar,
+[you can buy me a coffee](https://buymeacoffee.com/azakapro) — entirely optional,
+and it unlocks nothing, because there is nothing to unlock.
+
 ## Licence
 
 [MIT](LICENSE) · Copyright © 2026 Azizullo Temirov.

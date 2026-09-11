@@ -135,7 +135,7 @@ The feed is `https://azakapro.github.io/dimit/appcast.xml`, generated as `docs/a
 
 ### 4.4 Support
 
-Bug reports use GitHub Issues. The README may carry a single optional support link (Buy Me a Coffee) once the maintainer has an account — never a placeholder URL on a public repo; the maintainer replaces the placeholder before using it. Support buys no features. Do not add this link or any support-payment UI to the app.
+Bug reports use GitHub Issues. The README carries exactly one optional support link, [Buy Me a Coffee](https://buymeacoffee.com/azakapro). Never ship a placeholder URL on a public repo — verify any link resolves before committing it. Support buys no features. Do not add this link or any support-payment UI to the app.
 
 ## 5. Localization (EN / UZ / RU)
 
