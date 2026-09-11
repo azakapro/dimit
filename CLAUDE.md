@@ -2,7 +2,7 @@
 
 > **Build order is MVP-first (decided 2026-09-09).** Work goes in cycles C0…C7 defined in `docs/PLAN.md` §2, one PR each. C0–C6 have shipped (v0.1–v0.4): the display engine, PWM-Safe, presets, three languages, settings, scheduling, experimental DDC and release tooling. **C7 is free, open-source distribution through GitHub Releases and opt-in updates.** Every cycle starts with the prompt at the top of `docs/PLAN.md` §2, and every PR must satisfy `docs/PLAN.md` §3 and `.github/pull_request_template.md`.
 >
-> **Distribution decided 2026-09-10:** Dimit is **free and open source under the MIT licence**, copyright **2026 Azizullo Temirov**. Downloads come from [GitHub Releases](https://github.com/azakapro/dimit/releases); the README is the product page. Sparkle uses the appcast at `https://azakapro.github.io/dimit/appcast.xml`, served from the repository's `docs/` folder by GitHub Pages. §4 below and `docs/ARCHITECTURE.md` §4 define distribution and the network policy.
+> **Distribution decided 2026-09-10:** Dimit is **free and open source under the MIT licence**, copyright **2026 Azizullo Temirov**. Downloads come from [GitHub Releases](https://github.com/azakapro/dimit/releases), linked from the trilingual landing page at `https://azakapro.github.io/dimit/` (`docs/index.html`). Sparkle uses the appcast at `https://azakapro.github.io/dimit/appcast.xml`, served from the repository's `docs/` folder by GitHub Pages. §4 below and `docs/ARCHITECTURE.md` §4 define distribution and the network policy.
 >
 > **Project identity:** product name **Dimit**, bundle ID `app.dimit.mac`, author **Azizullo Temirov**.
 >
@@ -35,7 +35,7 @@ Build a native macOS menu-bar app that (1) warms the screen from 6500K down to a
 - **Identity:** product name `Dimit`, bundle ID `app.dimit.mac`, both as constants in `Config.swift` (`PRODUCT_NAME`, `PRODUCT_BUNDLE_ID`). Menu-bar name "Dimit".
 - **Build:** Xcode 26 or newer (whatever runs on the dev machine's macOS 27 beta; download from developer.apple.com, not the App Store). Swift 6 toolchain with **Swift 5 language mode** to avoid strict-concurrency churn in AppKit code. Swift Package Manager only (no CocoaPods). Dependencies allowed: `sparkle-project/Sparkle` (updates), `sindresorhus/KeyboardShortcuts` (global hotkey), `sindresorhus/LaunchAtLogin-Modern` or `SMAppService` directly. Nothing else without asking.
 - **No application server.** GitHub Releases hosts release artifacts and GitHub Pages serves the static Sparkle appcast; no backend, database or authentication service (§4).
-- **Product page:** `README.md`, with installation, tested systems and honest limitations. Release artifacts live in GitHub Releases; only the appcast needs Pages (`docs/ARCHITECTURE.md` §4).
+- **Product page:** `docs/index.html`, one self-contained trilingual page served by GitHub Pages at `https://azakapro.github.io/dimit/` — no framework, no build step, no dependency. It is the link to share; the README is the page for developers. Release artifacts live in GitHub Releases (`docs/ARCHITECTURE.md` §4).
 - **Windows (phase 2):** C++20 / Win32, no frameworks, folder `windows/`. Spec in §11.
 
 ```
@@ -54,7 +54,7 @@ dimit/
     Support/        Logger.swift, DiagnosticsBundle.swift, Persistence.swift
   DimitTests/       WarmthCurveTests, ScheduleEngineTests, GammaMathTests, DDCTests, …
   scripts/          bootstrap.sh, build_dmg.sh, notarize.sh, make_appcast.sh
-  docs/             ARCHITECTURE.md, PLAN.md, QA.md, RELEASE.md, appcast.xml
+  docs/             index.html (landing page), appcast.xml, ARCHITECTURE.md, PLAN.md, QA.md, RELEASE.md
 ```
 
 ---
@@ -119,7 +119,7 @@ State machine per display: `off → pinning → pinned(verified) | unsupported |
 
 ### 4.1 Downloads and source
 
-- Download the DMG from [GitHub Releases](https://github.com/azakapro/dimit/releases), or build the app from the source repository. The README is the product page.
+- Download the DMG from [GitHub Releases](https://github.com/azakapro/dimit/releases), or build the app from the source repository. `docs/index.html` is the product page (English, Uzbek, Russian); the README serves developers.
 - **The app is unconditional.** Every copy is fully functional forever: no key, no trial, no seat count, no activation, no expiry, no kill switch, no "pro" tier. **No code may ever gate a feature on payment.**
 - Each release attaches its DMG and Sparkle ZIP to the same GitHub Release. When signing and notarization are available, both contain the same notarized app. Until then, installation instructions must disclose the ad-hoc signature and lack of notarization.
 
@@ -286,7 +286,7 @@ Licence keys, trials, seats or activation (§4) · feature gating or payment UI 
 
 - Run `swift scripts/gamma_spike.swift` on every new macOS build before trusting the gamma path; record the result in `docs/QA.md`.
 - **There is no application backend, and adding one needs a new decision, not a commit.** No database, auth, serverless function or user-data service. GitHub Releases and the static Pages appcast handle distribution (§4.3). If a task seems to need a server, say so and stop.
-- The README is the product page. Keep its claims aligned with `docs/QA.md`; publish the appcast from `docs/` through GitHub Pages, with release binaries in GitHub Releases (`docs/ARCHITECTURE.md` §4).
+- `docs/index.html` is the product page and the README serves developers; keep the claims on both aligned with `docs/QA.md`. Pages serves `docs/` — the landing page and the appcast — with release binaries in GitHub Releases (`docs/ARCHITECTURE.md` §4). The landing page stays one dependency-free file: it exists because a GitHub repo is a poor first impression for the non-English, non-technical audience the app is localised for.
 - Stay inside the cycle's "In" list. If something in "Out" looks necessary, stop and say so instead of building it.
 - Before writing display code, write the test for the pure function it depends on.
 - Every private-API call is isolated in one file, behind a protocol, with a graceful `.unsupported` path and a comment naming the framework path and symbol.

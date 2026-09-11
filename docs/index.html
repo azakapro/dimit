@@ -2,40 +2,184 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Dimit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dimit — warm and dim your Mac's screen</title>
+<meta name="description" content="Warm your Mac's screen down to pure red. Dim it below the keyboard's floor. Stop the backlight from flickering.">
+<meta property="og:title" content="Dimit">
+<meta property="og:description" content="Warm your Mac's screen down to pure red. Dim it below the keyboard's floor. Stop the backlight from flickering.">
+<meta property="og:url" content="https://azakapro.github.io/dimit/">
 <!--
-  GitHub Pages serves this docs/ folder so Sparkle can fetch appcast.xml.
-  Dimit has no website by design (CLAUDE.md §2: the README is the product
-  page), which left this address returning a bare 404 to anyone who
-  visited it. This file exists only to send them somewhere useful.
+  The landing page. Replaces the redirect that stood here after site/ was
+  deleted: a GitHub repo is a poor first impression for the non-technical,
+  non-English audience this app is localised for, and reaching the DMG from
+  the repo took four clicks.
 
-  Keep it a redirect. If it ever grows into a landing page, that is a
-  product decision to take deliberately, not a file that quietly became
-  a site.
+  One self-contained file on purpose — no framework, no build step, no
+  dependency (CLAUDE.md §12). The Uzbek and Russian copy is recovered from
+  the deleted Astro site, which the maintainer wrote; the strings added for
+  this page still need the same fluent review docs/QA.md tracks.
+
+  Language is chosen from navigator.language, overridable by ?lang= or the
+  switcher, and every section is in the HTML so it works without JS.
 -->
-<link rel="canonical" href="https://github.com/azakapro/dimit">
-<meta http-equiv="refresh" content="0; url=https://github.com/azakapro/dimit">
-<meta name="robots" content="noindex">
 <style>
-  :root { color-scheme: light dark; }
-  body {
-    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    margin: 0; min-height: 100vh;
-    display: flex; align-items: center; justify-content: center;
-    text-align: center; padding: 2rem;
+  :root { color-scheme: light dark; --fg:#111; --dim:#666; --line:#e3e3e3; --bg:#fff; --accent:#e8502a; --warnbg:#fff8e6; --warnline:#f0d9a0; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg:#eee; --dim:#9a9a9a; --line:#2c2c2c; --bg:#151515; --warnbg:#2a2415; --warnline:#4a3f22; }
   }
-  main { max-width: 32rem; }
-  h1 { font-size: 1.5rem; margin: 0 0 .5rem; }
-  p { margin: 0 0 1rem; }
-  .muted { opacity: .7; font-size: .9rem; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:720px; margin:0 auto; padding:28px 22px 72px; }
+  nav { display:flex; gap:6px; justify-content:flex-end; margin-bottom:30px; }
+  nav button { font:inherit; font-size:14px; padding:5px 11px; border:1px solid var(--line);
+    background:none; color:var(--dim); border-radius:99px; cursor:pointer; }
+  nav button[aria-current="true"] { color:var(--fg); border-color:var(--fg); }
+  h1 { font-size:31px; line-height:1.25; letter-spacing:-.02em; margin:0 0 14px; }
+  h2 { font-size:20px; margin:44px 0 12px; }
+  h3 { font-size:15px; margin:0 0 5px; }
+  .lead { font-size:17px; color:var(--dim); margin:0 0 26px; }
+  .cta-row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:0 0 26px; }
+  .cta { display:inline-block; background:var(--accent); color:#fff; text-decoration:none;
+    font-weight:600; font-size:16px; padding:13px 26px; border-radius:10px; }
+  .cta:hover { filter:brightness(1.08); }
+  .req { font-size:13px; color:var(--dim); }
+  .warn { background:var(--warnbg); border:1px solid var(--warnline); border-radius:10px;
+    padding:13px 16px; font-size:14px; margin:0 0 28px; }
+  .warn p { margin:5px 0 0; color:var(--fg); }
+  .shots { display:flex; gap:14px; flex-wrap:wrap; margin:0 0 8px; }
+  .shots img { width:calc(50% - 7px); min-width:210px; border:1px solid var(--line); border-radius:12px; }
+  .feats { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:22px; margin:34px 0 0; }
+  .f p { margin:0; font-size:14px; color:var(--dim); }
+  .steps li { margin-bottom:12px; }
+  pre { background:rgba(128,128,128,.13); padding:11px 13px; border-radius:8px;
+    overflow-x:auto; margin:9px 0 0; }
+  code { font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .foot { margin-top:44px; padding-top:18px; border-top:1px solid var(--line);
+    font-size:14px; color:var(--dim); }
+  a { color:var(--accent); }
 </style>
 </head>
 <body>
-<main>
-  <h1>Dimit</h1>
-  <p>A free, open-source macOS menu-bar app for screen warmth, dimming and PWM-Safe backlight control.</p>
-  <p><a href="https://github.com/azakapro/dimit">Continue to the project on GitHub &rarr;</a></p>
-  <p class="muted">This address hosts the update feed only. If you are not redirected, use the link above.</p>
-</main>
+<div class="wrap">
+  <nav id="langnav">
+    <button data-l="en" type="button">English</button>
+    <button data-l="uz" type="button">O‘zbekcha</button>
+    <button data-l="ru" type="button">Русский</button>
+  </nav>
+  <section class="lang" id="en" lang="en" hidden>
+    <h1>Warm your Mac's screen down to pure red. Dim it below the keyboard's floor. Stop the backlight from flickering.</h1>
+    <p class="lead">A menu-bar app for macOS. Two sliders, three presets, one button. No account, no tracking, no subscription.</p>
+    <p class="cta-row">
+      <a class="cta" href="https://github.com/azakapro/dimit/releases/download/v0.5/Dimit-0.5.dmg">Download for Mac</a>
+      <span class="req">Requires macOS 13 Ventura or later, Apple silicon or Intel. · v0.5 beta</span>
+    </p>
+    <div class="warn"><strong>Before you download</strong><p>On <b>macOS 26</b> an Apple bug (FB22273730) makes some Macs ignore colour changes entirely. Turning off automatic brightness in System Settings → Displays fixes it on many machines; on the rest, warmth will not work until Apple fixes it. Dimming and PWM-Safe still work. macOS 27 and 15 are unaffected.</p></div>
+    <div class="shots">
+      <img src="images/popover-off.png" alt="Dimit off" loading="lazy" onerror="this.remove()">
+      <img src="images/popover-on.png" alt="Dimit on at 2700K" loading="lazy" onerror="this.remove()">
+    </div>
+    <div class="feats">
+      <div class="f"><h3>Warmth, all the way to 0K</h3><p>Night Shift stops around 2500K and f.lux around 1900K. Dimit goes to a pure red \"0K\" — a name, not a physical temperature — by rewriting the display's colour tables, so the tint is applied by the graphics hardware itself.</p></div>
+      <div class="f"><h3>Dimmer than the keys allow</h3><p>The brightness keys stop at the panel's minimum. Dimit dims in software from 100% down to 10%, on every connected display, with one slider.</p></div>
+      <div class="f"><h3>PWM-Safe mode</h3><p>Many LED backlights dim by switching on and off very fast (PWM), which some people notice as flicker or strain. PWM-Safe keeps the backlight at 100% and does all dimming in software instead, so the backlight never pulses.</p></div>
+      <div class="f"><h3>Screenshots stay normal</h3><p>Because the tint lives in the display's colour tables, screenshots, screen recordings and screen shares show the real colours at brightness 30% and above. Verified with QuickTime and Zoom on macOS 27.</p></div>
+      <div class="f"><h3>Sunset to sunrise</h3><p>Warms up at sunset and turns itself off at sunrise, computed on your Mac from your city or, if you allow it once, your location. Nothing is sent anywhere. Fixed times work too.</p></div>
+      <div class="f"><h3>Uzbek, Russian, English</h3><p>The whole app in three languages, switchable without a restart.</p></div>
+    </div>
+    <h2>Install</h2>
+    <ol class="steps">
+      <li>Open the DMG and drag <b>Dimit</b> to <b>Applications</b>.</li>
+      <li>This beta is not notarised yet, so macOS will refuse to open it. Paste this into Terminal:<pre><code>xattr -dr com.apple.quarantine /Applications/Dimit.app</code></pre></li>
+      <li>Then open Dimit. It lives in the <b>menu bar</b> — there is no Dock icon.</li>
+    </ol>
+    <p class="foot">Free and open source (MIT).
+      <a href="https://github.com/azakapro/dimit">View source on GitHub</a> ·
+      <a href="https://buymeacoffee.com/azakapro">Buy me a coffee</a>
+    </p>
+  </section>
+  <section class="lang" id="uz" lang="uz" hidden>
+    <h1>Mac ekranini to‘liq qizil ranggacha iliqlashtiring. Klaviatura chegarasidan ham pastroq xiralashtiring. Orqa yoritish miltillashini to‘xtating.</h1>
+    <p class="lead">macOS uchun menyu paneli ilovasi. Ikki slayder, uch rejim, bitta tugma. Akkaunt yo‘q, kuzatuv yo‘q, obuna yo‘q.</p>
+    <p class="cta-row">
+      <a class="cta" href="https://github.com/azakapro/dimit/releases/download/v0.5/Dimit-0.5.dmg">Mac uchun yuklab olish</a>
+      <span class="req">macOS 13 Ventura yoki undan yangisi kerak, Apple silicon yoki Intel. · v0.5 beta</span>
+    </p>
+    <div class="warn"><strong>Yuklab olishdan oldin</strong><p><b>macOS 26</b> da Apple xatosi (FB22273730) tufayli ba’zi Mac’lar rang o‘zgarishlarini butunlay e’tiborsiz qoldiradi. Tizim sozlamalari → Displeylar bo‘limida avtomatik yorqinlikni o‘chirish ko‘p kompyuterlarda yordam beradi; qolganlarida Apple tuzatmaguncha iliqlik ishlamaydi. Xiralashtirish va PWM-xavfsiz rejim ishlayveradi. macOS 27 va 15 ga ta’sir qilmaydi.</p></div>
+    <div class="shots">
+      <img src="images/popover-off.png" alt="Dimit off" loading="lazy" onerror="this.remove()">
+      <img src="images/popover-on.png" alt="Dimit on at 2700K" loading="lazy" onerror="this.remove()">
+    </div>
+    <div class="feats">
+      <div class="f"><h3>Iliqlik — 0K gacha</h3><p>Night Shift taxminan 2500K da, f.lux esa 1900K da to‘xtaydi. Dimit displeyning rang jadvallarini qayta yozib, to‘liq qizil «0K» gacha boradi (bu nom, fizik harorat emas) — rang o‘zgarishini grafika uskunasining o‘zi bajaradi.</p></div>
+      <div class="f"><h3>Tugmalar ruxsat berganidan ham xiraroq</h3><p>Yorqinlik tugmalari panelning minimumida to‘xtaydi. Dimit yorqinlikni dasturiy ravishda 100% dan 10% gacha, barcha ulangan displeylarda, bitta slayder bilan pasaytiradi.</p></div>
+      <div class="f"><h3>PWM-xavfsiz rejim</h3><p>Ko‘p LED orqa yoritishlar juda tez yonib-o‘chish (PWM) orqali xiralashadi; ba’zilar buni miltillash yoki charchoq sifatida sezadi. PWM-xavfsiz rejim orqa yoritishni 100% da ushlab, xiralashtirishni dasturiy bajaradi — orqa yoritish umuman pulslamaydi.</p></div>
+      <div class="f"><h3>Skrinshotlar oddiy qoladi</h3><p>Rang displeyning rang jadvallarida bo‘lgani uchun, 30% va undan yuqori yorqinlikda skrinshotlar, ekran yozuvlari va ekran ulashishlari haqiqiy ranglarni ko‘rsatadi. macOS 27 da QuickTime va Zoom bilan tekshirilgan.</p></div>
+      <div class="f"><h3>Quyosh botishidan chiqishigacha</h3><p>Quyosh botganda iliqlashadi, chiqqanda o‘zini o‘chiradi — shahringiz yoki (bir marta ruxsat bersangiz) joylashuvingiz asosida Mac’ingizning o‘zida hisoblanadi. Hech narsa hech qayerga yuborilmaydi. Belgilangan vaqtlar ham ishlaydi.</p></div>
+      <div class="f"><h3>O‘zbek, rus, ingliz</h3><p>Butun ilova uch tilda, qayta ishga tushirmasdan almashtiriladi.</p></div>
+    </div>
+    <h2>O‘rnatish</h2>
+    <ol class="steps">
+      <li>DMG faylni oching va <b>Dimit</b> ni <b>Applications</b> ga sudrang.</li>
+      <li>Bu beta hali notarizatsiya qilinmagan, shuning uchun macOS uni ochishdan bosh tortadi. Terminalga buni joylashtiring:<pre><code>xattr -dr com.apple.quarantine /Applications/Dimit.app</code></pre></li>
+      <li>So‘ng Dimit ni oching. U <b>menyu panelida</b> turadi — Dock belgisi yo‘q.</li>
+    </ol>
+    <p class="foot">Bepul va ochiq kodli (MIT).
+      <a href="https://github.com/azakapro/dimit">GitHub’da manba kodi</a> ·
+      <a href="https://buymeacoffee.com/azakapro">Menga qahva oling</a>
+    </p>
+  </section>
+  <section class="lang" id="ru" lang="ru" hidden>
+    <h1>Сделайте экран Mac тёплым вплоть до чистого красного. Затемните ниже предела клавиш. Остановите мерцание подсветки.</h1>
+    <p class="lead">Приложение для строки меню macOS. Два ползунка, три режима, одна кнопка. Без аккаунта, без слежки, без подписки.</p>
+    <p class="cta-row">
+      <a class="cta" href="https://github.com/azakapro/dimit/releases/download/v0.5/Dimit-0.5.dmg">Скачать для Mac</a>
+      <span class="req">Требуется macOS 13 Ventura или новее, Apple silicon или Intel. · v0.5 бета</span>
+    </p>
+    <div class="warn"><strong>Перед загрузкой</strong><p>В <b>macOS 26</b> из-за ошибки Apple (FB22273730) некоторые Mac полностью игнорируют изменение цвета. Отключение автояркости в Системных настройках → Дисплеи помогает на многих компьютерах; на остальных теплота не заработает, пока Apple не исправит ошибку. Затемнение и режим без мерцания работают. macOS 27 и 15 не затронуты.</p></div>
+    <div class="shots">
+      <img src="images/popover-off.png" alt="Dimit off" loading="lazy" onerror="this.remove()">
+      <img src="images/popover-on.png" alt="Dimit on at 2700K" loading="lazy" onerror="this.remove()">
+    </div>
+    <div class="feats">
+      <div class="f"><h3>Теплота — до 0K</h3><p>Night Shift останавливается около 2500K, f.lux — около 1900K. Dimit доходит до чистого красного «0K» (это название, а не физическая температура), переписывая цветовые таблицы дисплея, так что оттенок накладывает сама графическая система.</p></div>
+      <div class="f"><h3>Темнее, чем позволяют клавиши</h3><p>Клавиши яркости упираются в минимум панели. Dimit затемняет программно от 100% до 10%, на каждом подключённом дисплее, одним ползунком.</p></div>
+      <div class="f"><h3>Режим без мерцания (PWM)</h3><p>Многие LED-подсветки затемняются, очень быстро включаясь и выключаясь (ШИМ, PWM); некоторые воспринимают это как мерцание или напряжение. Режим без мерцания держит подсветку на 100% и затемняет программно — подсветка не пульсирует.</p></div>
+      <div class="f"><h3>Скриншоты остаются обычными</h3><p>Оттенок живёт в цветовых таблицах дисплея, поэтому скриншоты, записи экрана и демонстрация экрана показывают настоящие цвета при яркости 30% и выше. Проверено с QuickTime и Zoom на macOS 27.</p></div>
+      <div class="f"><h3>От заката до рассвета</h3><p>Теплеет на закате и выключается на рассвете — вычисляется на вашем Mac по городу или, если вы один раз разрешите, по местоположению. Ничего никуда не отправляется. Заданное время тоже работает.</p></div>
+      <div class="f"><h3>Узбекский, русский, английский</h3><p>Всё приложение на трёх языках, переключение без перезапуска.</p></div>
+    </div>
+    <h2>Установка</h2>
+    <ol class="steps">
+      <li>Откройте DMG и перетащите <b>Dimit</b> в <b>Applications</b>.</li>
+      <li>Эта бета ещё не нотаризована, поэтому macOS откажется её открыть. Вставьте это в Терминал:<pre><code>xattr -dr com.apple.quarantine /Applications/Dimit.app</code></pre></li>
+      <li>Затем откройте Dimit. Он живёт в <b>строке меню</b> — значка в Dock нет.</li>
+    </ol>
+    <p class="foot">Бесплатно и с открытым кодом (MIT).
+      <a href="https://github.com/azakapro/dimit">Исходный код на GitHub</a> ·
+      <a href="https://buymeacoffee.com/azakapro">Купить мне кофе</a>
+    </p>
+  </section>
+</div>
+<script>
+  var LANGS = ["en", "uz", "ru"];
+  function show(l) {
+    if (LANGS.indexOf(l) < 0) l = "en";
+    LANGS.forEach(function (x) { document.getElementById(x).hidden = (x !== l); });
+    document.documentElement.lang = l;
+    Array.prototype.forEach.call(document.querySelectorAll("#langnav button"), function (b) {
+      b.setAttribute("aria-current", String(b.dataset.l === l));
+    });
+    try { localStorage.setItem("dimit-lang", l); } catch (e) {}
+  }
+  var q = new URLSearchParams(location.search).get("lang");
+  var saved = null; try { saved = localStorage.getItem("dimit-lang"); } catch (e) {}
+  show(q || saved || (navigator.language || "en").slice(0, 2));
+  document.getElementById("langnav").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (b) show(b.dataset.l);
+  });
+</script>
+<noscript><style>.lang{display:block!important}.lang[hidden]{display:block!important}nav{display:none}</style></noscript>
 </body>
 </html>

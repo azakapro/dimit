@@ -1,6 +1,6 @@
 # Releasing Dimit
 
-Dimit is free and open source under the MIT licence. The README is the product page, [GitHub Releases](https://github.com/azakapro/dimit/releases) hosts downloads, and GitHub Pages serves only the update feed and repository documentation. Builds and signing run on the maintainer's Mac; signing credentials stay in the login Keychain.
+Dimit is free and open source under the MIT licence. `docs/index.html` is the product page (English, Uzbek, Russian) and the README serves developers; [GitHub Releases](https://github.com/azakapro/dimit/releases) hosts downloads, and GitHub Pages serves `docs/` — the landing page, the update feed and repository documentation. Builds and signing run on the maintainer's Mac; signing credentials stay in the login Keychain.
 
 ## 0. One-time setup
 
@@ -15,7 +15,7 @@ Developer ID signing and Sparkle archive signing are separate checks. Keep the e
 
 ### GitHub Pages
 
-Use **the `docs/` directory on `main`**, with `docs/.nojekyll` to serve files directly. This keeps feed changes in the same reviewable history as the app, avoids a separate branch or deployment tool, and requires no dependency. Repository documentation in `docs/` is public too. No DMG or zip belongs in that directory.
+Use **the `docs/` directory on `main`**, with `docs/.nojekyll` to serve files directly. It serves both `index.html` (the landing page) and `appcast.xml`. **When the version changes, update the download link and version label in `docs/index.html`** — it hard-codes a version-specific release URL on purpose, because `latest/download` must never be used (see §1). This keeps feed changes in the same reviewable history as the app, avoids a separate branch or deployment tool, and requires no dependency. Repository documentation in `docs/` is public too. No DMG or zip belongs in that directory.
 
 After reviewing the open-source conversion, the repository maintainer must make the repository public and configure **Settings → Pages → Build and deployment → Deploy from a branch → `main` → `/docs`**. This task does not change repository visibility or Pages settings. The configured appcast URL is:
 
