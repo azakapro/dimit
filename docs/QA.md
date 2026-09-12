@@ -261,6 +261,20 @@ The first time a second display has been connected to the dev machine. It closes
 
 **Housekeeping:** `m1ddc` was installed via Homebrew for the cross-check (`brew uninstall m1ddc` to remove). The maintainer's saved state was backed up before the seeded launches and restored after; Dimit was quit with SIGTERM and both displays verified neutral afterwards.
 
+### Same monitor over HDMI — identical DDC/CI result (2026-09-12)
+
+The maintainer reconnected the Xiaomi Mi Monitor over **HDMI** (the earlier session used the other cable) and asked whether PWM-Safe works on it. It does not, for the same reason, and the cable is not the reason. Probed with the production `DDCController.swift` / `BrightnessController.swift` compiled into a scratch binary, plus a raw IOAVService probe for the wire bytes.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Both displays enumerate | pass | Built-in id 1 (vendor 0x610, model 0xa051); Mi Monitor id 3, vendor **0x61a9**, model **0x27b1**. Note the model differs from the 0x2701 recorded over the previous cable on 2026-09-10 — this panel reports a different product code on this input. Recorded, not explained. |
+| Brightness backend for the built-in | pass | `DisplayServices` and `CoreDisplay` both `canControl=true`, read 1.000. |
+| Brightness backend for the Mi Monitor | **none** | All four backends report `canControl=false`, so `PWMSafeCoordinator` marks it `unsupported` — the correct verdict, and what the maintainer sees in the UI. |
+| Is there an I2C channel over HDMI at all? | **yes** | EDID read at 0x50 returns a valid header (`00 ff ff ff ff ff ff 00`), manufacturer **XMI**, product 0x27b1. So the failure is not a dead channel or a cable limitation. |
+| Does the monitor answer DDC/CI commands? | **no — same signature as before** | Get VCP 0x10 with the reference seed (0x6E) → `6e 85 c2 00 00 03 51 71`, the same `c2` error frame as 2026-09-10. With the spec seed (0x6E^0x51) → `6e 80 be` repeating: a null message, "parsed, nothing to say". EDID fine, every command refused. |
+
+**Conclusion, unchanged by the cable:** this panel's DDC/CI *command* channel is switched off or absent — see "Closing the DDC question for this monitor" above for the same finding over the other connection. PWM-Safe needs a hardware brightness backend; without DDC there is none for a third-party monitor, and no code change can produce one. **What would still change it:** finding a `DDC/CI` item in the monitor's own OSD and setting it to On, then re-running the probe. Warmth and software dimming are unaffected and continue to work on this monitor (gamma applies to both displays).
+
 ### Schedule active across display sleep/wake, two displays (2026-09-10, 01:29 local)
 
 | Check | Result | Evidence |
