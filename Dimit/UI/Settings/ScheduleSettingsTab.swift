@@ -28,11 +28,11 @@ struct ScheduleSettingsTab: View {
                     Text("schedule.manual").tag(ScheduleMode.manual)
                     Text("schedule.sun").tag(ScheduleMode.sunsetToSunrise)
                     Text("schedule.fixed").tag(ScheduleMode.fixedTimes)
+                    Text("schedule.bell").tag(ScheduleMode.bellCurve)
                 } label: {
                     Text("schedule.mode_title")
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                .pickerStyle(.menu)
             }
 
             switch appState.scheduleConfig.mode {
@@ -60,6 +60,8 @@ struct ScheduleSettingsTab: View {
                 timeSection(title: "schedule.fixed_evening_start", binding: $appState.scheduleConfig.fixedEveningStart)
                 timeSection(title: "schedule.bedtime", binding: $appState.scheduleConfig.bedtime)
                 rampSection
+            case .bellCurve:
+                bellSection
             }
         }
         .formStyle(.grouped)
@@ -157,6 +159,101 @@ struct ScheduleSettingsTab: View {
     }
 
     // MARK: - Shared rows
+
+    private var bellSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 6) {
+                bellPreview
+                    .frame(height: 54)
+                    .accessibilityHidden(true)
+            }
+            DatePicker(selection: timeOfDayAsDate($appState.scheduleConfig.fixedDayStart), displayedComponents: .hourAndMinute) {
+                Text("schedule.wake")
+            }
+            DatePicker(selection: timeOfDayAsDate($appState.scheduleConfig.peakTime), displayedComponents: .hourAndMinute) {
+                Text("schedule.peak")
+            }
+            DatePicker(selection: timeOfDayAsDate($appState.scheduleConfig.bedtime), displayedComponents: .hourAndMinute) {
+                Text("schedule.bedtime")
+            }
+            brightnessRow(title: "schedule.low_brightness", binding: Binding(
+                get: { appState.scheduleConfig.lowBrightness },
+                set: {
+                    appState.scheduleConfig.lowBrightness = $0
+                    appState.scheduleConfig.peakBrightness = max($0, appState.scheduleConfig.peakBrightness)
+                }
+            ))
+            brightnessRow(title: "schedule.peak_brightness", binding: Binding(
+                get: { appState.scheduleConfig.peakBrightness },
+                set: {
+                    appState.scheduleConfig.peakBrightness = $0
+                    appState.scheduleConfig.lowBrightness = min($0, appState.scheduleConfig.lowBrightness)
+                }
+            ))
+            if ScheduleEngine.bellTimes(on: Date(), config: appState.scheduleConfig, calendar: .current) == nil {
+                Text("schedule.bell_invalid")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func brightnessRow(title: LocalizedStringResource, binding: Binding<Double>) -> some View {
+        HStack {
+            Text(title)
+                .frame(width: 175, alignment: .leading)
+            Slider(value: binding, in: Config.minBrightness...Config.maxBrightness, step: 0.01)
+                .accessibilityLabel(Text(title))
+            Text(ValueFormatting.brightness(binding.wrappedValue))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(width: 42, alignment: .trailing)
+        }
+    }
+
+    private var bellPreview: some View {
+        let config = appState.scheduleConfig
+        let calendar = Calendar.current
+        let times = ScheduleEngine.bellTimes(on: Date(), config: config, calendar: calendar)
+        let samples: [(x: Double, target: ScheduleEngine.Resolution)] = (0...144).compactMap { index in
+            guard let times,
+                  let end = calendar.date(byAdding: .day, value: 1, to: times.wake) else { return nil }
+            let x = Double(index) / 144
+            let date = times.wake.addingTimeInterval(end.timeIntervalSince(times.wake) * x)
+            let phases = ScheduleEngine.phases(coveringDayOf: date, mode: .bellCurve, config: config, calendar: calendar)
+            guard let target = ScheduleEngine.target(at: date, phases: phases, values: appState.values(for:)) else { return nil }
+            return (x, target)
+        }
+        let gradient = Gradient(stops: samples.map { sample in
+            let rgb = WarmthCurve.rgb(kelvin: sample.target.warmthK)
+            return Gradient.Stop(color: Color(red: rgb.r, green: rgb.g, blue: rgb.b), location: sample.x)
+        })
+        return GeometryReader { geometry in
+            let huePath = Path { path in
+                for (index, sample) in samples.enumerated() {
+                    let point = CGPoint(x: sample.x * geometry.size.width,
+                                        y: (1 - sample.target.warmthK / Config.maxWarmthK) * (geometry.size.height - 6) + 3)
+                    if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                }
+            }
+            ZStack {
+                Path { path in
+                    for (index, sample) in samples.enumerated() {
+                        let point = CGPoint(x: sample.x * geometry.size.width,
+                                            y: (1 - sample.target.brightness) * (geometry.size.height - 6) + 3)
+                        if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                    }
+                }
+                .stroke(.secondary, style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
+                // A thin outline keeps the neutral (white) peak visible
+                // in light appearance as well as dark appearance.
+                huePath.stroke(.primary.opacity(0.35), lineWidth: 5)
+                huePath.stroke(LinearGradient(gradient: gradient, startPoint: .leading, endPoint: .trailing),
+                               style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            }
+        }
+    }
 
     private func timeSection(title: LocalizedStringResource, binding: Binding<TimeOfDay>) -> some View {
         Section {
